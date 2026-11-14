@@ -189,23 +189,25 @@ async function exportTeamSummaryExcel(){
  workbook.created=new Date();
  const ws=workbook.addWorksheet('Tong hop theo nhom',{views:[{state:'frozen',ySplit:3}]});
  ws.columns=[
-  {key:'team',width:20},
-  {key:'total',width:20},
-  {key:'work',width:14},
-  {key:'shortage',width:14},
+  {key:'team',width:22},
+  {key:'total',width:22},
+  {key:'work',width:16},
+  {key:'shortage',width:16},
   {key:'rate',width:20}
  ];
  // Tiêu đề và ngày báo cáo
  ws.mergeCells('A1:E1');
  ws.getCell('A1').value='Báo cáo nhân lực MM Ca C';
- ws.getCell('A1').font={name:'Arial',size:16,bold:true,color:{argb:'FF17365D'}};
- ws.getCell('A1').alignment={vertical:'middle',horizontal:'left'};
- ws.getRow(1).height=30;
+ ws.getCell('A1').font={name:'Arial',size:19,bold:true,color:{argb:'FF17365D'}};
+ ws.getCell('A1').alignment={vertical:'middle',horizontal:'left',indent:3};
+ ws.getCell('A1').font={name:'Arial',size:19,bold:true,underline:true,color:{argb:'FF17365D'}};
+ ws.getRow(1).height=38;
  ws.mergeCells('A2:E2');
  ws.getCell('A2').value=`Ngày  ${dateText}`;
- ws.getCell('A2').font={name:'Arial',size:11,bold:true};
- ws.getCell('A2').alignment={vertical:'middle',horizontal:'left'};
- ws.getRow(2).height=24;
+ ws.getCell('A2').font={name:'Arial',size:14,bold:true};
+ ws.getCell('A2').alignment={vertical:'middle',horizontal:'left',indent:3};
+ ws.getCell('A2').font={name:'Arial',size:14,bold:true,underline:true};
+ ws.getRow(2).height=32;
  // Bảng được tạo thủ công, không bật bộ lọc ở hàng tiêu đề.
  const headers=['Nhóm','Tổng nhân viên','Đi làm','Thiếu','Tỷ lệ đi làm'];
  ws.addRow(headers);
@@ -225,21 +227,21 @@ async function exportTeamSummaryExcel(){
  ws.addRow(['Tổng cộng',total,totalWork,{formula:'=C8-B8',result:totalWork-total},total?totalWork/total:0]);
  // Định dạng toàn bộ vùng dữ liệu: đường viền 4 cạnh, căn lề và nền xen kẽ.
  for(let r=3;r<=8;r++){
-  ws.getRow(r).height=24;
+  ws.getRow(r).height=34;
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
    cell.border={top:{style:'thin',color:{argb:'FF9EADBC'}},bottom:{style:'thin',color:{argb:'FF9EADBC'}},left:{style:'thin',color:{argb:'FF9EADBC'}},right:{style:'thin',color:{argb:'FF9EADBC'}}};
-   cell.alignment={vertical:'middle',horizontal:c===1?'left':'right'};
+   cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
    if(r===3){
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1F4E78'}};
-    cell.font={name:'Arial',size:11,bold:true,color:{argb:'FFFFFFFF'}};
-    cell.alignment={vertical:'middle',horizontal:c===1?'left':'center'};
+    cell.font={name:'Arial',size:14,bold:true,color:{argb:'FFFFFFFF'}};
+    cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
    }else if(r===8){
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9EAF7'}};
-    cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF1F2937'}};
+    cell.font={name:'Arial',size:14,bold:true,color:{argb:'FF1F2937'}};
    }else{
     cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:r%2===0?'FFFFFFFF':'FFF2F6FA'}};
-    cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}};
+    cell.font={name:'Arial',size:14,color:{argb:'FF1F2937'}};
    }
   }
  }
