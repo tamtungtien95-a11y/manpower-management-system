@@ -24,6 +24,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 .tag{background:#dbeafe;color:#1d4ed8;padding:4px 9px;border-radius:20px;font-size:12px}.tag.ship{background:#dcfce7;color:#166534}
 .message{padding:10px;border-radius:7px;background:#eff6ff;color:#1d4ed8;margin:10px 0;font-size:13px}
 .note{font-size:12px;color:#64748b;line-height:1.5}.status-select{min-width:190px}.status-pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#e0f2fe;color:#075985;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap}
+.click-count{background:transparent;color:#1d4ed8;padding:3px 6px;border-radius:5px;font-weight:700;text-decoration:underline;cursor:pointer}
+.click-count:hover{background:#eff6ff}.rate{font-weight:700;color:#0f766e}.dashboard-table{min-width:760px}.detail-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px}.detail-box{background:#fff;border-radius:12px;padding:20px;width:min(900px,100%);max-height:85vh;overflow:auto;box-shadow:0 20px 60px #0003}.detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.detail-head h3{margin:0}.detail-box table{min-width:650px}.metric small{display:block;color:#64748b;margin-top:5px}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
 </style>
 </head>
@@ -47,14 +49,18 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <button data-view="attendance">Điểm danh</button>
 </nav>
 <section id="dashboard" class="view active">
-<div class="cards">
-<div class="card metric"><span>Tổng nhân viên</span><strong id="totalEmp">0</strong></div>
-<div class="card metric"><span>Nhóm Kitting</span><strong id="kittingCount">0</strong></div>
-<div class="card metric"><span>Nhóm Shipment</span><strong id="shipmentCount">0</strong></div>
-<div class="card metric"><span>Nhóm Shift LD</span><strong id="shiftLdCount">0</strong></div>
-<div class="card metric"><span>Nhóm Item</span><strong id="itemCount">0</strong></div>
+<div class="panel">
+ <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div></div>
 </div>
-<div class="panel"><h3>Tổng hợp báo cáo theo ngày</h3><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"><div class="scroll"><table><thead><tr><th>Nhóm</th><th>Số nhân viên báo cáo</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div>
+<div class="cards">
+ <div class="card metric"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
+ <div class="card metric"><span>Đi làm</span><strong id="dashWork">0</strong><small id="dashWorkRate">0% tổng nhân viên</small></div>
+ <div class="card metric"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
+ <div class="card metric"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
+</div>
+<div class="panel"><h3>Tổng hợp theo trạng thái trong ngày</h3><p class="note">Bấm vào số lượng để xem danh sách nhân viên thuộc trạng thái đó. Tỷ lệ tính trên tổng nhân viên hiện có.</p><div class="scroll"><table class="dashboard-table"><thead><tr><th>Trạng thái</th><th>Số lượng</th><th>Tỷ lệ / Tổng nhân viên</th></tr></thead><tbody id="statusSummaryBody"></tbody></table></div></div>
+<div class="panel"><h3>Tổng hợp theo nhóm</h3><p class="note">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi làm</th><th>Nghỉ tự do</th><th>Nghỉ không phép</th><th>Nghỉ không lương</th><th>Nghỉ 1/2 ngày</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
+<div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 </section>
 <section id="employees" class="view">
 <div class="panel"><h3>Thông tin nhân viên</h3>
@@ -161,7 +167,39 @@ function renderEmployees(){
  $('shiftLdCount').textContent=employees.filter(x=>x.team==='Shift LD').length;
  $('itemCount').textContent=employees.filter(x=>x.team==='Item').length;
 }
-function renderDashboard(){const d=$('summaryDate').value;$('summaryBody').innerHTML=['Kitting','Shipment','Shift LD','Item'].map(t=>`<tr><td>${teamTag(t)}</td><td>${reports.filter(r=>r.date===d&&r.team===t).length}</td></tr>`).join('')}
+const TEAMS=['Kitting','Shipment','Shift LD','Item'];
+function pct(n,total){return total?`${(n/total*100).toFixed(1).replace('.',',')}%`:'0,0%'}
+function dashboardRows(){
+ const d=$('summaryDate').value;
+ const byEmployee=new Map(attendanceRecords.filter(x=>x.date===d).map(x=>[x.employee_id,x]));
+ return employees.map(e=>({...e,attendance:byEmployee.get(e.id)||null,status:byEmployee.get(e.id)?.status||'Chưa điểm danh'}));
+}
+function showDashboardDetails(kind,value,team=''){
+ const rows=dashboardRows().filter(e=>(!team||e.team===team)&&(kind==='team'?true:e.status===value));
+ const title=kind==='team'?`Danh sách nhân viên nhóm ${team}`:`Danh sách nhân viên: ${value}${team?' - '+team:''}`;
+ $('detailTitle').textContent=title;$('detailSubtitle').textContent=`Ngày ${$('summaryDate').value}: ${rows.length} nhân viên`;
+ $('detailEmployeeBody').innerHTML=rows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td>${safe(e.classification||'')}</td><td>${safe(e.status)}</td></tr>`).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
+ $('dashboardDetail').classList.remove('hidden');
+}
+window.showDashboardDetails=showDashboardDetails;
+function renderDashboard(){
+ const d=$('summaryDate').value, rows=dashboardRows(), total=rows.length;
+ const countStatus=status=>rows.filter(e=>e.status===status).length;
+ const work=countStatus('Đi làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi làm').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
+ $('dashTotal').textContent=total;$('dashWork').textContent=work;$('dashLeave').textContent=leave;$('dashPending').textContent=pending;
+ $('dashWorkRate').textContent=`${pct(work,total)} tổng nhân viên`;$('dashLeaveRate').textContent=`${pct(leave,total)} tổng nhân viên`;$('dashPendingRate').textContent=`${pct(pending,total)} tổng nhân viên`;
+ const allStatuses=[...ATTENDANCE_STATUSES,'Chưa điểm danh'];
+ $('statusSummaryBody').innerHTML=allStatuses.map(st=>{const n=countStatus(st);return `<tr><td>${safe(st)}</td><td><button class="click-count" onclick="showDashboardDetails('status','${safe(st)}')">${n}</button></td><td class="rate">${pct(n,total)}</td></tr>`}).join('')+`<tr><th>Tổng cộng</th><th>${total}</th><th>100%</th></tr>`;
+ $('teamSummaryBody').innerHTML=TEAMS.map(team=>{
+  const group=rows.filter(e=>e.team===team), n=group.length;
+  const cell=(st)=>{const c=group.filter(e=>e.status===st).length;return `<td><button class="click-count" onclick="showDashboardDetails('status','${safe(st)}','${safe(team)}')">${c}</button></td>`};
+  return `<tr><td>${teamTag(team)}</td><td><button class="click-count" onclick="showDashboardDetails('team','','${safe(team)}')">${n}</button></td>${cell('Đi làm')}${cell('Nghỉ tự do')}${cell('Nghỉ không phép')}${cell('Nghỉ không lương')}${cell('Nghỉ 1/2 ngày')}${cell('Chưa điểm danh')}<td class="rate">${pct(group.filter(e=>e.status==='Đi làm').length,n)}</td></tr>`;
+ }).join('');
+ const totalWork=work;
+ $('teamSummaryFoot').innerHTML=`<tr><th>Tổng cộng</th><th>${total}</th><th>${totalWork}</th><th>${countStatus('Nghỉ tự do')}</th><th>${countStatus('Nghỉ không phép')}</th><th>${countStatus('Nghỉ không lương')}</th><th>${countStatus('Nghỉ 1/2 ngày')}</th><th>${pending}</th><th class="rate">${pct(totalWork,total)}</th></tr>`;
+}
+$('closeDashboardDetail').onclick=()=>$('dashboardDetail').classList.add('hidden');
+$('dashboardDetail').addEventListener('click',ev=>{if(ev.target.id==='dashboardDetail')$('dashboardDetail').classList.add('hidden')});
 function renderReports(){const d=$('reportFilter').value;const a=reports.filter(x=>!d||x.date===d);$('reportBody').innerHTML=a.map((x,i)=>`<tr><td>${i+1}</td><td>${x.date}</td><td>${safe(x.code)}</td><td>${safe(x.name)}</td><td>${teamTag(x.team)}</td><td><button class="red" onclick="deleteReport('${x.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="6">Chưa có báo cáo trong ngày này</td></tr>'}
 $('loginBtn').onclick=async()=>{const b=$('loginBtn');setBusy(b,true,'Đăng nhập');const {error}=await client.auth.signInWithPassword({email:$('email').value,password:$('password').value});setBusy(b,false,'Đăng nhập');if(error)message('loginMsg',friendlyAuthError(error))};
 $('signupBtn').onclick=async()=>{const {error}=await client.auth.signUp({email:$('email').value,password:$('password').value});message('loginMsg',error?friendlyAuthError(error):'Đã gửi yêu cầu tạo tài khoản. Nếu Confirm Email đang bật, hãy xác nhận email trước khi đăng nhập.')};
