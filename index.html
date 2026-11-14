@@ -58,7 +58,6 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  <div class="card metric"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
  <div class="card metric"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
 </div>
-<div class="panel"><h3>Tổng hợp theo trạng thái trong ngày</h3><p class="note">Bấm vào số lượng để xem danh sách nhân viên thuộc trạng thái đó. Tỷ lệ tính trên tổng nhân viên hiện có.</p><div class="scroll"><table class="dashboard-table"><thead><tr><th>Trạng thái</th><th>Số lượng</th><th>Tỷ lệ / Tổng nhân viên</th></tr></thead><tbody id="statusSummaryBody"></tbody></table></div></div>
 <div class="panel"><h3>Tổng hợp theo nhóm</h3><p class="note">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi làm</th><th>Nghỉ tự do</th><th>Nghỉ không phép</th><th>Nghỉ không lương</th><th>Nghỉ 1/2 ngày</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 </section>
@@ -184,8 +183,6 @@ function renderDashboard(){
  const work=countStatus('Đi làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi làm').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
  $('dashTotal').textContent=total;$('dashWork').textContent=work;$('dashLeave').textContent=leave;$('dashPending').textContent=pending;
  $('dashWorkRate').textContent=`${pct(work,total)} tổng nhân viên`;$('dashLeaveRate').textContent=`${pct(leave,total)} tổng nhân viên`;$('dashPendingRate').textContent=`${pct(pending,total)} tổng nhân viên`;
- const allStatuses=[...ATTENDANCE_STATUSES,'Chưa điểm danh'];
- $('statusSummaryBody').innerHTML=allStatuses.map(st=>{const n=countStatus(st);return `<tr><td>${safe(st)}</td><td><button class="click-count" onclick="showDashboardDetails('status','${safe(st)}')">${n}</button></td><td class="rate">${pct(n,total)}</td></tr>`}).join('')+`<tr><th>Tổng cộng</th><th>${total}</th><th>100%</th></tr>`;
  $('teamSummaryBody').innerHTML=TEAMS.map(team=>{
   const group=rows.filter(e=>e.team===team), n=group.length;
   const cell=(st)=>{const c=group.filter(e=>e.status===st).length;return `<td><button class="click-count" onclick="showDashboardDetails('status','${safe(st)}','${safe(team)}')">${c}</button></td>`};
