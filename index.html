@@ -58,7 +58,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  <div class="card metric"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
  <div class="card metric"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
 </div>
-<div class="panel"><h3>Tổng hợp theo nhóm</h3><p class="note">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi làm</th><th>Nghỉ tự do</th><th>Nghỉ không phép</th><th>Nghỉ không lương</th><th>Nghỉ 1/2 ngày</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
+<div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div><button type="button" id="exportTeamSummary" class="gray">Tải Excel tổng hợp theo nhóm</button></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi làm</th><th>Nghỉ tự do</th><th>Nghỉ không phép</th><th>Nghỉ không lương</th><th>Nghỉ 1/2 ngày</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 </section>
 <section id="employees" class="view">
@@ -177,6 +177,39 @@ function showDashboardDetails(kind,value,team=''){
  $('dashboardDetail').classList.remove('hidden');
 }
 window.showDashboardDetails=showDashboardDetails;
+function exportTeamSummaryExcel(){
+ if(typeof XLSX==='undefined'){alert('Không tải được thư viện Excel. Vui lòng tải lại trang và thử lại.');return}
+ const rows=dashboardRows();
+ const date=$('summaryDate').value;
+ const dateText=date?date.split('-').reverse().join('/') : '';
+ const statuses=['Đi làm','Nghỉ tự do','Nghỉ không phép','Nghỉ không lương','Nghỉ 1/2 ngày','Chưa điểm danh'];
+ const headers=['Nhóm','Tổng nhân viên'];
+ statuses.forEach(st=>headers.push(st,'Tỷ lệ '+st.toLowerCase()));
+ const data=[['Báo cáo nhân lực MM Ca C theo ngày làm việc'],['Ngày làm việc: '+dateText],headers];
+ const summary=[];
+ for(const team of TEAMS){
+  const group=rows.filter(e=>e.team===team), total=group.length;
+  const record=[team,total];
+  statuses.forEach(st=>{const count=group.filter(e=>e.status===st).length;record.push(count,total?count/total:0)});
+  data.push(record);summary.push({team,total,group});
+ }
+ const total=rows.length, totalRecord=['Tổng cộng',total];
+ statuses.forEach(st=>{const count=rows.filter(e=>e.status===st).length;totalRecord.push(count,total?count/total:0)});
+ data.push(totalRecord);
+ const ws=XLSX.utils.aoa_to_sheet(data);
+ ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:headers.length-1}},{s:{r:1,c:0},e:{r:1,c:headers.length-1}}];
+ ws['!cols']=[{wch:18},{wch:16},...statuses.flatMap(()=>[{wch:19},{wch:18}])];
+ ws['!rows']=[{hpt:26},{hpt:21},{hpt:34}];
+ // Định dạng tỷ lệ dạng phần trăm trong Excel.
+ for(let r=3;r<3+TEAMS.length+1;r++){
+  for(let c=3;c<headers.length;c+=2){const cell=XLSX.utils.encode_cell({r,c});if(ws[cell])ws[cell].z='0.0%';}
+ }
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Tong hop theo nhom');
+ const safeDate=date||'khong_ngay';
+ XLSX.writeFile(wb,`Bao_cao_nhan_luc_MM_C_${safeDate}.xlsx`);
+}
+$('exportTeamSummary').onclick=exportTeamSummaryExcel;
 function renderDashboard(){
  const d=$('summaryDate').value, rows=dashboardRows(), total=rows.length;
  const countStatus=status=>rows.filter(e=>e.status===status).length;
