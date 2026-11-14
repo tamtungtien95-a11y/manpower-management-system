@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quản lý nhân lực</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#1f2937;font:15px Arial,sans-serif}
+header{background:#17365d;color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:21px;margin:0 0 5px}header p{margin:0;color:#dbeafe;font-size:13px}
+main{max-width:1150px;margin:22px auto;padding:0 15px}.hidden{display:none!important}
+.card,.panel{background:white;border:1px solid #e2e8f0;border-radius:11px;padding:17px;margin-bottom:15px}
+.login{max-width:420px;margin:55px auto}.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:13px;margin-bottom:15px}
+.metric span{color:#64748b;font-size:13px}.metric strong{display:block;font-size:29px;margin-top:7px}
+label{display:block;font-size:13px;color:#475569;margin-bottom:6px}input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:7px;font-size:14px}
+button{border:0;border-radius:7px;padding:10px 14px;background:#2563eb;color:white;font-weight:600;cursor:pointer}
+button.gray{background:#64748b}button.red{background:#dc2626}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+.tabs button{background:#dce5f2;color:#17365d}.tabs button.active{background:#2563eb;color:white}
+.view{display:none}.view.active{display:block}.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:15px}
+.toolbar input{max-width:240px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px;margin-top:13px}
+th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14px}th{background:#f8fafc;color:#475569}
+.tag{background:#dbeafe;color:#1d4ed8;padding:4px 9px;border-radius:20px;font-size:12px}.tag.ship{background:#dcfce7;color:#166534}
+.message{padding:10px;border-radius:7px;background:#eff6ff;color:#1d4ed8;margin:10px 0;font-size:13px}
+.note{font-size:12px;color:#64748b;line-height:1.5}.status-select{min-width:190px}.status-pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#e0f2fe;color:#075985;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap}
+@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:520px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><div><h1>HỆ THỐNG QUẢN LÝ NHÂN LỰC</h1><p>Quản lý nhân viên theo nhóm Kitting / Shipment / Shift LD / Item</p></div><div id="userArea"></div></header>
+
+<section id="loginView" class="card login">
+<h2>Đăng nhập hệ thống</h2>
+<p class="note">Tài khoản được tạo trong Supabase Authentication.</p>
+<label>Email</label><input id="email" type="email" placeholder="email@congty.com">
+<label style="margin-top:12px">Mật khẩu</label><input id="password" type="password" placeholder="Mật khẩu">
+<div class="actions" style="margin-top:14px"><button id="loginBtn">Đăng nhập</button><button class="gray" id="signupBtn">Tạo tài khoản</button></div>
+<div id="loginMsg" class="message hidden"></div>
+</section>
+
+<main id="app" class="hidden">
+<nav class="tabs">
+<button class="active" data-view="dashboard">Tổng quan</button>
+<button data-view="employees">Nhân viên</button>
+<button data-view="reports">Báo cáo hằng ngày</button>
+<button data-view="attendance">Điểm danh</button>
+</nav>
+<section id="dashboard" class="view active">
+<div class="cards">
+<div class="card metric"><span>Tổng nhân viên</span><strong id="totalEmp">0</strong></div>
+<div class="card metric"><span>Nhóm Kitting</span><strong id="kittingCount">0</strong></div>
+<div class="card metric"><span>Nhóm Shipment</span><strong id="shipmentCount">0</strong></div>
+<div class="card metric"><span>Nhóm Shift LD</span><strong id="shiftLdCount">0</strong></div>
+<div class="card metric"><span>Nhóm Item</span><strong id="itemCount">0</strong></div>
+</div>
+<div class="panel"><h3>Tổng hợp báo cáo theo ngày</h3><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"><div class="scroll"><table><thead><tr><th>Nhóm</th><th>Số nhân viên báo cáo</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div>
+</section>
+<section id="employees" class="view">
+<div class="panel"><h3>Thông tin nhân viên</h3>
+<form id="employeeForm"><div class="grid">
+<div><label>Ngày Vào Cty</label><input id="empHireDate" type="date"></div>
+<div><label>Mã Nhân Viên</label><input id="empCode" required></div>
+<div><label>Họ Và tên</label><input id="empName" required></div>
+<div><label>Nhóm</label><select id="empTeam"><option>Kitting</option><option>Shipment</option><option>Shift LD</option><option>Item</option></select></div>
+<div><label>Phân Loại</label><select id="empClassification"><option>Chính Thức</option><option>Thời Vụ</option><option>Sinh Viên</option></select></div>
+</div><input type="hidden" id="editId">
+<div class="actions" style="margin-top:12px"><button id="saveEmpBtn">Thêm nhân viên</button><button type="button" class="gray hidden" id="cancelEdit">Hủy</button></div></form>
+<div class="panel" style="background:#f8fafc;margin-top:16px">
+<h3>Cập nhật danh sách bằng Excel</h3>
+<p class="note">File Excel gồm 5 cột: Ngày Vào Cty, Mã Nhân Viên, Họ Và tên, Nhóm, Phân Loại. Mã đã tồn tại sẽ được cập nhật; mã mới sẽ được thêm. Nhân viên không có trong file vẫn được giữ nguyên.</p>
+<div class="actions"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="max-width:330px"><button type="button" class="gray" id="downloadTemplate">Tải file Excel mẫu</button><button type="button" class="gray" id="exportExcel">Xuất danh sách Excel</button></div>
+<div id="excelPreview" class="hidden" style="margin-top:12px">
+<div id="excelInfo" class="message"></div>
+<div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
+<div class="actions" style="margin-top:12px"><button type="button" id="applyExcel">Cập nhật lên Supabase</button><button type="button" class="gray" id="cancelExcel">Hủy</button></div></div></div>
+<div class="toolbar"><b>Danh sách nhân viên</b><input id="empSearch" placeholder="Tìm mã hoặc họ tên"></div>
+<div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Vào Cty</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Phân Loại</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
+</div></section>
+<section id="reports" class="view">
+<div class="panel"><h3>Ghi nhận nhân lực hằng ngày</h3>
+<form id="reportForm"><div class="grid">
+<div><label>Ngày báo cáo</label><input type="date" id="reportDate" required></div>
+<div><label>Nhân viên</label><select id="reportEmployee" required><option value="">-- Chọn nhân viên --</option></select></div>
+<div><label>Nhóm</label><input id="reportTeam" readonly></div>
+<div><label>&nbsp;</label><button>Lưu báo cáo</button></div>
+</div></form>
+<div class="toolbar"><b>Danh sách báo cáo</b><input type="date" id="reportFilter"></div>
+<div class="scroll"><table><thead><tr><th>STT</th><th>Ngày</th><th>Mã NV</th><th>Họ tên</th><th>Nhóm</th><th>Thao tác</th></tr></thead><tbody id="reportBody"></tbody></table></div>
+</div></section>
+<section id="attendance" class="view">
+<div class="panel">
+<h3>Điểm danh nhân viên</h3>
+<p class="note">Chọn ngày điểm danh và cập nhật trạng thái cho từng nhân viên, hoặc tải file Excel lên theo mã nhân viên. Mỗi nhân viên chỉ có một trạng thái trong một ngày.</p>
+<div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+ <div><label>Ngày điểm danh</label><input type="date" id="attendanceDate"></div>
+ <div><label>Lọc theo nhóm</label><select id="attendanceTeamFilter"><option value="">Tất cả nhóm</option><option>Kitting</option><option>Shipment</option><option>Shift LD</option><option>Item</option></select></div>
+ <div style="display:flex;align-items:end"><button type="button" id="saveAttendance">Lưu điểm danh</button></div>
+</div>
+<div class="cards" style="margin-top:14px">
+ <div class="card metric"><span>Đi làm</span><strong id="attWorkCount">0</strong></div>
+ <div class="card metric"><span>Các trạng thái nghỉ</span><strong id="attLeaveCount">0</strong></div>
+ <div class="card metric"><span>Chưa cập nhật</span><strong id="attPendingCount">0</strong></div>
+</div>
+<div class="toolbar"><b>Danh sách điểm danh</b><input id="attendanceSearch" placeholder="Tìm mã hoặc họ tên"></div>
+<div class="scroll"><table style="min-width:950px"><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+<div class="panel" style="background:#f8fafc;margin-top:18px">
+<h3 style="margin-top:0">Upload điểm danh bằng Excel</h3>
+<p class="note">Excel gồm 3 cột: <b>Mã Nhân Viên</b>, <b>Nhân Viên</b>, <b>Trạng Thái Nghỉ</b>. Ngày điểm danh lấy theo ô Ngày điểm danh ở phía trên. Các trạng thái hợp lệ: Đi làm, Nghỉ tự do, Nghỉ không phép, Nghỉ không lương, Nghỉ 1/2 ngày.</p>
+<div class="actions"><input type="file" id="attendanceExcelFile" accept=".xlsx,.xls,.csv" style="max-width:330px"><button type="button" class="gray" id="attendanceTemplate">Tải file Excel mẫu điểm danh</button><button type="button" class="gray" id="attendanceExport">Xuất điểm danh ngày</button></div>
+<div id="attendanceExcelPreview" class="hidden" style="margin-top:12px">
+ <div id="attendanceExcelInfo" class="message"></div>
+ <div class="scroll"><table style="min-width:850px"><thead><tr><th>Mã nhân viên</th><th>Nhân viên trong file</th><th>Trạng thái</th><th>Kiểm tra</th></tr></thead><tbody id="attendanceExcelPreviewBody"></tbody></table></div>
+ <div class="actions" style="margin-top:12px"><button type="button" id="applyAttendanceExcel">Cập nhật điểm danh</button><button type="button" class="gray" id="cancelAttendanceExcel">Hủy</button></div>
+</div>
+</div>
+</div></section>
+<p id="appMsg" class="note"></p>
+</main>
+<script>
+// DÁN Project URL và Publishable/anon key của Supabase vào hai dòng bên dưới.
+const SUPABASE_URL = "https://juifxigovxddvmbwquyf.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_alUSkneRYMVrZUnCmetIVQ_GK2PzWjh";
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = id => document.getElementById(id);
+let employees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [];
+
+function message(id, text){$(id).textContent=text;$(id).classList.remove('hidden')}
+
+function friendlyAuthError(error){
+ const msg=(error?.message||'Không xác định được lỗi').toLowerCase();
+ if(msg.includes('invalid login credentials')) return 'Email hoặc mật khẩu không đúng, hoặc tài khoản chưa được tạo/xác nhận trong đúng Supabase Project. Hãy kiểm tra Authentication → Users.';
+ if(msg.includes('email not confirmed')) return 'Email chưa được xác nhận. Vào Supabase → Authentication → Users để kiểm tra hoặc xác nhận tài khoản.';
+ if(msg.includes('user already registered')) return 'Email này đã có tài khoản. Hãy đăng nhập hoặc tạo lại mật khẩu trong Supabase Dashboard.';
+ if(msg.includes('password should be')) return 'Mật khẩu chưa đáp ứng yêu cầu của Supabase.';
+ return error?.message||'Đã xảy ra lỗi. Vui lòng kiểm tra kết nối Supabase.';
+}
+function teamTag(t){return `<span class="tag ${t==='Shipment'?'ship':''}">${safe(t)}</span>`}
+function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function formatDate(v){return v?String(v).slice(0,10):''}
+function setBusy(btn,busy,text){btn.disabled=busy;btn.textContent=busy?'Đang xử lý...':text}
+async function loadAll(){
+ const [e,r,a]=await Promise.all([
+  client.from('employees').select('*').order('employee_code'),
+  client.from('manpower_reports').select('*, employees(employee_code,full_name,team)').order('report_date',{ascending:false}),
+  client.from('employee_attendance').select('*, employees(employee_code,full_name,team)').order('attendance_date',{ascending:false})
+ ]);
+ if(e.error||r.error||a.error){message('appMsg',(e.error||r.error||a.error).message);return}
+ employees=e.data||[];reports=(r.data||[]).map(x=>({id:x.id,date:x.report_date,employee_id:x.employee_id,code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
+ attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
+ renderEmployees();renderReports();renderDashboard();renderAttendance();
+}
+function renderEmployees(){
+ const q=$('empSearch').value.toLowerCase();
+ const rows=employees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
+ $('employeeBody').innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
+ $('reportEmployee').innerHTML='<option value="">-- Chọn nhân viên --</option>'+employees.map(x=>`<option value="${x.id}">${safe(x.employee_code)} - ${safe(x.full_name)}</option>`).join('');
+ $('totalEmp').textContent=employees.length;
+ $('kittingCount').textContent=employees.filter(x=>x.team==='Kitting').length;
+ $('shipmentCount').textContent=employees.filter(x=>x.team==='Shipment').length;
+ $('shiftLdCount').textContent=employees.filter(x=>x.team==='Shift LD').length;
+ $('itemCount').textContent=employees.filter(x=>x.team==='Item').length;
+}
+function renderDashboard(){const d=$('summaryDate').value;$('summaryBody').innerHTML=['Kitting','Shipment','Shift LD','Item'].map(t=>`<tr><td>${teamTag(t)}</td><td>${reports.filter(r=>r.date===d&&r.team===t).length}</td></tr>`).join('')}
+function renderReports(){const d=$('reportFilter').value;const a=reports.filter(x=>!d||x.date===d);$('reportBody').innerHTML=a.map((x,i)=>`<tr><td>${i+1}</td><td>${x.date}</td><td>${safe(x.code)}</td><td>${safe(x.name)}</td><td>${teamTag(x.team)}</td><td><button class="red" onclick="deleteReport('${x.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="6">Chưa có báo cáo trong ngày này</td></tr>'}
+$('loginBtn').onclick=async()=>{const b=$('loginBtn');setBusy(b,true,'Đăng nhập');const {error}=await client.auth.signInWithPassword({email:$('email').value,password:$('password').value});setBusy(b,false,'Đăng nhập');if(error)message('loginMsg',friendlyAuthError(error))};
+$('signupBtn').onclick=async()=>{const {error}=await client.auth.signUp({email:$('email').value,password:$('password').value});message('loginMsg',error?friendlyAuthError(error):'Đã gửi yêu cầu tạo tài khoản. Nếu Confirm Email đang bật, hãy xác nhận email trước khi đăng nhập.')};
+async function showSession(session){$('loginView').classList.toggle('hidden',!!session);$('app').classList.toggle('hidden',!session);$('userArea').innerHTML=session?`<span>${safe(session.user.email)}</span> <button class="gray" id="logoutBtn">Đăng xuất</button>`:'';if(session){$('logoutBtn').onclick=()=>client.auth.signOut();await loadAll()}}
+client.auth.onAuthStateChange((_event,session)=>{showSession(session)});client.auth.getSession().then(({data})=>showSession(data.session));
+$('employeeForm').onsubmit=async ev=>{
+ ev.preventDefault();const id=$('editId').value;
+ const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),team:$('empTeam').value,classification:$('empClassification').value};
+ const result=id?await client.from('employees').update(data).eq('id',id):await client.from('employees').insert(data);
+ if(result.error){alert(result.error.message);return}
+ $('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden');await loadAll();
+};
+window.editEmployee=id=>{
+ const x=employees.find(e=>e.id===id);if(!x)return;
+ $('editId').value=x.id;$('empHireDate').value=x.hire_date||'';$('empCode').value=x.employee_code;$('empName').value=x.full_name;$('empTeam').value=x.team;$('empClassification').value=x.classification||'Chính Thức';
+ $('saveEmpBtn').textContent='Cập nhật';$('cancelEdit').classList.remove('hidden');
+};
+$('cancelEdit').onclick=()=>{$('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden')};
+window.deleteEmployee=async id=>{if(!confirm('Xóa nhân viên và các báo cáo liên quan?'))return;const {error}=await client.from('employees').delete().eq('id',id);if(error)alert(error.message);else await loadAll()};
+$('reportForm').onsubmit=async ev=>{ev.preventDefault();const {error}=await client.from('manpower_reports').insert({employee_id:$('reportEmployee').value,report_date:$('reportDate').value});if(error){alert(error.code==='23505'?'Nhân viên đã có báo cáo trong ngày này.':error.message);return}await loadAll();alert('Đã lưu báo cáo')};
+window.deleteReport=async id=>{if(!confirm('Xóa báo cáo này?'))return;const {error}=await client.from('manpower_reports').delete().eq('id',id);if(error)alert(error.message);else await loadAll()};
+$('reportEmployee').onchange=()=>{const x=employees.find(e=>e.id===$('reportEmployee').value);$('reportTeam').value=x?x.team:''};
+
+
+// ===== DIEM DANH NHAN VIEN =====
+const ATTENDANCE_STATUSES=['Đi làm','Nghỉ tự do','Nghỉ không phép','Nghỉ không lương','Nghỉ 1/2 ngày'];
+function renderAttendance(){
+ const date=$('attendanceDate').value, team=$('attendanceTeamFilter').value, q=$('attendanceSearch').value.toLowerCase();
+ const todays=new Map(attendanceRecords.filter(x=>x.date===date).map(x=>[x.employee_id,x]));
+ const filtered=employees.filter(e=>(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)));
+ $('attendanceBody').innerHTML=filtered.map((e,i)=>{
+  const current=todays.get(e.id);
+  return `<tr><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option ${current?.status===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`;
+ }).join('')||'<tr><td colspan="5">Không có nhân viên phù hợp</td></tr>';
+ const values=[...todays.values()];
+ $('attWorkCount').textContent=values.filter(x=>x.status==='Đi làm').length;
+ $('attLeaveCount').textContent=values.filter(x=>x.status!=='Đi làm').length;
+ $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
+}
+$('saveAttendance').onclick=async()=>{
+ const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
+ const payload=[...document.querySelectorAll('.attendance-status')].filter(s=>s.value).map(s=>({employee_id:s.dataset.employeeId,attendance_date:date,status:s.value}));
+ if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
+ const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
+ if(error){alert('Không lưu được điểm danh: '+error.message);return}
+ await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
+};
+$('attendanceDate').onchange=renderAttendance;
+$('attendanceTeamFilter').onchange=renderAttendance;
+$('attendanceSearch').oninput=renderAttendance;
+
+function attendanceHeader(row,aliases){return cellValue(row,aliases)}
+function previewAttendance(rows){
+ attendanceExcelRows=rows;const bad=rows.filter(x=>x.error).length;
+ $('attendanceExcelPreview').classList.remove('hidden');
+ $('attendanceExcelInfo').textContent=`Đọc được ${rows.length} dòng; ${bad} dòng lỗi. ${bad?'Hãy sửa file trước khi cập nhật.':'Dữ liệu hợp lệ.'}`;
+ $('attendanceExcelPreviewBody').innerHTML=rows.slice(0,200).map(x=>`<tr><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.status)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
+ $('applyAttendanceExcel').disabled=bad>0||!rows.length;
+}
+$('attendanceExcelFile').addEventListener('change',async ev=>{
+ const file=ev.target.files[0];if(!file)return;
+ try{
+  const wb=XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true});
+  const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:true});
+  if(!raw.length)throw new Error('File không có dữ liệu.');
+  const seen=new Set(), byCode=new Map(employees.map(e=>[e.employee_code.toLowerCase(),e]));
+  const rows=raw.map((r,i)=>{
+   const code=String(attendanceHeader(r,['Mã Nhân Viên','Mã nhân viên','Mã NV','Employee Code'])??'').trim();
+   const name=String(attendanceHeader(r,['Nhân Viên','Nhân viên','Họ Và tên','Họ và tên','Họ tên','Employee'])??'').trim();
+   const status=String(attendanceHeader(r,['Trạng Thái Nghỉ','Trạng thái nghỉ','Trạng Thái','Trạng thái','Status'])??'').trim();
+   let error='';const employee=byCode.get(code.toLowerCase());
+   if(!code)error='Thiếu mã nhân viên';
+   else if(!employee)error='Không tìm thấy mã nhân viên trong danh sách';
+   else if(!name)error='Thiếu tên nhân viên';
+   else if(name.toLowerCase()!==employee.full_name.toLowerCase())error=`Tên không khớp danh sách: ${employee.full_name}`;
+   else if(!ATTENDANCE_STATUSES.includes(status))error='Trạng thái không hợp lệ';
+   if(code&&seen.has(code.toLowerCase()))error='Trùng mã nhân viên trong file';if(code)seen.add(code.toLowerCase());
+   return {employee_id:employee?.id,employee_code:code,full_name:name,status,error,rowNumber:i+2};
+  }).filter(x=>x.employee_code||x.full_name||x.status);
+  if(!rows.length)throw new Error('Không tìm thấy dữ liệu. Kiểm tra tiêu đề cột.');
+  previewAttendance(rows);
+ }catch(err){alert('Không đọc được file điểm danh: '+err.message)}
+});
+$('applyAttendanceExcel').onclick=async()=>{
+ const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn Ngày điểm danh trước khi upload.');return}
+ if(!attendanceExcelRows.length||attendanceExcelRows.some(x=>x.error))return;
+ const payload=attendanceExcelRows.map(x=>({employee_id:x.employee_id,attendance_date:date,status:x.status}));
+ const b=$('applyAttendanceExcel');setBusy(b,true,'Đang cập nhật...');
+ const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
+ setBusy(b,false,'Cập nhật điểm danh');
+ if(error){alert('Cập nhật Excel thất bại: '+error.message);return}
+ alert(`Đã cập nhật điểm danh ${payload.length} nhân viên cho ngày ${date}.`);
+ $('attendanceExcelFile').value='';$('attendanceExcelPreview').classList.add('hidden');attendanceExcelRows=[];await loadAll();
+};
+$('cancelAttendanceExcel').onclick=()=>{$('attendanceExcelFile').value='';$('attendanceExcelPreview').classList.add('hidden');attendanceExcelRows=[]};
+function exportAttendanceWorkbook(data,fileName){
+ const ws=XLSX.utils.json_to_sheet(data,{header:['Mã Nhân Viên','Nhân Viên','Trạng Thái Nghỉ']});
+ ws['!cols']=[{wch:20},{wch:30},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'DiemDanh');XLSX.writeFile(wb,fileName);
+}
+$('attendanceTemplate').onclick=()=>{
+ const rows=employees.slice(0,4).map(e=>({'Mã Nhân Viên':e.employee_code,'Nhân Viên':e.full_name,'Trạng Thái Nghỉ':'Đi làm'}));
+ exportAttendanceWorkbook(rows.length?rows:[{'Mã Nhân Viên':'NV001','Nhân Viên':'Nguyễn Văn A','Trạng Thái Nghỉ':'Đi làm'}],'Mau_diem_danh_nhan_vien.xlsx');
+};
+$('attendanceExport').onclick=()=>{
+ const d=$('attendanceDate').value;
+ const rows=attendanceRecords.filter(x=>x.date===d).map(x=>({'Mã Nhân Viên':x.code,'Nhân Viên':x.name,'Trạng Thái Nghỉ':x.status}));
+ exportAttendanceWorkbook(rows,`Diem_danh_${d||'ngay'}.xlsx`);
+};
+
+// ===== NHAP / XUAT EXCEL =====
+let excelRows=[];
+function normHeader(s){return String(s??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d').replace(/[^a-z0-9]/g,'')}
+function cellValue(row,aliases){const keys=Object.keys(row);for(const a of aliases){const k=keys.find(x=>normHeader(x)===normHeader(a));if(k!==undefined)return row[k]}return ''}
+function parseExcelDate(v){
+ if(v===null||v===undefined||v==='')return '';
+ if(typeof v==='number'){const d=XLSX.SSF.parse_date_code(v);if(d)return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`}
+ const s=String(v).trim();let m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+ m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);if(m)return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+ return '';
+}
+function previewExcel(rows){
+ excelRows=rows;const bad=rows.filter(x=>x.error).length;
+ $('excelPreview').classList.remove('hidden');$('excelInfo').textContent=`Đọc được ${rows.length} dòng; ${bad} dòng lỗi. ${bad?'Hãy sửa file trước khi cập nhật.':'Dữ liệu hợp lệ.'}`;
+ $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>`<tr><td>${safe(x.hire_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.team)}</td><td>${safe(x.classification)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
+ $('applyExcel').disabled=bad>0||!rows.length;
+}
+$('excelFile').addEventListener('change',async ev=>{
+ const file=ev.target.files[0];if(!file)return;
+ try{
+  const buf=await file.arrayBuffer();const wb=XLSX.read(buf,{type:'array',cellDates:true});
+  const raw=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:true});
+  if(!raw.length)throw new Error('File không có dữ liệu.');
+  const seen=new Set();
+  const rows=raw.map((r,i)=>{
+   const rawDate=cellValue(r,['Ngày Vào Cty','Ngày vào công ty','Hire Date']);
+   const hire=parseExcelDate(rawDate);
+   const code=String(cellValue(r,['Mã Nhân Viên','Mã nhân viên','Mã NV'])??'').trim();
+   const name=String(cellValue(r,['Họ Và tên','Họ và tên','Họ tên'])??'').trim();
+   const team=String(cellValue(r,['Nhóm','Team'])??'').trim();
+   const classification=String(cellValue(r,['Phân Loại','Phân loại','Classification'])??'').trim();
+   let error='';
+   if(!code)error='Thiếu mã nhân viên';else if(!name)error='Thiếu họ và tên';
+   else if(!['Kitting','Shipment','Shift LD','Item'].includes(team))error='Nhóm không hợp lệ';
+   else if(!['Chính Thức','Thời Vụ','Sinh Viên'].includes(classification))error='Phân loại không hợp lệ';
+   else if(rawDate&&!hire)error='Ngày vào công ty không đúng định dạng';
+   const key=code.toLowerCase();if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
+   return {hire_date:hire||null,employee_code:code,full_name:name,team,classification,error,rowNumber:i+2};
+  }).filter(x=>x.employee_code||x.full_name||x.team||x.hire_date||x.classification);
+  if(!rows.length)throw new Error('Không tìm thấy dữ liệu. Kiểm tra tiêu đề cột.');
+  previewExcel(rows);
+ }catch(err){alert('Không đọc được file Excel: '+err.message)}
+});
+$('applyExcel').onclick=async()=>{
+ if(!excelRows.length||excelRows.some(x=>x.error))return;
+ const b=$('applyExcel');b.disabled=true;b.textContent='Đang cập nhật...';
+ const payload=excelRows.map(({hire_date,employee_code,full_name,team,classification})=>({hire_date,employee_code,full_name,team,classification}));
+ const {error}=await client.from('employees').upsert(payload,{onConflict:'employee_code'});
+ b.disabled=false;b.textContent='Cập nhật lên Supabase';
+ if(error){alert('Cập nhật thất bại: '+error.message);return}
+ alert(`Đã cập nhật ${payload.length} nhân viên. Nhân viên không có trong file được giữ nguyên.`);
+ $('excelFile').value='';$('excelPreview').classList.add('hidden');excelRows=[];await loadAll();
+};
+$('cancelExcel').onclick=()=>{$('excelFile').value='';$('excelPreview').classList.add('hidden');excelRows=[]};
+function exportWorkbook(data,fileName){
+ const ws=XLSX.utils.json_to_sheet(data,{header:['Ngày Vào Cty','Mã Nhân Viên','Họ Và tên','Nhóm','Phân Loại']});
+ ws['!cols']=[{wch:18},{wch:20},{wch:30},{wch:18},{wch:22}];
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NhanVien');XLSX.writeFile(wb,fileName);
+}
+$('downloadTemplate').onclick=()=>exportWorkbook([
+ {'Ngày Vào Cty':'2024-01-15','Mã Nhân Viên':'NV001','Họ Và tên':'Nguyễn Văn A','Nhóm':'Kitting','Phân Loại':'Chính Thức'},
+ {'Ngày Vào Cty':'2024-02-01','Mã Nhân Viên':'NV002','Họ Và tên':'Trần Văn B','Nhóm':'Shipment','Phân Loại':'Thời Vụ'},
+ {'Ngày Vào Cty':'2024-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','Nhóm':'Shift LD','Phân Loại':'Sinh Viên'},
+ {'Ngày Vào Cty':'2024-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','Nhóm':'Item','Phân Loại':'Chính Thức'}
+],'Mau_danh_sach_nhan_vien.xlsx');
+$('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':x.hire_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'Nhóm':x.team,'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
+
+$('empSearch').oninput=renderEmployees;$('summaryDate').onchange=renderDashboard;$('reportFilter').onchange=renderReports;
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));b.classList.add('active');$(b.dataset.view).classList.add('active')});
+const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;$('reportDate').value=today;$('reportFilter').value=today;$('attendanceDate').value=today;
+</script></body></html>
