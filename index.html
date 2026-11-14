@@ -5,6 +5,7 @@
 <title>Quản lý nhân lực</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f3f6fb;color:#1f2937;font:15px Arial,sans-serif}
 header{background:#17365d;color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -177,45 +178,102 @@ function showDashboardDetails(kind,value,team=''){
  $('dashboardDetail').classList.remove('hidden');
 }
 window.showDashboardDetails=showDashboardDetails;
-function exportTeamSummaryExcel(){
- if(typeof XLSX==='undefined'){alert('Không tải được thư viện Excel. Vui lòng tải lại trang và thử lại.');return}
+async function exportTeamSummaryExcel(){
+ if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện tạo bảng Excel. Vui lòng tải lại trang và thử lại.');return}
  const rows=dashboardRows();
  const date=$('summaryDate').value;
  const dateText=date?date.split('-').reverse().join('/') : '';
  const teamOrder=['Shift LD','Item','Kitting','Shipment'];
- const data=[
-  ['Báo cáo nhân lực MM Ca C'],
-  ['Ngày  '+dateText],
-  ['Nhóm','Tổng nhân viên','Đi làm','Thiếu','Tỷ lệ đi làm']
+ const workbook=new ExcelJS.Workbook();
+ workbook.creator='Hệ thống quản lý nhân lực MM';
+ workbook.created=new Date();
+ const ws=workbook.addWorksheet('Tong hop theo nhom',{views:[{state:'frozen',ySplit:3}]});
+ ws.columns=[
+  {header:'Nhóm',key:'team',width:20},
+  {header:'Tổng nhân viên',key:'total',width:20},
+  {header:'Đi làm',key:'work',width:14},
+  {header:'Thiếu',key:'shortage',width:14},
+  {header:'Tỷ lệ đi làm',key:'rate',width:20}
  ];
+ ws.mergeCells('A1:E1');
+ ws.getCell('A1').value='Báo cáo nhân lực MM Ca C';
+ ws.getCell('A1').font={name:'Arial',size:16,bold:true,color:{argb:'FF17365D'}};
+ ws.getCell('A1').alignment={vertical:'middle',horizontal:'left'};
+ ws.getRow(1).height=30;
+ ws.mergeCells('A2:E2');
+ ws.getCell('A2').value=`Ngày  ${dateText}`;
+ ws.getCell('A2').font={name:'Arial',size:11,bold:true};
+ ws.getCell('A2').alignment={vertical:'middle',horizontal:'left'};
+ ws.getRow(2).height=24;
+ const dataRows=[];
  for(const team of teamOrder){
   const group=rows.filter(e=>e.team===team);
-  const total=group.length;
-  const work=group.filter(e=>e.status==='Đi làm').length;
-  data.push([team,total,work,{f:`=C${data.length+1}-B${data.length+1}`},total?work/total:0]);
+  dataRows.push([
+   team,
+   group.length,
+   group.filter(e=>e.status==='Đi làm').length,
+   null,
+   group.length?group.filter(e=>e.status==='Đi làm').length/group.length:0
+  ]);
  }
- const totalRow=data.length+1;
- data.push(['Tổng cộng',
-  {f:`=SUM(B4:B${totalRow-1})`},
-  {f:`=SUM(C4:C${totalRow-1})`},
-  {f:`=SUM(D4:D${totalRow-1})`},
-  {f:`=IF(B${totalRow}=0,0,C${totalRow}/B${totalRow})`}
+ ws.addTable({
+  name:'BangTongHopTheoNhom',
+  ref:'A3',
+  headerRow:true,
+  totalsRow:false,
+  style:{theme:'TableStyleMedium2',showRowStripes:true},
+  columns:[
+   {name:'Nhóm'},
+   {name:'Tổng nhân viên'},
+   {name:'Đi làm'},
+   {name:'Thiếu'},
+   {name:'Tỷ lệ đi làm'}
+  ],
+  rows:dataRows
+ });
+ // Công thức thiếu = Đi làm - Tổng nhân viên, hiển thị số âm màu đỏ trong ngoặc như file mẫu.
+ for(let r=4;r<=7;r++){
+  ws.getCell(`D${r}`).value={formula:`=C${r}-B${r}`,result:dataRows[r-4][2]-dataRows[r-4][1]};
+  ws.getCell(`D${r}`).numFmt='0;[Red](0);0';
+  ws.getCell(`E${r}`).numFmt='0.0%';
+ }
+ const total=rows.length;
+ const totalWork=rows.filter(e=>e.status==='Đi làm').length;
+ ws.addRow([
+  'Tổng cộng',
+  {formula:'=SUM(B4:B7)',result:total},
+  {formula:'=SUM(C4:C7)',result:totalWork},
+  {formula:'=SUM(D4:D7)',result:totalWork-total},
+  {formula:'=IF(B8=0,0,C8/B8)',result:total?totalWork/total:0}
  ]);
- const ws=XLSX.utils.aoa_to_sheet(data);
- ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:4}},{s:{r:1,c:0},e:{r:1,c:4}}];
- ws['!cols']=[{wch:20},{wch:20},{wch:14},{wch:14},{wch:20}];
- ws['!rows']=[{hpt:28},{hpt:24},{hpt:24},{hpt:22},{hpt:22},{hpt:22},{hpt:22},{hpt:24}];
- // Giữ tỷ lệ và cách hiển thị số theo mẫu Excel người dùng cung cấp.
+ const totalRow=ws.getRow(8);
+ totalRow.font={name:'Arial',bold:true};
+ totalRow.height=24;
+ totalRow.eachCell({includeEmpty:true},cell=>{
+  cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9EAF7'}};
+  cell.border={top:{style:'thin',color:{argb:'FF7F8C9A'}},bottom:{style:'double',color:{argb:'FF7F8C9A'}},left:{style:'thin',color:{argb:'FFD0D7DE'}},right:{style:'thin',color:{argb:'FFD0D7DE'}}};
+  cell.alignment={vertical:'middle',horizontal:cell.col===1?'left':'right'};
+ });
+ ws.getCell('D8').numFmt='0;[Red](0);0';
+ ws.getCell('E8').numFmt='0.0%';
+ // Kẻ viền rõ cho toàn bộ vùng bảng; giữ định dạng kiểu bảng Excel có bộ lọc.
  for(let r=3;r<=7;r++){
-  const pctCell=ws[XLSX.utils.encode_cell({r,c:4})];
-  if(pctCell)pctCell.z='0.0%';
-  const shortage=ws[XLSX.utils.encode_cell({r,c:3})];
-  if(shortage)shortage.z='0_);[Red]\\(0\\)';
+  for(let c=1;c<=5;c++){
+   const cell=ws.getCell(r,c);
+   cell.border={top:{style:'thin',color:{argb:'FFD0D7DE'}},bottom:{style:'thin',color:{argb:'FFD0D7DE'}},left:{style:'thin',color:{argb:'FFD0D7DE'}},right:{style:'thin',color:{argb:'FFD0D7DE'}}};
+   cell.alignment={vertical:'middle',horizontal:c===1?'left':'right'};
+   cell.font={name:'Arial',size:11,...(r===3?{bold:true,color:{argb:'FFFFFFFF'}}:{})};
+  }
+  ws.getRow(r).height=23;
  }
- const wb=XLSX.utils.book_new();
- XLSX.utils.book_append_sheet(wb,ws,'Tong hop theo nhom');
- const safeDate=date||'khong_ngay';
- XLSX.writeFile(wb,`Bao_cao_nhan_luc_MM_C_${safeDate}.xlsx`);
+ ws.getRow(3).height=26;
+ ws.autoFilter={from:'A3',to:'E7'};
+ ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1};
+ ws.eachRow(row=>row.eachCell(cell=>{if(!cell.font||!cell.font.name)cell.font={name:'Arial',size:11,...cell.font};}));
+ const buffer=await workbook.xlsx.writeBuffer();
+ const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');a.href=url;a.download=`Bao_cao_nhan_luc_MM_C_${date||'khong_ngay'}.xlsx`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
 }
 $('exportTeamSummary').onclick=exportTeamSummaryExcel;
 function renderDashboard(){
