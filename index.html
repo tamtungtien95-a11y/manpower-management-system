@@ -161,11 +161,7 @@ function renderEmployees(){
  const rows=employees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
  $('employeeBody').innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
  $('reportEmployee').innerHTML='<option value="">-- Chọn nhân viên --</option>'+employees.map(x=>`<option value="${x.id}">${safe(x.employee_code)} - ${safe(x.full_name)}</option>`).join('');
- $('totalEmp').textContent=employees.length;
- $('kittingCount').textContent=employees.filter(x=>x.team==='Kitting').length;
- $('shipmentCount').textContent=employees.filter(x=>x.team==='Shipment').length;
- $('shiftLdCount').textContent=employees.filter(x=>x.team==='Shift LD').length;
- $('itemCount').textContent=employees.filter(x=>x.team==='Item').length;
+ // Các bộ đếm cũ đã được thay bằng dashTotal và bảng tổng hợp trong renderDashboard().
 }
 const TEAMS=['Kitting','Shipment','Shift LD','Item'];
 function pct(n,total){return total?`${(n/total*100).toFixed(1).replace('.',',')}%`:'0,0%'}
