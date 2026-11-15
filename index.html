@@ -173,6 +173,47 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  font-size:13px !important;
  padding:3px 5px !important;
 }
+
+/* Bố cục đã duyệt: giữ nguyên Nhóm, thu gọn Tổng giờ OT/GAP, mở rộng các cột giờ */
+#otStandardTable{
+ width:100% !important;
+ min-width:0 !important;
+ table-layout:fixed !important;
+}
+#otStandardTable th:nth-child(1),#otStandardTable td:nth-child(1){
+ width:4% !important;
+}
+#otStandardTable th:nth-child(n+2):nth-child(-n+7),
+#otStandardTable td:nth-child(n+2):nth-child(-n+7),
+#otStandardTable th:nth-child(n+9):nth-child(-n+14),
+#otStandardTable td:nth-child(n+9):nth-child(-n+14){
+ width:7.125% !important;
+}
+#otStandardTable th:nth-child(8),#otStandardTable td:nth-child(8),
+#otStandardTable th:nth-child(15),#otStandardTable td:nth-child(15),
+#otStandardTable th:nth-child(16),#otStandardTable td:nth-child(16){
+ width:3.5% !important;
+ padding-left:2px !important;
+ padding-right:2px !important;
+}
+#otStandardTable .ot-standard-input{
+ width:calc(100% - 4px) !important;
+ min-width:0 !important;
+ max-width:68px !important;
+ height:30px;
+ margin:0 auto;
+ padding:3px 3px !important;
+ box-sizing:border-box;
+ font-size:13px !important;
+ text-align:center;
+}
+#otStandardTable th,#otStandardTable td{
+ padding-left:3px !important;
+ padding-right:3px !important;
+}
+@media(max-width:760px){
+ #otStandardTable{min-width:900px !important}
+}
 </style>
 </head>
 <body>
