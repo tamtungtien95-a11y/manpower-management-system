@@ -38,7 +38,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 .note{font-size:12px;color:#64748b;line-height:1.5}.status-select{min-width:190px}.status-pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#e0f2fe;color:#075985;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap}
 .click-count{background:transparent;color:#1d4ed8;padding:3px 6px;border-radius:5px;font-weight:700;text-decoration:underline;cursor:pointer}
 .click-count:hover{background:#eff6ff}.rate{font-weight:700;color:#0f766e}.dashboard-table{min-width:760px}.team-work-chart{width:100%;min-height:220px;overflow:hidden}.team-work-chart svg{display:block;width:100%;height:auto;max-height:290px}.chart-legend{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:13px;color:#334155}.chart-legend span{display:inline-flex;align-items:center;gap:7px}.legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block}.team-chart-panel{padding:13px 16px;margin-bottom:12px}.team-chart-panel h3{font-size:16px}.detail-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px}.detail-box{background:#fff;border-radius:12px;padding:20px;width:min(900px,100%);max-height:85vh;overflow:auto;box-shadow:0 20px 60px #0003}.detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.detail-head h3{margin:0}.detail-box table{min-width:650px}.metric small{display:block;color:#64748b;margin-top:5px}
-.zalo-preview-box{width:min(1100px,100%)}.zalo-preview-content{background:#f8fafc;border:1px solid #dbe3ee;border-radius:9px;padding:14px;max-height:65vh;overflow:auto;color:#1e293b}.zalo-preview-content img{display:block;width:100%;height:auto;background:#fff;border:1px solid #dbe3ee;border-radius:6px}.zalo-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.zalo-send-button{background:#15803d}
+.report-image-preview-box{width:min(1100px,100%)}.report-image-preview-content{background:#f8fafc;border:1px solid #dbe3ee;border-radius:9px;padding:14px;max-height:65vh;overflow:auto;color:#1e293b}.report-image-preview-content img{display:block;width:100%;height:auto;background:#fff;border:1px solid #dbe3ee;border-radius:6px}.report-image-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.report-image-button{background:#15803d}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:10px;min-height:86px}.metric strong{font-size:22px}}
 
 .dashboard-export-button{white-space:nowrap;background:#64748b;color:#fff;align-self:flex-end}
@@ -277,7 +277,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </nav>
 <section id="dashboard" class="view active">
 <div class="panel">
- <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><div class="actions"><button type="button" id="previewZaloReport" class="zalo-send-button">Tải ảnh báo cáo</button><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div></div>
+ <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><div class="actions"><button type="button" id="previewReportImage" class="report-image-button">Tải ảnh báo cáo</button><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div></div>
 </div>
 <div class="cards dashboard-summary-cards">
  <div class="card metric"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
@@ -295,7 +295,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </div>
 <div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
-<div id="zaloPreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="zaloPreviewTitle"><div class="detail-box zalo-preview-box"><div class="detail-head"><div><h3 id="zaloPreviewTitle">Xem trước ảnh báo cáo</h3><p class="note" style="margin:5px 0 0">Kiểm tra ảnh báo cáo tổng hợp theo nhóm trước khi tải về máy và gửi vào nhóm Zalo.</p></div><button type="button" class="gray" id="closeZaloPreview">Đóng</button></div><div id="zaloPreviewContent" class="zalo-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="zaloSendStatus" class="note" style="margin-top:9px"></div><div class="zalo-actions"><button type="button" class="gray" id="cancelZaloSend">Đóng</button><button type="button" id="downloadZaloImage" class="zalo-send-button">Tải ảnh PNG</button></div></div></div>
+<div id="reportImagePreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reportImagePreviewTitle"><div class="detail-box report-image-preview-box"><div class="detail-head"><div><h3 id="reportImagePreviewTitle">Xem trước ảnh báo cáo</h3><p class="note" style="margin:5px 0 0">Kiểm tra ảnh báo cáo tổng hợp theo nhóm trước khi tải về máy.</p></div><button type="button" class="gray" id="closeReportImagePreview">Đóng</button></div><div id="reportImagePreviewContent" class="report-image-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="reportImageStatus" class="note" style="margin-top:9px"></div><div class="report-image-actions"><button type="button" class="gray" id="cancelReportImagePreview">Đóng</button><button type="button" id="downloadReportImage" class="report-image-button">Tải ảnh PNG</button></div></div></div>
 </section>
 <section id="employees" class="view">
 <div class="panel"><h3>Thông tin nhân viên</h3>
@@ -428,7 +428,7 @@ const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
 let employees = [], allEmployees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
 const selectedAttendanceEmployees = new Set();
-let attendanceShift='day', attendanceResetForShift=false;
+let attendanceShift='day';
 
 function message(id, text){$(id).textContent=text;$(id).classList.remove('hidden')}
 
@@ -714,7 +714,7 @@ async function exportTeamSummaryExcel(){
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');a.href=url;a.download=`Bao_cao_nhan_luc_MM_C_${date||'khong_ngay'}.xlsx`;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
-function buildZaloWorkforceReport(){
+function buildWorkforceReportImageData(){
  const date=$('summaryDate').value, rows=dashboardRows(), teamOrder=[...TEAMS];
  const dateText=date?date.split('-').reverse().join('/'):'(chưa chọn ngày)';
  const count=(list,status)=>list.filter(e=>e.status===status).length;
@@ -735,9 +735,9 @@ function buildZaloWorkforceReport(){
  else lines.push('Không có nhân viên nghỉ trong ngày này');
  return {date, dateText, total:rows.length, work, pending, leaveCount:leaveRows.length, groupRows, leaveRows:leaveRows.map(e=>({employee_code:e.employee_code||'',full_name:e.full_name||'',team:e.team||'',classification:e.classification||'',status:e.status||''})), message:lines.join('\n')};
 }
-let zaloReportImageBase64='';
-let zaloReportImageDataUrl='';
-function makeZaloReportCanvas(report){
+let reportImageBase64='';
+let reportImageDataUrl='';
+function makeWorkforceReportCanvas(report){
  const scale=2, width=1600, pad=64, inner=width-pad*2;
  const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
  const groups=report.groupRows||[], leaves=report.leaveRows||[];
@@ -773,37 +773,37 @@ function makeZaloReportCanvas(report){
  ctx.fillStyle='#64748b';ctx.font='16px Arial';ctx.fillText('Hệ thống quản lý nhân lực MM',pad,h-28);
  return canvas;
 }
-async function createZaloReportImage(report){
- const canvas=makeZaloReportCanvas(report);
+async function createWorkforceReportImage(report){
+ const canvas=makeWorkforceReportCanvas(report);
  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
  if(!blob)throw new Error('Không tạo được ảnh báo cáo.');
  const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
  return {blob,dataUrl,base64:String(dataUrl).split(',')[1]};
 }
-async function openZaloReportPreview(){
- const report=buildZaloWorkforceReport();
- $('zaloPreviewContent').innerHTML='<div class="note">Đang tạo ảnh báo cáo...</div>';
- $('zaloSendStatus').textContent='';$('downloadZaloImage').disabled=true;$('downloadZaloImage').textContent='Đang tạo ảnh...';
- $('zaloPreviewModal').classList.remove('hidden');
+async function openReportImagePreview(){
+ const report=buildWorkforceReportImageData();
+ $('reportImagePreviewContent').innerHTML='<div class="note">Đang tạo ảnh báo cáo...</div>';
+ $('reportImageStatus').textContent='';$('downloadReportImage').disabled=true;$('downloadReportImage').textContent='Đang tạo ảnh...';
+ $('reportImagePreviewModal').classList.remove('hidden');
  try{
-  const img=await createZaloReportImage(report);zaloReportImageBase64=img.base64;zaloReportImageDataUrl=img.dataUrl;
-  const image=document.createElement('img');image.alt='Ảnh xem trước báo cáo nhân lực MM';image.src=img.dataUrl;
-  $('zaloPreviewContent').replaceChildren(image);
-  $('downloadZaloImage').disabled=false;$('downloadZaloImage').textContent='Tải ảnh PNG';
- }catch(err){$('zaloPreviewContent').textContent='Không tạo được ảnh: '+(err?.message||err);$('zaloSendStatus').textContent='Vui lòng thử lại.';$('downloadZaloImage').disabled=true;$('downloadZaloImage').textContent='Tải ảnh PNG'}
+  const img=await createWorkforceReportImage(report);reportImageBase64=img.base64;reportImageDataUrl=img.dataUrl;
+  const image=document.createElement('img');image.alt='Ảnh báo cáo nhân lực MM';image.src=img.dataUrl;
+  $('reportImagePreviewContent').replaceChildren(image);
+  $('downloadReportImage').disabled=false;$('downloadReportImage').textContent='Tải ảnh PNG';
+ }catch(err){$('reportImagePreviewContent').textContent='Không tạo được ảnh: '+(err?.message||err);$('reportImageStatus').textContent='Vui lòng thử lại.';$('downloadReportImage').disabled=true;$('downloadReportImage').textContent='Tải ảnh PNG'}
 }
-function downloadZaloWorkforceReportImage(){
- if(!zaloReportImageDataUrl){$('zaloSendStatus').textContent='Chưa có ảnh báo cáo. Vui lòng tạo lại ảnh.';return;}
+function downloadWorkforceReportImage(){
+ if(!reportImageDataUrl){$('reportImageStatus').textContent='Chưa có ảnh báo cáo. Vui lòng tạo lại ảnh.';return;}
  const date=$('summaryDate')?.value||new Date().toISOString().slice(0,10);
- const link=document.createElement('a');link.href=zaloReportImageDataUrl;link.download=`Bao_cao_nhan_luc_MM_${date}.png`;
+ const link=document.createElement('a');link.href=reportImageDataUrl;link.download=`Bao_cao_nhan_luc_MM_${date}.png`;
  document.body.appendChild(link);link.click();link.remove();
- $('zaloSendStatus').textContent='Đã tải ảnh báo cáo PNG. Bạn có thể mở Zalo và gửi ảnh này vào nhóm.';
+ $('reportImageStatus').textContent='Đã tải ảnh báo cáo PNG về máy.';
 }
-$('previewZaloReport').addEventListener('click',openZaloReportPreview);
-$('closeZaloPreview').onclick=()=>$('zaloPreviewModal').classList.add('hidden');
-$('cancelZaloSend').onclick=()=>$('zaloPreviewModal').classList.add('hidden');
-$('zaloPreviewModal').addEventListener('click',ev=>{if(ev.target.id==='zaloPreviewModal')$('zaloPreviewModal').classList.add('hidden')});
-$('downloadZaloImage').addEventListener('click',downloadZaloWorkforceReportImage);
+$('previewReportImage').addEventListener('click',openReportImagePreview);
+$('closeReportImagePreview').onclick=()=>$('reportImagePreviewModal').classList.add('hidden');
+$('cancelReportImagePreview').onclick=()=>$('reportImagePreviewModal').classList.add('hidden');
+$('reportImagePreviewModal').addEventListener('click',ev=>{if(ev.target.id==='reportImagePreviewModal')$('reportImagePreviewModal').classList.add('hidden')});
+$('downloadReportImage').addEventListener('click',downloadWorkforceReportImage);
 
 $('exportTeamSummary').addEventListener('click',async()=>{
  try{
@@ -975,13 +975,11 @@ window.deleteEmployee=window.deactivateEmployee;
 // ===== DIEM DANH NHAN VIEN =====
 function setAttendanceDraftForDate(date){
  const shifts=[...new Set(attendanceRecords.filter(x=>x.date===date).map(x=>x.shift).filter(Boolean))];
- const savedShift=localStorage.getItem('attendanceShift:'+date);
- attendanceShift=shifts.includes('night')?'night':(savedShift==='night'?'night':'day');
+ attendanceShift=shifts.includes('night')?'night':'day';
  updateAttendanceShiftButtons();
  attendanceDraft=new Map(attendanceRecords
   .filter(x=>x.date===date)
   .map(x=>[String(x.employee_id),x.status]));
- attendanceResetForShift=false;
 }
 
 function updateAttendanceShiftButtons(){
@@ -992,19 +990,8 @@ function updateAttendanceShiftButtons(){
  day.classList.toggle('gray',attendanceShift!=='day');
  night.classList.toggle('gray',attendanceShift!=='night');
 }
-function chooseAttendanceShift(shift){
- // Chọn ca mới sẽ xóa toàn bộ trạng thái đang hiển thị trong bản nháp của ngày này.
- attendanceShift=shift;
- localStorage.setItem('attendanceShift:'+ $('attendanceDate').value,shift);
- attendanceDraft=new Map();
- attendanceResetForShift=true;
- updateAttendanceShiftButtons();
- $('attendanceQuickMessage').textContent=`Đã chọn ${shift==='day'?'Ca ngày 08:00–20:00':'Ca đêm 20:00–08:00'}. Trạng thái điểm danh đã được reset cho toàn bộ nhân viên trong ngày. Chọn lại trạng thái cần thiết rồi nhấn Lưu điểm danh để lưu.`;
- $('attendanceQuickMessage').classList.remove('hidden');
- renderAttendance();
-}
-$('attendanceDayShift').onclick=()=>chooseAttendanceShift('day');
-$('attendanceNightShift').onclick=()=>chooseAttendanceShift('night');
+$('attendanceDayShift').onclick=()=>{attendanceShift='day';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca ngày 08:00–20:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
+$('attendanceNightShift').onclick=()=>{attendanceShift='night';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca đêm 20:00–08:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
 
 const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Nửa Ngày Đầu','Nghỉ Nửa Ngày Sau','Nghỉ Phép','Nghỉ KHSX','Đổi Về HC'];
 $('attendanceQuickStatus').innerHTML='<option value="">-- Chọn nhanh trạng thái --</option>'+ATTENDANCE_STATUSES.map(s=>`<option value="${safe(s)}">${safe(s)}</option>`).join('');
@@ -1104,28 +1091,14 @@ $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
  const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,shift:attendanceShift}));
- if(!payload.length&&!attendanceResetForShift){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
+ if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
  const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
- if(attendanceResetForShift){
-  // Chỉ xóa dữ liệu đã lưu khi người dùng xác nhận bằng nút Lưu điểm danh.
-  const removed=await client.from('employee_attendance').delete().eq('attendance_date',date);
-  if(removed.error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không thể reset điểm danh ngày này: '+removed.error.message);return}
- }
- let saveError=null;
- if(payload.length){
-  const result=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
-  saveError=result.error;
- }
- if(!saveError){
-  const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
-  // Nếu vừa reset và chưa có trạng thái mới, không có bản ghi để lưu shift; ca được giữ ở giao diện.
-  if(shiftUpdate.error)saveError=shiftUpdate.error;
- }
+ const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
+ if(shiftUpdate.error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không cập nhật được ca cho ngày này: '+shiftUpdate.error.message);return}
+ const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
  saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';
- if(saveError){alert('Không lưu được điểm danh: '+saveError.message);return}
- const wasReset=attendanceResetForShift;
- attendanceResetForShift=false;
- await loadAll();alert(wasReset?`Đã reset điểm danh ngày ${date} và lưu ${payload.length} trạng thái mới.`:`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
+ if(error){alert('Không lưu được điểm danh: '+error.message);return}
+ await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
 $('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
 $('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
