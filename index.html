@@ -1,3 +1,4 @@
+<!-- MM-EXCEL-EXPORT-FIX: 2026-11-15-v3 -->
 <!-- MM-EXCEL-EXPORT-FIX: 2026-11-15-v2 -->
 <!doctype html>
 <html lang="vi">
@@ -198,11 +199,11 @@ async function exportTeamSummaryExcel(){
  // Một trang tính duy nhất: bảng tổng hợp ở trên, danh sách nghỉ ở bên dưới.
  const ws=workbook.addWorksheet('Bao cao nhan luc MM Ca C');
  ws.columns=[
-  {key:'colA',width:18},
-  {key:'colB',width:28},
-  {key:'colC',width:18},
-  {key:'colD',width:20},
-  {key:'colE',width:25}
+  {key:'colA',width:15},
+  {key:'colB',width:20},
+  {key:'colC',width:14},
+  {key:'colD',width:16},
+  {key:'colE',width:24}
  ];
  const thinBorder={top:{style:'thin',color:{argb:'FF9EADBC'}},bottom:{style:'thin',color:{argb:'FF9EADBC'}},left:{style:'thin',color:{argb:'FF9EADBC'}},right:{style:'thin',color:{argb:'FF9EADBC'}}};
  const whiteFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
@@ -305,7 +306,7 @@ async function exportTeamSummaryExcel(){
 
  // Cấu hình in/xem trước: cả hai bảng nằm trên cùng một trang ngang.
  ws.pageSetup={
-  paperSize:ws.PAPER_SIZE_A4,
+  paperSize:9, // A4
   orientation:'landscape',
   fitToPage:true,
   fitToWidth:1,
@@ -315,7 +316,7 @@ async function exportTeamSummaryExcel(){
  ws.pageSetup.scale=undefined;
  ws.printArea=`A1:E${lastRow}`;
  ws.views=[{state:'normal',zoomScale:85}];
- ws.properties.defaultRowHeight=24;
+ ws.properties.defaultRowHeight=22;
 
  const buffer=await workbook.xlsx.writeBuffer();
  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
