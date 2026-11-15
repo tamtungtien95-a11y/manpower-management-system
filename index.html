@@ -230,18 +230,18 @@ async function exportTeamSummaryExcel(){
  }
  dataRows.forEach((item,i)=>{
   const r=4+i;
-  ws.addRow([item.team,item.total,item.work,{formula:`=C${r}-B${r}`,result:item.work-item.total},item.rate]);
+  ws.addRow([item.team,item.total,item.work,item.work-item.total,item.rate]);
  });
  const total=rows.length;
  const totalWork=rows.filter(e=>e.status==='Đi làm').length;
- ws.addRow(['Tổng cộng',total,totalWork,{formula:'=C8-B8',result:totalWork-total},total?totalWork/total:0]);
+ ws.addRow(['Tổng cộng',total,totalWork,totalWork-total,total?totalWork/total:0]);
 
  for(let r=3;r<=8;r++){
   ws.getRow(r).height=25;
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
-   cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
+   cell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
    cell.fill=(r===3||r===8)?greenFill:whiteFill;
    if(r===3){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF17365D'}}}
    else if(r===8){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF1F2937'}}}
@@ -249,7 +249,7 @@ async function exportTeamSummaryExcel(){
   }
  }
  for(let r=4;r<=8;r++){
-  ws.getCell(`D${r}`).numFmt='[Red](#,##0);[Red](#,##0);;';
+  ws.getCell(`D${r}`).numFmt='#,##0;[Red](#,##0);;';
   ws.getCell(`E${r}`).numFmt='0.0%';
  }
 
@@ -295,7 +295,7 @@ async function exportTeamSummaryExcel(){
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
-   cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
+   cell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
    cell.fill=(r===leaveHeaderRow)?greenFill:whiteFill;
    if(r===leaveHeaderRow){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF17365D'}}}
    else {cell.font={name:'Times New Roman',size:14,color:{argb:'FF1F2937'}}}
