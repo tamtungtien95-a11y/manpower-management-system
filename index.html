@@ -52,6 +52,14 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 .attendance-metrics .metric span{font-size:11px}
 .attendance-metrics .metric strong{font-size:20px;margin-top:2px}
 @media(max-width:520px){.attendance-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.attendance-metrics .metric{padding:7px;min-height:62px}.attendance-metrics .metric strong{font-size:18px}}
+
+.dashboard-summary-cards{grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.dashboard-summary-cards .metric{padding:10px 11px;min-width:0;min-height:86px}
+.dashboard-summary-cards .metric span{font-size:12px;white-space:nowrap}
+.dashboard-summary-cards .metric strong{font-size:23px}
+.dashboard-summary-cards .metric small{font-size:10px}
+@media(max-width:1100px){.dashboard-summary-cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:650px){.dashboard-summary-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body>
@@ -91,8 +99,11 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <div class="panel">
  <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div>
 </div>
-<div class="cards">
+<div class="cards dashboard-summary-cards">
  <div class="card metric"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
+ <div class="card metric"><span>Chính Thức</span><strong id="dashOfficial">0</strong><small>Nhân viên chính thức</small></div>
+ <div class="card metric"><span>Thời Vụ</span><strong id="dashSeasonal">0</strong><small>Nhân viên thời vụ</small></div>
+ <div class="card metric"><span>Sinh Viên</span><strong id="dashStudent">0</strong><small>Nhân viên sinh viên</small></div>
  <div class="card metric"><span>Đi Làm</span><strong id="dashWork">0</strong><small id="dashWorkRate">0% tổng nhân viên</small></div>
  <div class="card metric"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
  <div class="card metric"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
@@ -542,7 +553,12 @@ function renderDashboard(){
  renderTeamWorkChart(rows);
  const countStatus=status=>rows.filter(e=>e.status===status).length;
  const work=countStatus('Đi Làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi Làm').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
- $('dashTotal').textContent=total;$('dashWork').textContent=work;$('dashLeave').textContent=leave;$('dashPending').textContent=pending;
+ const countClass=classification=>employees.filter(e=>(e.classification||'').trim()===classification).length;
+  $('dashTotal').textContent=total;
+  $('dashOfficial').textContent=countClass('Chính Thức');
+  $('dashSeasonal').textContent=countClass('Thời Vụ');
+  $('dashStudent').textContent=countClass('Sinh Viên');
+  $('dashWork').textContent=work;$('dashLeave').textContent=leave;$('dashPending').textContent=pending;
  $('dashWorkRate').textContent=`${pct(work,total)} tổng nhân viên`;$('dashLeaveRate').textContent=`${pct(leave,total)} tổng nhân viên`;$('dashPendingRate').textContent=`${pct(pending,total)} tổng nhân viên`;
  $('teamSummaryBody').innerHTML=TEAMS.map(team=>{
   const group=rows.filter(e=>e.team===team), n=group.length;
