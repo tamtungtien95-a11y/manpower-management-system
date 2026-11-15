@@ -1,3 +1,4 @@
+<!-- MM-DASHBOARD-ONLY-EXPORT-FIX-AND-DOWNLOAD-RELIABILITY-v11 -->
 <!-- MM-DASHBOARD-ONLY-EXPORT-BUTTON-v10 -->
 <!-- MM-DASHBOARD-EXPORT-BUTTON-MOVED-TO-TOP-RIGHT-v9 -->
 <!-- MM-EXCEL-WHITE-EMPTY-CELLS-AND-HIDE-GRIDLINES-v8 -->
@@ -40,6 +41,10 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 
 .dashboard-export-button{white-space:nowrap;background:#64748b;color:#fff;align-self:flex-end}
 @media(max-width:650px){.dashboard-export-button{align-self:flex-start}}
+
+#dashboard #exportTeamSummary{display:inline-flex;white-space:nowrap;background:#64748b;color:#fff;align-self:flex-end}
+.view:not(.active) #exportTeamSummary{display:none!important}
+
 </style>
 </head>
 <body>
@@ -380,9 +385,24 @@ async function exportTeamSummaryExcel(){
  const buffer=await workbook.xlsx.writeBuffer();
  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
  const url=URL.createObjectURL(blob);
- const a=document.createElement('a');a.href=url;a.download=`Bao_cao_nhan_luc_MM_C_${date||'khong_ngay'}.xlsx`;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ const a=document.createElement('a');a.href=url;a.download=`Bao_cao_nhan_luc_MM_C_${date||'khong_ngay'}.xlsx`;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
-$('exportTeamSummary').onclick=exportTeamSummaryExcel;
+$('exportTeamSummary').addEventListener('click',async()=>{
+ try{
+  const btn=$('exportTeamSummary');
+  btn.disabled=true;
+  const oldText=btn.textContent;
+  btn.textContent='Đang tạo Excel...';
+  await exportTeamSummaryExcel();
+  btn.textContent=oldText;
+  btn.disabled=false;
+ }catch(err){
+  console.error('Lỗi xuất Excel tổng hợp:',err);
+  alert('Không thể xuất Excel: '+(err?.message||err)+'. Vui lòng tải lại trang (Ctrl+F5) và thử lại.');
+  const btn=$('exportTeamSummary');
+  if(btn){btn.disabled=false;btn.textContent='Tải Excel tổng hợp theo nhóm';}
+ }
+});
 function renderTeamWorkChart(rows){
  const values=TEAMS.map(team=>{
   const group=rows.filter(e=>e.team===team);
