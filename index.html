@@ -990,8 +990,20 @@ function updateAttendanceShiftButtons(){
  day.classList.toggle('gray',attendanceShift!=='day');
  night.classList.toggle('gray',attendanceShift!=='night');
 }
-$('attendanceDayShift').onclick=()=>{attendanceShift='day';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca ngày 08:00–20:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
-$('attendanceNightShift').onclick=()=>{attendanceShift='night';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca đêm 20:00–08:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
+function resetAttendanceStatusesForShift(shift){
+ // Chốt các thay đổi đang hiển thị rồi chủ động xóa toàn bộ bản nháp trạng thái.
+ // Khi render lại, tất cả dropdown trở về '-- Chọn trạng thái --'.
+ attendanceShift=shift;
+ attendanceDraft.clear();
+ document.querySelectorAll('#attendanceBody .attendance-status').forEach(select=>{select.value='';});
+ updateAttendanceShiftButtons();
+ renderAttendance();
+ const shiftLabel=shift==='day'?'Ca ngày 08:00–20:00':'Ca đêm 20:00–08:00';
+ $('attendanceQuickMessage').textContent=`Đã chọn ${shiftLabel}. Trạng thái của toàn bộ nhân viên đã được reset về "-- Chọn trạng thái --". Hãy chọn lại trạng thái và bấm Lưu điểm danh để cập nhật.`;
+ $('attendanceQuickMessage').classList.remove('hidden');
+}
+$('attendanceDayShift').onclick=()=>resetAttendanceStatusesForShift('day');
+$('attendanceNightShift').onclick=()=>resetAttendanceStatusesForShift('night');
 
 const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Nửa Ngày Đầu','Nghỉ Nửa Ngày Sau','Nghỉ Phép','Nghỉ KHSX','Đổi Về HC'];
 $('attendanceQuickStatus').innerHTML='<option value="">-- Chọn nhanh trạng thái --</option>'+ATTENDANCE_STATUSES.map(s=>`<option value="${safe(s)}">${safe(s)}</option>`).join('');
@@ -1091,14 +1103,24 @@ $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
  const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,shift:attendanceShift}));
- if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
  const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
+ // Khi đã reset trạng thái và người dùng lưu, xóa các bản ghi cũ trong ngày trước,
+ // sau đó chỉ ghi lại những nhân viên đã được chọn trạng thái mới.
+ const existingIds=attendanceRecords.filter(x=>x.date===date).map(x=>String(x.employee_id));
+ const selectedIds=new Set(payload.map(x=>String(x.employee_id)));
+ const idsToDelete=existingIds.filter(id=>!selectedIds.has(id));
+ if(idsToDelete.length){
+  const {error:deleteError}=await client.from('employee_attendance').delete().eq('attendance_date',date).in('employee_id',idsToDelete);
+  if(deleteError){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không thể xóa trạng thái cũ: '+deleteError.message);return}
+ }
  const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
  if(shiftUpdate.error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không cập nhật được ca cho ngày này: '+shiftUpdate.error.message);return}
- const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
+ if(payload.length){
+  const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
+  if(error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không lưu được điểm danh: '+error.message);return}
+ }
  saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';
- if(error){alert('Không lưu được điểm danh: '+error.message);return}
- await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
+ await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên; các trạng thái cũ không được chọn đã được reset.`);
 };
 $('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
 $('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
