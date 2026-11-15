@@ -74,6 +74,12 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <button type="button" class="gray" id="exportEmployeeBtn">Xuất danh sách</button>
 <button type="button" class="group-btn" id="toggleGroupManagerTop">Thêm / Xóa nhóm</button>
 </div>
+<div id="attendanceNavActions" class="employee-nav-actions">
+ <button type="button" class="import-btn" id="importAttendanceBtn">Nhập data</button>
+ <button type="button" class="gray" id="attendanceTemplate">Tải file mẫu</button>
+ <button type="button" class="gray" id="attendanceExport">Xuất danh sách</button>
+ <input type="file" id="attendanceExcelFile" accept=".xlsx,.xls,.csv" style="display:none">
+</div>
 </nav>
 <section id="dashboard" class="view active">
 <div class="panel">
@@ -139,15 +145,10 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <div class="toolbar" style="flex-wrap:wrap;gap:10px"><b>Danh sách điểm danh</b><input id="attendanceSearch" placeholder="Tìm mã hoặc họ tên"></div>
 
 <div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" title="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
-<div class="panel" style="background:#f8fafc;margin-top:18px">
-<h3 style="margin-top:0">Upload điểm danh bằng Excel</h3>
-<p class="note">Excel gồm 3 cột: <b>Mã Nhân Viên</b>, <b>Nhân Viên</b>, <b>Trạng Thái Nghỉ</b>. Ngày điểm danh lấy theo ô Ngày điểm danh ở phía trên. Các trạng thái hợp lệ: Đi Làm, Nghỉ Tự Do, Nghỉ Phép, Nghỉ Không Lương, Nghỉ 1/2 Ngày.</p>
-<div class="actions"><input type="file" id="attendanceExcelFile" accept=".xlsx,.xls,.csv" style="max-width:330px"><button type="button" class="gray" id="attendanceTemplate">Tải file Excel mẫu điểm danh</button><button type="button" class="gray" id="attendanceExport">Xuất điểm danh ngày</button></div>
-<div id="attendanceExcelPreview" class="hidden" style="margin-top:12px">
+<div id="attendanceExcelPreview" class="hidden panel" style="margin-top:18px">
  <div id="attendanceExcelInfo" class="message"></div>
  <div class="scroll"><table style="min-width:850px"><thead><tr><th>Mã nhân viên</th><th>Nhân viên trong file</th><th>Trạng thái</th><th>Kiểm tra</th></tr></thead><tbody id="attendanceExcelPreviewBody"></tbody></table></div>
  <div class="actions" style="margin-top:12px"><button type="button" id="applyAttendanceExcel">Cập nhật điểm danh</button><button type="button" class="gray" id="cancelAttendanceExcel">Hủy</button></div>
-</div>
 </div>
 </div></section>
 <p id="appMsg" class="note"></p>
@@ -547,6 +548,7 @@ async function showSession(session){
  if(loadedSessionUserId===userId)return;
  loadedSessionUserId=userId;
  await loadAll();
+ restoreActiveView();
 }
 client.auth.onAuthStateChange((_event,session)=>{showSession(session)});
 client.auth.getSession().then(({data})=>showSession(data.session));
@@ -703,6 +705,7 @@ function previewAttendance(rows){
  $('attendanceExcelPreviewBody').innerHTML=rows.slice(0,200).map(x=>`<tr><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.status)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
  $('applyAttendanceExcel').disabled=bad>0||!rows.length;
 }
+$('importAttendanceBtn').onclick=()=>$('attendanceExcelFile').click();
 $('attendanceExcelFile').addEventListener('change',async ev=>{
  const file=ev.target.files[0];if(!file)return;
  try{
@@ -1065,13 +1068,22 @@ $('otSaveAll').onclick=async()=>{
 };
 window.removeSavedOt=async id=>{if(!confirm('Xóa đăng ký OT này?'))return;const {error}=await client.from('employee_overtime').delete().eq('id',id);if(error){alert(error.message);return}await loadAll();renderOvertime()};
 
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
- const target=$(b.dataset.view);
- if(!target){console.error('Không tìm thấy tab:',b.dataset.view);return}
+function activateView(viewName, remember=true){
+ const button=document.querySelector(`.tabs button[data-view="${viewName}"]`);
+ const target=$(viewName);
+ if(!button||!target)return;
  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
- b.classList.add('active');target.classList.add('active');
- $('employeeNavActions').style.display=b.dataset.view==='employees'?'flex':'none';
-});
+ button.classList.add('active');target.classList.add('active');
+ $('employeeNavActions').style.display=viewName==='employees'?'flex':'none';
+ $('attendanceNavActions').style.display=viewName==='attendance'?'flex':'none';
+ if(remember)localStorage.setItem('mmManpowerActiveTab',viewName);
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>activateView(b.dataset.view));
+function restoreActiveView(){
+ const saved=localStorage.getItem('mmManpowerActiveTab');
+ const allowed=['dashboard','employees','attendance','overtime'];
+ activateView(allowed.includes(saved)?saved:'dashboard',false);
+}
 const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;$('attendanceDate').value=today;
 </script></body></html>
