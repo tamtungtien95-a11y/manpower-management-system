@@ -475,7 +475,7 @@ function renderEmployees(){
     <td><div class="actions"><button type="button" onclick="saveInlineEmployee('${x.id}')">Cập nhật</button><button type="button" class="gray" onclick="cancelInlineEmployee()">Hủy</button></div></td>
    </tr>`;
   }
-  return `<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`;
+  return `<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button></div></td></tr>`;
  }).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
 }
 let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
@@ -850,7 +850,18 @@ window.editEmployee=id=>{
  if(firstField) firstField.focus();
 };
 $('cancelEdit').onclick=()=>{$('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden')};
-window.deleteEmployee=async id=>{if(!confirm('Ngừng hoạt động nhân viên này? Dữ liệu điểm danh và OT các ngày cũ sẽ được giữ nguyên.'))return;const today=new Date().toLocaleDateString('en-CA');const {error}=await client.from('employees').update({is_active:false,deactivated_at:today}).eq('id',id);if(error)alert('Không thể ngừng hoạt động nhân viên: '+error.message+'\\nHãy chạy migration cập nhật trước.');else await loadAll()};
+window.deactivateEmployee=async id=>{
+ const employee=employees.find(e=>String(e.id)===String(id));
+ if(!employee)return;
+ if(!confirm(`Tắt nhân viên "${employee.full_name}"?\\n\\nNhân viên sẽ không còn xuất hiện trong danh sách làm việc, điểm danh và đăng ký OT từ ngày hôm nay. Dữ liệu điểm danh, OT và báo cáo các ngày cũ vẫn được giữ nguyên.`))return;
+ const today=new Date().toLocaleDateString('en-CA');
+ const {error}=await client.from('employees').update({is_active:false,deactivated_at:today}).eq('id',id);
+ if(error){alert('Không thể tắt nhân viên: '+error.message+'\\nKiểm tra migration is_active/deactivated_at trong Supabase.');return}
+ await loadAll();
+ alert('Đã tắt nhân viên. Dữ liệu lịch sử vẫn được giữ nguyên.');
+};
+// Tương thích với các nút cũ nếu còn tham chiếu.
+window.deleteEmployee=window.deactivateEmployee;
 // ===== DIEM DANH NHAN VIEN =====
 function setAttendanceDraftForDate(date){
  const shifts=[...new Set(attendanceRecords.filter(x=>x.date===date).map(x=>x.shift).filter(Boolean))];
