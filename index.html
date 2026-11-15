@@ -204,9 +204,7 @@ async function exportTeamSummaryExcel(){
   {key:'colE',width:25}
  ];
  const thinBorder={top:{style:'thin',color:{argb:'FF9EADBC'}},bottom:{style:'thin',color:{argb:'FF9EADBC'}},left:{style:'thin',color:{argb:'FF9EADBC'}},right:{style:'thin',color:{argb:'FF9EADBC'}}};
- const headerFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9EAF7'}};
- const totalFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFD9EAD3'}};
- const altFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF2F6FA'}};
+ const whiteFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
 
  // Tiêu đề báo cáo
  ws.mergeCells('A1:E1');
@@ -243,9 +241,10 @@ async function exportTeamSummaryExcel(){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
    cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
-   if(r===3){cell.fill=headerFill;cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF17365D'}}}
-   else if(r===8){cell.fill=totalFill;cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF1F2937'}}}
-   else {if(r%2===0)cell.fill=altFill;cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}}}
+   cell.fill=whiteFill;
+   if(r===3){cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF17365D'}}}
+   else if(r===8){cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF1F2937'}}}
+   else {cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}}}
   }
  }
  for(let r=4;r<=8;r++){
@@ -286,8 +285,9 @@ async function exportTeamSummaryExcel(){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
    cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
-   if(r===leaveHeaderRow){cell.fill=headerFill;cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF17365D'}}}
-   else {if((r-leaveHeaderRow)%2===1)cell.fill=altFill;cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}}}
+   cell.fill=whiteFill;
+   if(r===leaveHeaderRow){cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF17365D'}}}
+   else {cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}}}
   }
  }
 
