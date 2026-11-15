@@ -1,3 +1,4 @@
+<!-- MM-DASHBOARD-ONLY-EXPORT-BUTTON-v10 -->
 <!-- MM-DASHBOARD-EXPORT-BUTTON-MOVED-TO-TOP-RIGHT-v9 -->
 <!-- MM-EXCEL-WHITE-EMPTY-CELLS-AND-HIDE-GRIDLINES-v8 -->
 <!-- MM-EXCEL-AUTOFIT-COLUMNS-MATCH-ANALYSIS-v7 -->
@@ -37,8 +38,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 .click-count:hover{background:#eff6ff}.rate{font-weight:700;color:#0f766e}.dashboard-table{min-width:760px}.team-work-chart{width:100%;min-height:220px;overflow:hidden}.team-work-chart svg{display:block;width:100%;height:auto;max-height:290px}.chart-legend{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:13px;color:#334155}.chart-legend span{display:inline-flex;align-items:center;gap:7px}.legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block}.team-chart-panel{padding:13px 16px;margin-bottom:12px}.team-chart-panel h3{font-size:16px}.detail-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px}.detail-box{background:#fff;border-radius:12px;padding:20px;width:min(900px,100%);max-height:85vh;overflow:auto;box-shadow:0 20px 60px #0003}.detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.detail-head h3{margin:0}.detail-box table{min-width:650px}.metric small{display:block;color:#64748b;margin-top:5px}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:10px;min-height:86px}.metric strong{font-size:22px}}
 
-.tabs .dashboard-export-button{margin-left:auto;white-space:nowrap;background:#64748b;color:#fff}
-@media(max-width:650px){.tabs .dashboard-export-button{margin-left:0}}
+.dashboard-export-button{white-space:nowrap;background:#64748b;color:#fff;align-self:flex-end}
+@media(max-width:650px){.dashboard-export-button{align-self:flex-start}}
 </style>
 </head>
 <body>
@@ -59,11 +60,10 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <button data-view="employees">Nhân viên</button>
 <button data-view="reports">Báo cáo hằng ngày</button>
 <button data-view="attendance">Điểm danh</button>
-<button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button>
 </nav>
 <section id="dashboard" class="view active">
 <div class="panel">
- <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div></div>
+ <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div>
 </div>
 <div class="cards">
  <div class="card metric"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
