@@ -671,6 +671,7 @@ function renderAttendance(){
  updateAttendanceHeaderSelectAll();
 }
 $('attendanceQuickStatus').onchange=()=>{
+ // Lưu trạng thái đang chỉnh trên bảng trước khi áp dụng nhanh.
  syncVisibleAttendanceDraft();
  const status=$('attendanceQuickStatus').value;
  if(!status)return;
@@ -680,10 +681,16 @@ $('attendanceQuickStatus').onchange=()=>{
   $('attendanceQuickStatus').value='';
   return;
  }
- selected.forEach(id=>attendanceDraft.set(String(id),status));
+ // Cập nhật bản nháp và cả ô trạng thái đang hiển thị để render không ghi đè bằng giá trị cũ.
+ selected.forEach(id=>{
+  attendanceDraft.set(String(id),status);
+  const rowSelect=document.querySelector(`#attendanceBody .attendance-status[data-employee-id="${CSS.escape(String(id))}"]`);
+  if(rowSelect)rowSelect.value=status;
+ });
  $('attendanceQuickMessage').textContent=`Đã tự động áp dụng "${status}" cho ${selected.length} nhân viên đã tích. Nhấn "Lưu điểm danh" để lưu dữ liệu.`;
  $('attendanceQuickMessage').classList.remove('hidden');
  renderAttendance();
+ $('attendanceQuickStatus').value='';
 };
 $('attendanceHeaderSelectAll').onchange=ev=>{
  const checked=ev.target.checked;
@@ -721,7 +728,9 @@ $('saveAttendance').onclick=async()=>{
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
  const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status}));
  if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
+ const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
  const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
+ saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
  await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
