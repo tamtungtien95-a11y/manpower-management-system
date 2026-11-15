@@ -205,16 +205,17 @@ async function exportTeamSummaryExcel(){
  ];
  const thinBorder={top:{style:'thin',color:{argb:'FF9EADBC'}},bottom:{style:'thin',color:{argb:'FF9EADBC'}},left:{style:'thin',color:{argb:'FF9EADBC'}},right:{style:'thin',color:{argb:'FF9EADBC'}}};
  const whiteFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFFFF'}};
+ const greenFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFC6EFD0'}};
 
  // Tiêu đề báo cáo
  ws.mergeCells('A1:E1');
- ws.getCell('A1').value='Báo cáo nhân lực MM Ca C';
- ws.getCell('A1').font={name:'Arial',size:19,bold:true,underline:true,color:{argb:'FF17365D'}};
+ ws.getCell('A1').value='BÁO CÁO NHÂN LỰC MM CA C';
+ ws.getCell('A1').font={name:'Times New Roman',size:14,bold:true,underline:true,color:{argb:'FF17365D'}};
  ws.getCell('A1').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(1).height=34;
  ws.mergeCells('A2:E2');
  ws.getCell('A2').value=`Ngày  ${dateText}`;
- ws.getCell('A2').font={name:'Arial',size:14,bold:true,underline:true};
+ ws.getCell('A2').font={name:'Times New Roman',size:14,bold:true,underline:true};
  ws.getCell('A2').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(2).height=28;
 
@@ -241,10 +242,10 @@ async function exportTeamSummaryExcel(){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
    cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
-   cell.fill=whiteFill;
-   if(r===3){cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF17365D'}}}
-   else if(r===8){cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF1F2937'}}}
-   else {cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}}}
+   cell.fill=(r===3||r===8)?greenFill:whiteFill;
+   if(r===3){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF17365D'}}}
+   else if(r===8){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF1F2937'}}}
+   else {cell.font={name:'Times New Roman',size:14,color:{argb:'FF1F2937'}}}
   }
  }
  for(let r=4;r<=8;r++){
@@ -265,12 +266,12 @@ async function exportTeamSummaryExcel(){
  // Chừa hai hàng để tách hai phần báo cáo.
  ws.mergeCells('A11:E11');
  ws.getCell('A11').value='BÁO CÁO NHÂN VIÊN NGHỈ';
- ws.getCell('A11').font={name:'Arial',size:16,bold:true,underline:true,color:{argb:'FF17365D'}};
+ ws.getCell('A11').font={name:'Times New Roman',size:14,bold:true,underline:true,color:{argb:'FF17365D'}};
  ws.getCell('A11').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(11).height=30;
  ws.mergeCells('A12:E12');
  ws.getCell('A12').value=`Ngày làm việc: ${dateText}`;
- ws.getCell('A12').font={name:'Arial',size:12,bold:true,underline:true};
+ ws.getCell('A12').font={name:'Times New Roman',size:14,bold:true,underline:true};
  ws.getCell('A12').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(12).height=24;
  ws.addRow(['ID','Họ và tên','Nhóm','Phân loại','Trạng thái nghỉ']);
@@ -285,9 +286,9 @@ async function exportTeamSummaryExcel(){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
    cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
-   cell.fill=whiteFill;
-   if(r===leaveHeaderRow){cell.font={name:'Arial',size:11,bold:true,color:{argb:'FF17365D'}}}
-   else {cell.font={name:'Arial',size:11,color:{argb:'FF1F2937'}}}
+   cell.fill=(r===leaveHeaderRow)?greenFill:whiteFill;
+   if(r===leaveHeaderRow){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF17365D'}}}
+   else {cell.font={name:'Times New Roman',size:14,color:{argb:'FF1F2937'}}}
   }
  }
 
