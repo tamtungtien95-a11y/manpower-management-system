@@ -492,7 +492,16 @@ function setAttendanceDraftForDate(date){
 }
 
 const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Phép','Nghỉ KHSX'];
+function syncVisibleAttendanceDraft(){
+ document.querySelectorAll('#attendanceBody .attendance-status').forEach(select=>{
+  const employeeId=String(select.dataset.employeeId);
+  if(select.value) attendanceDraft.set(employeeId,select.value);
+  else attendanceDraft.delete(employeeId);
+ });
+}
 function renderAttendance(){
+ // Snapshot visible rows before changing group/search, so no selection is lost on rerender.
+ syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value, team=$('attendanceTeamFilter').value, q=$('attendanceSearch').value.toLowerCase();
  const todays=new Map(attendanceRecords.filter(x=>x.date===date).map(x=>[x.employee_id,x]));
  const filtered=employees.filter(e=>(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)));
@@ -519,6 +528,7 @@ $('attendanceBody').addEventListener('change',ev=>{
  $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
 });
 $('saveAttendance').onclick=async()=>{
+ syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
  const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status}));
  if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
@@ -526,9 +536,9 @@ $('saveAttendance').onclick=async()=>{
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
  await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
-$('attendanceDate').onchange=()=>{setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
-$('attendanceTeamFilter').onchange=renderAttendance;
-$('attendanceSearch').oninput=renderAttendance;
+$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
+$('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
+$('attendanceSearch').oninput=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 
 function attendanceHeader(row,aliases){return cellValue(row,aliases)}
 function previewAttendance(rows){
