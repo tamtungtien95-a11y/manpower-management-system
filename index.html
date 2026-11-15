@@ -237,8 +237,8 @@ body.ot-column-resizing{cursor:col-resize !important;user-select:none !important
 #otStandardTable .ot-col-resizer:hover,#otStandardTable .ot-col-resizer.dragging{background:rgba(31,78,121,.35)}
 body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 
-.employee-inactive-row{background:#f8fafc;color:#64748b}
-.badge-inactive{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:600}
+.employee-inactive-row{background:#dcfce7!important;color:#166534!important}\n.employee-inactive-row td{background:#dcfce7!important;color:#166534!important}
+.badge-inactive{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:10px;background:#bbf7d0;color:#166534;font-size:11px;font-weight:600}
 </style>
 </head>
 <body>
@@ -467,7 +467,9 @@ function renderEmployees(){
  const q=$('empSearch').value.toLowerCase();
  // Hiển thị cả nhân viên đang làm và đã tắt để có thể bật lại.
  const sourceEmployees=(allEmployees&&allEmployees.length?allEmployees:employees);
- const rows=sourceEmployees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
+ const rows=sourceEmployees
+  .filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q))
+  .sort((a,b)=>Number(a.is_active===false)-Number(b.is_active===false));
  $('employeeBody').innerHTML=rows.map((x,i)=>{
   if(String(inlineEditingEmployeeId)===String(x.id)){
    const teamOpts=TEAMS.map(t=>`<option value="${safe(t)}" ${x.team===t?'selected':''}>${safe(t)}</option>`).join('');
