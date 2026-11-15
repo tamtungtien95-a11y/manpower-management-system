@@ -103,9 +103,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <div><label>Phân Loại</label><select id="empClassification"><option>Chính Thức</option><option>Thời Vụ</option><option>Sinh Viên</option></select></div>
 </div><input type="hidden" id="editId">
 <div class="actions" style="margin-top:12px"><button id="saveEmpBtn">Thêm nhân viên</button><button type="button" class="gray hidden" id="cancelEdit">Hủy</button></div></form>
-<div class="panel" style="background:#f8fafc;margin-top:16px">
- <div class="toolbar"><div><h3 style="margin:0">Quản lý nhóm nhân viên</h3><p class="note">Dùng nút “Thêm / Xóa nhóm” ở góc phải phía trên để hiện hoặc ẩn phần quản lý.</p></div></div>
- <div id="groupManagerPanel" class="hidden" style="margin-top:14px">
+<div id="groupManagerPanel" class="panel hidden" style="background:#f8fafc;margin-top:16px">
   <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
    <div><label>Tên nhóm mới</label><input id="groupName" placeholder="Nhập tên nhóm cần thêm"></div>
    <div class="actions" style="align-items:end"><button type="button" id="addGroup">Thêm nhóm</button></div>
@@ -114,15 +112,13 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
   <div class="scroll"><table><thead><tr><th>STT</th><th>Tên nhóm</th><th>Số nhân viên</th><th>Thao tác</th></tr></thead><tbody id="groupListBody"></tbody></table></div>
   <p class="note">Chỉ xóa được nhóm khi không còn nhân viên thuộc nhóm đó. Đổi tên nhóm được thực hiện bằng cách thêm nhóm mới, sau đó sửa nhóm trực tiếp tại bảng nhân viên.</p>
  </div>
-</div>
-<div class="panel" style="background:#f8fafc;margin-top:16px">
-<h3>Cập nhật danh sách bằng Excel</h3>
-<p class="note">File Excel gồm 5 cột: Ngày Vào Cty, Mã Nhân Viên, Họ Và tên, Nhóm, Phân Loại. Mã đã tồn tại sẽ được cập nhật; mã mới sẽ được thêm. Nhân viên không có trong file vẫn được giữ nguyên.</p>
-<div class="actions"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv"><button type="button" id="downloadTemplate" class="hidden">Tải file mẫu</button><button type="button" id="exportExcel" class="hidden">Xuất danh sách</button></div>
-<div id="excelPreview" class="hidden" style="margin-top:12px">
+<input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="display:none">
+<button type="button" id="downloadTemplate" class="hidden">Tải file mẫu</button>
+<button type="button" id="exportExcel" class="hidden">Xuất danh sách</button>
+<div id="excelPreview" class="hidden panel" style="margin-top:12px">
 <div id="excelInfo" class="message"></div>
 <div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
-<div class="actions" style="margin-top:12px"><button type="button" id="applyExcel">Cập nhật lên Supabase</button><button type="button" class="gray" id="cancelExcel">Hủy</button></div></div></div>
+<div class="actions" style="margin-top:12px"><button type="button" id="applyExcel">Cập nhật lên Supabase</button><button type="button" class="gray" id="cancelExcel">Hủy</button></div></div>
 <div class="toolbar"><b>Danh sách nhân viên</b><input id="empSearch" placeholder="Tìm mã hoặc họ tên"></div>
 <div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Vào Cty</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Phân Loại</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
 </div></section>
