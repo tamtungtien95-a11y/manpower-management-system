@@ -1,3 +1,6 @@
+<!-- MM-EXCEL-REMOVE-BORDER-LEAVE-DATE-ROW-v6 -->
+<!-- MM-EXCEL-WHITE-SPACER-AREA-FIX-v5 -->
+<!-- MM-EXCEL-EXPORT-APPROVED-LAYOUT-FIX-v4 -->
 <!-- MM-EXCEL-EXPORT-FIX: 2026-11-15-v3 -->
 <!-- MM-EXCEL-EXPORT-FIX: 2026-11-15-v2 -->
 <!doctype html>
@@ -212,13 +215,13 @@ async function exportTeamSummaryExcel(){
  // Tiêu đề báo cáo
  ws.mergeCells('A1:E1');
  ws.getCell('A1').value='BÁO CÁO NHÂN LỰC MM CA C';
- ws.getCell('A1').font={name:'Times New Roman',size:14,bold:true,underline:true,color:{argb:'FF17365D'}};
- ws.getCell('A1').alignment={vertical:'middle',horizontal:'left',indent:3};
+ ws.getCell('A1').font={name:'Times New Roman',size:14,bold:true,underline:false,color:{argb:'FF17365D'}};
+ ws.getCell('A1').alignment={vertical:'middle',horizontal:'left',indent:0};
  ws.getRow(1).height=34;
  ws.mergeCells('A2:E2');
  ws.getCell('A2').value=`NGÀY  ${dateText}`;
  ws.getCell('A2').font={name:'Times New Roman',size:14,bold:true,underline:true};
- ws.getCell('A2').alignment={vertical:'middle',horizontal:'left',indent:3};
+ ws.getCell('A2').alignment={vertical:'middle',horizontal:'left',indent:0};
  ws.getRow(2).height=28;
 
  // Bảng tổng hợp theo nhóm
@@ -268,23 +271,41 @@ async function exportTeamSummaryExcel(){
  // Chừa hai hàng để tách hai phần báo cáo.
  ws.mergeCells('A11:E11');
  ws.getCell('A11').value='BÁO CÁO NHÂN VIÊN NGHỈ';
- ws.getCell('A11').font={name:'Times New Roman',size:14,bold:true,underline:true,color:{argb:'FF17365D'}};
- ws.getCell('A11').alignment={vertical:'middle',horizontal:'left',indent:3};
+ ws.getCell('A11').font={name:'Times New Roman',size:14,bold:true,underline:false,color:{argb:'FF17365D'}};
+ ws.getCell('A11').alignment={vertical:'middle',horizontal:'left',indent:0};
  ws.getRow(11).height=30;
  ws.mergeCells('A12:E12');
  ws.getCell('A12').value=`NGÀY  ${dateText}`;
- ws.getCell('A12').font={name:'Times New Roman',size:14,bold:true,underline:true};
- ws.getCell('A12').alignment={vertical:'middle',horizontal:'left',indent:3};
+ ws.getCell('A12').font={name:'Times New Roman',size:14,bold:true,underline:false};
+ ws.getCell('A12').alignment={vertical:'middle',horizontal:'left',indent:0};
  ws.getRow(12).height=24;
 
  // Tiêu đề và ngày báo cáo không kẻ đường viền ô.
  [1,2,11,12].forEach(r=>{
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
-   cell.border={};
+   cell.border={
+    top:{style:'none'},bottom:{style:'none'},
+    left:{style:'none'},right:{style:'none'}
+   };
    cell.fill=whiteFill;
+   cell.alignment={vertical:'middle',horizontal:'left',indent:0};
+   const oldFont=cell.font||{};
+   cell.font={...oldFont,name:'Times New Roman',size:14,bold:true,underline:false};
   }
  });
+ // Khu vực ngăn cách giữa hai bảng luôn nền trắng, không có viền ô.
+ [9,10,11,12].forEach(r=>{
+  for(let c=1;c<=5;c++){
+   const cell=ws.getCell(r,c);
+   cell.fill=whiteFill;
+   cell.border={
+    top:{style:'none'},bottom:{style:'none'},
+    left:{style:'none'},right:{style:'none'}
+   };
+  }
+ });
+ ws.views=[{state:'normal',showGridLines:false}];
 
  ws.addRow(['ID','Họ và tên','Nhóm','Phân loại','Trạng thái nghỉ']);
  leaveRows.forEach(e=>ws.addRow([e.employee_code||'',e.full_name||'',e.team||'',e.classification||'',e.status||'']));
