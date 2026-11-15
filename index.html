@@ -95,6 +95,53 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 @media(max-width:760px){
  #otStandardTable{min-width:760px !important}
 }
+
+/* Cân đối lại bảng tiêu chuẩn OT: cột nhóm gọn, ô nhập đủ rộng và số dễ đọc */
+#otStandardTable{
+ width:100% !important;
+ min-width:0 !important;
+ table-layout:fixed !important;
+ border-collapse:collapse;
+ font-size:12px;
+}
+#otStandardTable th,#otStandardTable td{
+ padding:6px 4px !important;
+ white-space:nowrap;
+ overflow:visible;
+ text-overflow:clip;
+ box-sizing:border-box;
+}
+#otStandardTable th{font-size:12px;line-height:1.2}
+#otStandardTable th:nth-child(1),#otStandardTable td:nth-child(1){
+ width:8% !important;
+ text-align:left;
+ padding-left:6px !important;
+}
+#otStandardTable th:nth-child(n+2):nth-child(-n+7),
+#otStandardTable td:nth-child(n+2):nth-child(-n+7),
+#otStandardTable th:nth-child(n+9):nth-child(-n+14),
+#otStandardTable td:nth-child(n+9):nth-child(-n+14){
+ width:5.5% !important;
+ text-align:center;
+}
+#otStandardTable th:nth-child(8),#otStandardTable td:nth-child(8),
+#otStandardTable th:nth-child(15),#otStandardTable td:nth-child(15){width:8.5% !important}
+#otStandardTable th:nth-child(16),#otStandardTable td:nth-child(16){width:9% !important}
+#otStandardTable .ot-standard-input{
+ display:block;
+ width:100% !important;
+ max-width:48px !important;
+ min-width:38px !important;
+ height:27px;
+ margin:0 auto;
+ padding:3px 4px !important;
+ box-sizing:border-box;
+ font-size:12px !important;
+ text-align:center;
+}
+@media(max-width:760px){
+ #otStandardTable{min-width:900px !important}
+}
 </style>
 </head>
 <body>
