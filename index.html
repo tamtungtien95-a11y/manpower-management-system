@@ -214,6 +214,18 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 @media(max-width:760px){
  #otStandardTable{min-width:900px !important}
 }
+
+/* Cho phép kéo thay đổi độ rộng từng cột giờ OT */
+#otStandardTable{position:relative;}
+#otStandardTable th.ot-resizable{position:relative;}
+#otStandardTable .ot-col-resizer{
+ position:absolute;top:0;right:-2px;width:7px;height:100%;
+ cursor:col-resize;user-select:none;touch-action:none;z-index:5;
+}
+#otStandardTable .ot-col-resizer:hover,
+#otStandardTable .ot-col-resizer.dragging{background:rgba(31,78,121,.35);}
+body.ot-column-resizing{cursor:col-resize !important;user-select:none !important;}
+
 </style>
 </head>
 <body>
@@ -1328,4 +1340,58 @@ function restoreActiveView(){
  activateView(allowed.includes(saved)?saved:'dashboard',false);
 }
 const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;$('attendanceDate').value=today;
+
+
+// Cho phép kéo rộng/thu hẹp riêng 12 cột giờ trong bảng tiêu chuẩn OT.
+(function enableOtHourColumnResize(){
+ const table=document.getElementById('otStandardTable');
+ if(!table || table.dataset.resizeReady==='1') return;
+ table.dataset.resizeReady='1';
+ const hourColumnIndexes=[1,2,3,4,5,6,8,9,10,11,12,13]; // chỉ số cột tính từ 0
+ const storageKey='mmOtStandardHourColumnWidths';
+ let widths={};
+ try{widths=JSON.parse(localStorage.getItem(storageKey)||'{}')||{};}catch(_){widths={};}
+ const headerCells=table.querySelectorAll('thead tr:nth-child(2) th');
+ // Bảo đảm bảng có colgroup để thay đổi chiều rộng cột ổn định.
+ let colgroup=table.querySelector('colgroup');
+ if(!colgroup){
+  colgroup=document.createElement('colgroup');
+  for(let i=0;i<16;i++) colgroup.appendChild(document.createElement('col'));
+  table.insertBefore(colgroup,table.firstChild);
+ }
+ const cols=[...colgroup.children];
+ // Khởi tạo kích thước theo bố cục hiện tại, sau đó áp dụng kích thước đã lưu.
+ const initial=[4,7.125,7.125,7.125,7.125,7.125,7.125,3.5,7.125,7.125,7.125,7.125,7.125,7.125,3.5,3.5];
+ const tableWidth=Math.max(table.getBoundingClientRect().width,900);
+ initial.forEach((pct,i)=>{if(!widths[i]) widths[i]=Math.round(tableWidth*pct/100);});
+ function applyWidths(){
+  let total=0;
+  cols.forEach((col,i)=>{const w=Number(widths[i])||50;col.style.width=w+'px';total+=w;});
+  table.style.width=Math.max(total,900)+'px';
+ }
+ applyWidths();
+ headerCells.forEach((th,idx)=>{
+  const colIndex=idx<6?idx+1:idx+2; // header hàng 2 bỏ qua cột Tổng giờ ở giữa
+  if(!hourColumnIndexes.includes(colIndex)) return;
+  th.classList.add('ot-resizable');
+  const handle=document.createElement('span');
+  handle.className='ot-col-resizer';
+  handle.title='Kéo để thay đổi độ rộng cột giờ';
+  th.appendChild(handle);
+  handle.addEventListener('pointerdown',ev=>{
+   ev.preventDefault();ev.stopPropagation();
+   const startX=ev.clientX,startWidth=Number(widths[colIndex])||th.getBoundingClientRect().width;
+   handle.classList.add('dragging');document.body.classList.add('ot-column-resizing');
+   handle.setPointerCapture?.(ev.pointerId);
+   const move=e=>{const next=Math.max(38,Math.min(260,startWidth+e.clientX-startX));widths[colIndex]=Math.round(next);applyWidths();};
+   const up=()=>{
+    handle.classList.remove('dragging');document.body.classList.remove('ot-column-resizing');
+    window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);
+    try{localStorage.setItem(storageKey,JSON.stringify(widths));}catch(_){}
+   };
+   window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
+  });
+ });
+})();
+
 </script></body></html>
