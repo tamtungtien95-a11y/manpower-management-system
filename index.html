@@ -28,7 +28,7 @@ main{max-width:1150px;margin:22px auto;padding:0 15px}.hidden{display:none!impor
 .metric{padding:12px 14px;margin-bottom:0;min-height:94px}.metric span{color:#64748b;font-size:12px}.metric strong{display:block;font-size:24px;margin-top:4px}.metric small{font-size:11px}
 label{display:block;font-size:13px;color:#475569;margin-bottom:6px}input,select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:7px;font-size:14px}
 button{border:0;border-radius:7px;padding:10px 14px;background:#2563eb;color:white;font-weight:600;cursor:pointer}
-button.gray{background:#64748b}button.red{background:#dc2626}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:15px}
+button.gray{background:#64748b}button.red{background:#dc2626}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0}.app-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}.employee-nav-actions{display:none;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin-left:auto}.employee-nav-actions button{white-space:nowrap;padding:9px 12px;font-size:13px}.employee-nav-actions .import-btn{background:#2563eb}.employee-nav-actions .group-btn{background:#64748b}#excelFile{display:none!important}@media(max-width:760px){.app-nav{align-items:flex-start}.employee-nav-actions{width:100%;margin-left:0;justify-content:flex-start}}
 .tabs button{background:#dce5f2;color:#17365d}.tabs button.active{background:#2563eb;color:white}
 .view{display:none}.view.active{display:block}.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:15px}
 .toolbar input{max-width:240px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px;margin-top:13px}
@@ -61,11 +61,19 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 </section>
 
 <main id="app" class="hidden">
-<nav class="tabs">
+<nav class="app-nav">
+<div class="tabs">
 <button class="active" data-view="dashboard">Tổng quan</button>
 <button data-view="employees">Nhân viên</button>
 <button data-view="attendance">Điểm danh</button>
 <button data-view="overtime">OT</button>
+</div>
+<div id="employeeNavActions" class="employee-nav-actions">
+<button type="button" class="import-btn" id="importEmployeeBtn">Nhập data</button>
+<button type="button" class="gray" id="templateEmployeeBtn">Tải file mẫu</button>
+<button type="button" class="gray" id="exportEmployeeBtn">Xuất danh sách</button>
+<button type="button" class="group-btn" id="toggleGroupManagerTop">Thêm / Xóa nhóm</button>
+</div>
 </nav>
 <section id="dashboard" class="view active">
 <div class="panel">
@@ -96,7 +104,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 </div><input type="hidden" id="editId">
 <div class="actions" style="margin-top:12px"><button id="saveEmpBtn">Thêm nhân viên</button><button type="button" class="gray hidden" id="cancelEdit">Hủy</button></div></form>
 <div class="panel" style="background:#f8fafc;margin-top:16px">
- <div class="toolbar"><div><h3 style="margin:0">Quản lý nhóm nhân viên</h3><p class="note">Bấm nút để hiện phần thêm hoặc xóa nhóm.</p></div><button type="button" id="toggleGroupManager" class="gray">Thêm / Xóa nhóm</button></div>
+ <div class="toolbar"><div><h3 style="margin:0">Quản lý nhóm nhân viên</h3><p class="note">Dùng nút “Thêm / Xóa nhóm” ở góc phải phía trên để hiện hoặc ẩn phần quản lý.</p></div></div>
  <div id="groupManagerPanel" class="hidden" style="margin-top:14px">
   <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
    <div><label>Tên nhóm mới</label><input id="groupName" placeholder="Nhập tên nhóm cần thêm"></div>
@@ -110,7 +118,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <div class="panel" style="background:#f8fafc;margin-top:16px">
 <h3>Cập nhật danh sách bằng Excel</h3>
 <p class="note">File Excel gồm 5 cột: Ngày Vào Cty, Mã Nhân Viên, Họ Và tên, Nhóm, Phân Loại. Mã đã tồn tại sẽ được cập nhật; mã mới sẽ được thêm. Nhân viên không có trong file vẫn được giữ nguyên.</p>
-<div class="actions"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv" style="max-width:330px"><button type="button" class="gray" id="downloadTemplate">Tải file Excel mẫu</button><button type="button" class="gray" id="exportExcel">Xuất danh sách Excel</button></div>
+<div class="actions"><input type="file" id="excelFile" accept=".xlsx,.xls,.csv"><button type="button" id="downloadTemplate" class="hidden">Tải file mẫu</button><button type="button" id="exportExcel" class="hidden">Xuất danh sách</button></div>
 <div id="excelPreview" class="hidden" style="margin-top:12px">
 <div id="excelInfo" class="message"></div>
 <div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
@@ -545,11 +553,15 @@ async function showSession(session){
 client.auth.onAuthStateChange((_event,session)=>{showSession(session)});
 client.auth.getSession().then(({data})=>showSession(data.session));
 // ===== QUAN LY NHOM NHAN VIEN =====
-$('toggleGroupManager').onclick=()=>{
+function toggleEmployeeGroupManager(){
  const panel=$('groupManagerPanel');panel.classList.toggle('hidden');
- $('toggleGroupManager').textContent=panel.classList.contains('hidden')?'Thêm / Xóa nhóm':'Ẩn quản lý nhóm';
+ $('toggleGroupManagerTop').textContent=panel.classList.contains('hidden')?'Thêm / Xóa nhóm':'Ẩn quản lý nhóm';
  renderGroupList();
-};
+}
+$('toggleGroupManagerTop').onclick=toggleEmployeeGroupManager;
+$('importEmployeeBtn').onclick=()=>$('excelFile').click();
+$('templateEmployeeBtn').onclick=()=>$('downloadTemplate').click();
+$('exportEmployeeBtn').onclick=()=>$('exportExcel').click();
 $('addGroup').onclick=async()=>{
  const name=$('groupName').value.trim();
  if(!name){alert('Vui lòng nhập tên nhóm.');return}
@@ -743,7 +755,7 @@ $('excelFile').addEventListener('change',async ev=>{
    const classification=String(cellValue(r,['Phân Loại','Phân loại','Classification'])??'').trim();
    let error='';
    if(!code)error='Thiếu mã nhân viên';else if(!name)error='Thiếu họ và tên';
-   else if(!['Kitting','Shipment','Shift LD','Item'].includes(team))error='Nhóm không hợp lệ';
+   else if(!TEAMS.some(t=>t.toLowerCase()===team.toLowerCase()))error='Nhóm không hợp lệ (hãy dùng nhóm đang có trong hệ thống)';
    else if(!['Chính Thức','Thời Vụ','Sinh Viên'].includes(classification))error='Phân loại không hợp lệ';
    else if(rawDate&&!hire)error='Ngày vào công ty không đúng định dạng';
    const key=code.toLowerCase();if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
@@ -1025,6 +1037,7 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active'));
  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
  b.classList.add('active');target.classList.add('active');
+ $('employeeNavActions').style.display=b.dataset.view==='employees'?'flex':'none';
 });
 const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;$('attendanceDate').value=today;
 </script></body></html>
