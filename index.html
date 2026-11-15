@@ -277,7 +277,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </nav>
 <section id="dashboard" class="view active">
 <div class="panel">
- <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><div class="actions"><button type="button" id="previewZaloReport" class="zalo-send-button">Gửi báo cáo</button><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div></div>
+ <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><div class="actions"><button type="button" id="previewZaloReport" class="zalo-send-button">Tải ảnh báo cáo</button><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div></div>
 </div>
 <div class="cards dashboard-summary-cards">
  <div class="card metric"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
@@ -295,7 +295,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </div>
 <div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
-<div id="zaloPreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="zaloPreviewTitle"><div class="detail-box zalo-preview-box"><div class="detail-head"><div><h3 id="zaloPreviewTitle">Xem trước báo cáo gửi Zalo</h3><p class="note" style="margin:5px 0 0">Xem trước ảnh chụp bảng báo cáo tổng hợp theo nhóm trước khi gửi vào nhóm Zalo.</p></div><button type="button" class="gray" id="closeZaloPreview">Đóng</button></div><div id="zaloPreviewContent" class="zalo-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="zaloSendStatus" class="note" style="margin-top:9px"></div><div class="zalo-actions"><button type="button" class="gray" id="cancelZaloSend">Quay lại</button><button type="button" id="confirmZaloSend" class="zalo-send-button">Xác nhận gửi Zalo</button></div></div></div>
+<div id="zaloPreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="zaloPreviewTitle"><div class="detail-box zalo-preview-box"><div class="detail-head"><div><h3 id="zaloPreviewTitle">Xem trước ảnh báo cáo</h3><p class="note" style="margin:5px 0 0">Kiểm tra ảnh báo cáo tổng hợp theo nhóm trước khi tải về máy và gửi vào nhóm Zalo.</p></div><button type="button" class="gray" id="closeZaloPreview">Đóng</button></div><div id="zaloPreviewContent" class="zalo-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="zaloSendStatus" class="note" style="margin-top:9px"></div><div class="zalo-actions"><button type="button" class="gray" id="cancelZaloSend">Đóng</button><button type="button" id="downloadZaloImage" class="zalo-send-button">Tải ảnh PNG</button></div></div></div>
 </section>
 <section id="employees" class="view">
 <div class="panel"><h3>Thông tin nhân viên</h3>
@@ -736,6 +736,7 @@ function buildZaloWorkforceReport(){
  return {date, dateText, total:rows.length, work, pending, leaveCount:leaveRows.length, groupRows, leaveRows:leaveRows.map(e=>({employee_code:e.employee_code||'',full_name:e.full_name||'',team:e.team||'',classification:e.classification||'',status:e.status||''})), message:lines.join('\n')};
 }
 let zaloReportImageBase64='';
+let zaloReportImageDataUrl='';
 function makeZaloReportCanvas(report){
  const scale=2, width=1600, pad=64, inner=width-pad*2;
  const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
@@ -782,40 +783,27 @@ async function createZaloReportImage(report){
 async function openZaloReportPreview(){
  const report=buildZaloWorkforceReport();
  $('zaloPreviewContent').innerHTML='<div class="note">Đang tạo ảnh báo cáo...</div>';
- $('zaloSendStatus').textContent='';$('confirmZaloSend').disabled=true;$('confirmZaloSend').textContent='Xác nhận gửi ảnh Zalo';
+ $('zaloSendStatus').textContent='';$('downloadZaloImage').disabled=true;$('downloadZaloImage').textContent='Đang tạo ảnh...';
  $('zaloPreviewModal').classList.remove('hidden');
  try{
-  const img=await createZaloReportImage(report);zaloReportImageBase64=img.base64;
+  const img=await createZaloReportImage(report);zaloReportImageBase64=img.base64;zaloReportImageDataUrl=img.dataUrl;
   const image=document.createElement('img');image.alt='Ảnh xem trước báo cáo nhân lực MM';image.src=img.dataUrl;
   $('zaloPreviewContent').replaceChildren(image);
-  $('confirmZaloSend').disabled=false;
- }catch(err){$('zaloPreviewContent').textContent='Không tạo được ảnh: '+(err?.message||err);$('zaloSendStatus').textContent='Vui lòng thử lại.'}
+  $('downloadZaloImage').disabled=false;$('downloadZaloImage').textContent='Tải ảnh PNG';
+ }catch(err){$('zaloPreviewContent').textContent='Không tạo được ảnh: '+(err?.message||err);$('zaloSendStatus').textContent='Vui lòng thử lại.';$('downloadZaloImage').disabled=true;$('downloadZaloImage').textContent='Tải ảnh PNG'}
 }
-async function sendZaloWorkforceReport(){
- const btn=$('confirmZaloSend'); btn.disabled=true; btn.textContent='Đang gửi...';
- $('zaloSendStatus').textContent='Đang kết nối máy chủ gửi báo cáo...';
- try{
-  const {data:{session}}=await client.auth.getSession();
-  if(!session) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-  const report=buildZaloWorkforceReport();
-  if(!zaloReportImageBase64) throw new Error('Chưa có ảnh báo cáo. Hãy đóng và mở lại phần xem trước.');
-  report.image_base64=zaloReportImageBase64; report.image_mime_type='image/png';
-  const response=await fetch(`${SUPABASE_URL}/functions/v1/send-zalo-report`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify(report)});
-  const result=await response.json().catch(()=>({}));
-  if(!response.ok) throw new Error(result.error||result.message||`Máy chủ trả về lỗi ${response.status}`);
-  $('zaloSendStatus').textContent=result.message||'Đã gửi ảnh báo cáo vào nhóm Zalo.';
-  btn.textContent='Đã gửi';
- }catch(err){
-  console.error('Lỗi gửi báo cáo Zalo:',err);
-  $('zaloSendStatus').textContent='Chưa gửi được: '+(err?.message||err)+'. Cần cấu hình Supabase Edge Function để tải ảnh lên và gửi bằng Zalo OA/nhóm trước khi gửi thật.';
-  btn.disabled=false; btn.textContent='Thử gửi lại';
- }
+function downloadZaloWorkforceReportImage(){
+ if(!zaloReportImageDataUrl){$('zaloSendStatus').textContent='Chưa có ảnh báo cáo. Vui lòng tạo lại ảnh.';return;}
+ const date=$('summaryDate')?.value||new Date().toISOString().slice(0,10);
+ const link=document.createElement('a');link.href=zaloReportImageDataUrl;link.download=`Bao_cao_nhan_luc_MM_${date}.png`;
+ document.body.appendChild(link);link.click();link.remove();
+ $('zaloSendStatus').textContent='Đã tải ảnh báo cáo PNG. Bạn có thể mở Zalo và gửi ảnh này vào nhóm.';
 }
 $('previewZaloReport').addEventListener('click',openZaloReportPreview);
 $('closeZaloPreview').onclick=()=>$('zaloPreviewModal').classList.add('hidden');
 $('cancelZaloSend').onclick=()=>$('zaloPreviewModal').classList.add('hidden');
 $('zaloPreviewModal').addEventListener('click',ev=>{if(ev.target.id==='zaloPreviewModal')$('zaloPreviewModal').classList.add('hidden')});
-$('confirmZaloSend').addEventListener('click',sendZaloWorkforceReport);
+$('downloadZaloImage').addEventListener('click',downloadZaloWorkforceReportImage);
 
 $('exportTeamSummary').addEventListener('click',async()=>{
  try{
