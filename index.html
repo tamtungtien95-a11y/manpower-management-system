@@ -143,28 +143,33 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  #otStandardTable{min-width:900px !important}
 }
 
-/* Tinh chỉnh tỷ lệ cột: thu gọn Nhóm/Tổng giờ/GAP để mở rộng các cột giờ */
+/* Cân đối lần 2: thu gọn mạnh Nhóm/Tổng giờ/GAP, ưu tiên không gian cho các cột giờ */
 #otStandardTable th:nth-child(1),#otStandardTable td:nth-child(1){
- width:5.5% !important;
- padding-left:5px !important;
+ width:4% !important;
+ padding-left:4px !important;
 }
 #otStandardTable th:nth-child(n+2):nth-child(-n+7),
 #otStandardTable td:nth-child(n+2):nth-child(-n+7),
 #otStandardTable th:nth-child(n+9):nth-child(-n+14),
 #otStandardTable td:nth-child(n+9):nth-child(-n+14){
- width:6.2% !important;
+ width:6.75% !important;
+ text-align:center;
 }
 #otStandardTable th:nth-child(8),#otStandardTable td:nth-child(8),
 #otStandardTable th:nth-child(15),#otStandardTable td:nth-child(15){
- width:6.5% !important;
+ width:5% !important;
+ padding-left:2px !important;
+ padding-right:2px !important;
 }
 #otStandardTable th:nth-child(16),#otStandardTable td:nth-child(16){
- width:7.1% !important;
+ width:5% !important;
+ padding-left:2px !important;
+ padding-right:2px !important;
 }
 #otStandardTable .ot-standard-input{
- max-width:58px !important;
- min-width:48px !important;
- height:29px;
+ max-width:66px !important;
+ min-width:54px !important;
+ height:30px;
  font-size:13px !important;
  padding:3px 5px !important;
 }
