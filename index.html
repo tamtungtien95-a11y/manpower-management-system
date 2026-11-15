@@ -1,3 +1,4 @@
+<!-- MM-EXCEL-WHITE-EMPTY-CELLS-AND-HIDE-GRIDLINES-v8 -->
 <!-- MM-EXCEL-AUTOFIT-COLUMNS-MATCH-ANALYSIS-v7 -->
 <!-- MM-EXCEL-REMOVE-BORDER-LEAVE-DATE-ROW-v6 -->
 <!-- MM-EXCEL-WHITE-SPACER-AREA-FIX-v5 -->
@@ -337,7 +338,17 @@ async function exportTeamSummaryExcel(){
  };
  ws.pageSetup.scale=undefined;
  ws.printArea=`A1:E${lastRow}`;
- ws.views=[{state:'normal',zoomScale:85}];
+ ws.views=[{state:'normal',zoomScale:85,showGridLines:false}];
+ // Tô nền trắng vùng ô trống xung quanh báo cáo để không còn lưới xám ở khu vực không có dữ liệu.
+ for(let r=1;r<=Math.max(lastRow,40);r++){
+  for(let c=1;c<=12;c++){
+   const cell=ws.getCell(r,c);
+   if(cell.value===null || cell.value===undefined){
+    cell.fill=whiteFill;
+    cell.border={};
+   }
+  }
+ }
  ws.properties.defaultRowHeight=22;
 
  // Tự động điều chỉnh độ rộng cột theo nội dung thực tế của cả hai bảng.
