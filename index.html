@@ -137,13 +137,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  <div class="card metric"><span>Chưa cập nhật</span><strong id="attPendingCount">0</strong></div>
 </div>
 <div class="toolbar" style="flex-wrap:wrap;gap:10px"><b>Danh sách điểm danh</b><input id="attendanceSearch" placeholder="Tìm mã hoặc họ tên"></div>
-<div class="actions" style="margin:10px 0;flex-wrap:wrap">
- <label style="display:flex;align-items:center;gap:7px;margin:0"><input type="checkbox" id="attendanceSelectAll" style="width:auto"> Chọn tất cả nhân viên đang hiển thị</label>
- <select id="attendanceBulkStatus" style="max-width:220px"><option value="">-- Chọn trạng thái áp dụng --</option></select>
- <button type="button" class="gray" id="applyAttendanceBulk">Áp dụng cho nhân viên đã tích</button>
- <span class="note" id="attendanceSelectedCount">Đã chọn: 0</span>
-</div>
-<div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+
+<div class="scroll"><table style="min-width:1000px"><thead><tr><th>Chọn</th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
 <div class="panel" style="background:#f8fafc;margin-top:18px">
 <h3 style="margin-top:0">Upload điểm danh bằng Excel</h3>
 <p class="note">Excel gồm 3 cột: <b>Mã Nhân Viên</b>, <b>Nhân Viên</b>, <b>Trạng Thái Nghỉ</b>. Ngày điểm danh lấy theo ô Ngày điểm danh ở phía trên. Các trạng thái hợp lệ: Đi Làm, Nghỉ Tự Do, Nghỉ Phép, Nghỉ Không Lương, Nghỉ 1/2 Ngày.</p>
@@ -624,19 +619,6 @@ function fillAttendanceTeamFilter(){
  el.innerHTML='<option value="">Tất cả nhóm</option>'+TEAMS.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
  el.value=TEAMS.includes(current)?current:'';
 }
-function fillAttendanceBulkStatuses(){
- $('attendanceBulkStatus').innerHTML='<option value="">-- Chọn trạng thái áp dụng --</option>'+ATTENDANCE_STATUSES.map(s=>`<option value="${safe(s)}">${safe(s)}</option>`).join('');
-}
-function updateAttendanceSelectionUI(){
- const visible=[...document.querySelectorAll('#attendanceBody .attendance-select')];
- const checked=visible.filter(x=>x.checked).length;
- const all=visible.length>0&&checked===visible.length;
- $('attendanceSelectAll').checked=all;
- $('attendanceHeaderSelectAll').checked=all;
- $('attendanceSelectAll').indeterminate=checked>0&&checked<visible.length;
- $('attendanceHeaderSelectAll').indeterminate=checked>0&&checked<visible.length;
- $('attendanceSelectedCount').textContent=`Đã chọn: ${selectedAttendanceEmployees.size}`;
-}
 
 function syncVisibleAttendanceDraft(){
  document.querySelectorAll('#attendanceBody .attendance-status').forEach(select=>{
@@ -659,24 +641,12 @@ function renderAttendance(){
  $('attWorkCount').textContent=values.filter(x=>x.status==='Đi Làm').length;
  $('attLeaveCount').textContent=values.filter(x=>x.status!=='Đi Làm').length;
  $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
- updateAttendanceSelectionUI();
 }
-function setVisibleAttendanceSelection(checked){
- document.querySelectorAll('#attendanceBody .attendance-select').forEach(box=>{
-  box.checked=checked;
-  const id=String(box.dataset.employeeId);
-  if(checked) selectedAttendanceEmployees.add(id); else selectedAttendanceEmployees.delete(id);
- });
- updateAttendanceSelectionUI();
-}
-$('attendanceSelectAll').onchange=ev=>setVisibleAttendanceSelection(ev.target.checked);
-$('attendanceHeaderSelectAll').onchange=ev=>setVisibleAttendanceSelection(ev.target.checked);
 $('attendanceBody').addEventListener('change',ev=>{
  const box=ev.target.closest('.attendance-select');
  if(box){
   const id=String(box.dataset.employeeId);
   if(box.checked) selectedAttendanceEmployees.add(id); else selectedAttendanceEmployees.delete(id);
-  updateAttendanceSelectionUI();
   return;
  }
  const select=ev.target.closest('.attendance-status');
@@ -691,14 +661,7 @@ $('attendanceBody').addEventListener('change',ev=>{
  $('attLeaveCount').textContent=values.filter(x=>x!=='Đi Làm').length;
  $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
 });
-$('applyAttendanceBulk').onclick=()=>{
- const status=$('attendanceBulkStatus').value;
- if(!status){alert('Vui lòng chọn trạng thái cần áp dụng.');return}
- if(!selectedAttendanceEmployees.size){alert('Vui lòng tích chọn ít nhất một nhân viên.');return}
- selectedAttendanceEmployees.forEach(id=>attendanceDraft.set(String(id),status));
- renderAttendance();
- alert(`Đã áp dụng trạng thái "${status}" cho ${selectedAttendanceEmployees.size} nhân viên đã chọn. Nhấn "Lưu điểm danh" để ghi dữ liệu.`);
-};
+
 $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
@@ -1090,6 +1053,5 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
  b.classList.add('active');target.classList.add('active');
  $('employeeNavActions').style.display=b.dataset.view==='employees'?'flex':'none';
 });
-fillAttendanceBulkStatuses();
 const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;$('attendanceDate').value=today;
 </script></body></html>
