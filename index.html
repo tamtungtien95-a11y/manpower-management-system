@@ -188,7 +188,15 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
    <div><label>Tìm nhân viên</label><input id="otSearch" placeholder="Mã nhân viên / họ tên"></div>
    <div style="display:flex;align-items:end;gap:8px"><button type="button" id="otSelectAll" class="gray">Chọn tất cả</button><button type="button" id="otClearAll" class="gray">Bỏ chọn</button></div>
   </div>
-  <div class="toolbar" style="margin-top:12px"><span id="otSelectedCount" class="note">Đã chọn: 0 nhân viên</span><button type="button" id="otSaveAll">Lưu tất cả OT đã chọn</button></div>
+  <div class="toolbar" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+   <span id="otSelectedCount" class="note">Đã chọn: 0 nhân viên</span>
+   <div class="actions" style="margin-left:auto;gap:8px">
+    <select id="otQuickHours" aria-label="Chọn nhanh số giờ OT" style="width:auto;min-width:160px">
+     <option value="">-- Chọn nhanh số giờ OT --</option>
+    </select>
+    <button type="button" id="otSaveAll">Lưu tất cả OT đã chọn</button>
+   </div>
+  </div>
  </div>
  <div class="panel">
   <h3>BÁO CÁO TIÊU CHUẨN OT CA C</h3>
@@ -892,9 +900,10 @@ $('empSearch').oninput=renderEmployees;$('summaryDate').onchange=renderDashboard
 // ===== BAO CAO TIEU CHUAN OT CA C =====
 const OT_REPORT_HOURS=['1','1.4','1.5','2','2.5','3'];
 function otStandardTeams(){
- const preferred=['SEVT','Shipmet','Rear','Kitting','Office'];
- const actual=[...new Set(employees.map(e=>e.team).filter(Boolean))];
- return [...new Set([...preferred,...actual])];
+ // Lấy nhóm trực tiếp từ danh mục nhóm được quản lý ở tab Nhân viên.
+ const managed=Array.isArray(TEAMS)?TEAMS.filter(Boolean):[];
+ const employeeTeams=employees.map(e=>e.team).filter(Boolean);
+ return [...new Set([...(managed.length?managed:employeeTeams)])].sort((a,b)=>a.localeCompare(b,'vi'));
 }
 function standardValue(team,hour){
  const row=otStandards.find(x=>x.standard_date===$('otDate').value&&x.team===team&&String(x.hour_code)===String(hour));
@@ -1021,6 +1030,24 @@ function exportOtStandardsExcel(){
 $('exportOtStandardsExcel').onclick=exportOtStandardsExcel;
 // ===== QUAN LY OT: chon tung nguoi / chon tat ca, luu mot lan =====
 const OT_HOURS=['1h','1.4h','1.5h','2h','2.5h','3h','4h','5h'];
+$('otQuickHours').innerHTML='<option value="">-- Chọn nhanh số giờ OT --</option>'+OT_HOURS.map(h=>`<option value="${h}">${h}</option>`).join('');
+$('otQuickHours').onchange=()=>{
+ const hours=$('otQuickHours').value;
+ if(!hours)return;
+ const date=$('otDate').value;
+ initOtDraftForDate(date);
+ const selected=[...otDraft.values()].filter(v=>v.date===date&&v.selected);
+ if(!selected.length){
+  alert('Vui lòng tích chọn nhân viên cần áp dụng số giờ OT.');
+  $('otQuickHours').value='';
+  return;
+ }
+ selected.forEach(v=>{v.hours=hours;otDraft.set(otDraftKey(date,v.employee_id),v);});
+ renderOvertime();
+ $('otQuickHours').value='';
+ $('appMsg').textContent=`Đã tự động áp dụng ${hours} cho ${selected.length} nhân viên đã tích. Nhấn "Lưu tất cả OT đã chọn" để lưu.`;
+};
+
 $('otDate').value=new Date().toLocaleDateString('en-CA');
 $('otFilterDate').value=new Date().toLocaleDateString('en-CA');
 
