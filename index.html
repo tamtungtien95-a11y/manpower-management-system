@@ -357,20 +357,22 @@ async function exportTeamSummaryExcel(){
  const total=rows.length;
  const totalWork=rows.filter(e=>e.status==='Đi Làm').length;
  ws.addRow(['Tổng cộng',total,totalWork,totalWork-total,total?totalWork/total:0]);
+ const totalRow=4+dataRows.length;
 
- for(let r=3;r<=8;r++){
+ // Kẻ viền toàn bộ bảng; chỉ tiêu đề và Tổng cộng được tô xanh.
+ for(let r=3;r<=totalRow;r++){
   ws.getRow(r).height=25;
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
    cell.border=thinBorder;
    cell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
-   cell.fill=(r===3||r===8)?greenFill:whiteFill;
+   cell.fill=(r===3||r===totalRow)?greenFill:whiteFill;
    if(r===3){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF17365D'}}}
-   else if(r===8){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF1F2937'}}}
+   else if(r===totalRow){cell.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF1F2937'}}}
    else {cell.font={name:'Times New Roman',size:14,color:{argb:'FF1F2937'}}}
   }
  }
- for(let r=4;r<=8;r++){
+ for(let r=4;r<=totalRow;r++){
   ws.getCell(`D${r}`).numFmt='#,##0;[Red](#,##0);;';
   ws.getCell(`E${r}`).numFmt='0.0%';
  }
@@ -385,20 +387,23 @@ async function exportTeamSummaryExcel(){
    return String(a.full_name||'').localeCompare(String(b.full_name||''),'vi');
   });
 
- // Chừa hai hàng để tách hai phần báo cáo.
- ws.mergeCells('A11:E11');
- ws.getCell('A11').value='BÁO CÁO NHÂN VIÊN NGHỈ';
- ws.getCell('A11').font={name:'Times New Roman',size:14,bold:true,underline:false,color:{argb:'FF17365D'}};
- ws.getCell('A11').alignment={vertical:'middle',horizontal:'left',indent:0};
- ws.getRow(11).height=30;
- ws.mergeCells('A12:E12');
- ws.getCell('A12').value=`NGÀY  ${dateText}`;
- ws.getCell('A12').font={name:'Times New Roman',size:14,bold:true,underline:false};
- ws.getCell('A12').alignment={vertical:'middle',horizontal:'left',indent:0};
- ws.getRow(12).height=24;
+ // Chừa một hàng sau Tổng cộng rồi đặt phần báo cáo nhân viên nghỉ.
+ const leaveTitleRow=totalRow+2;
+ const leaveDateRow=leaveTitleRow+1;
+ const leaveHeaderRow=leaveTitleRow+2;
+ ws.mergeCells(`A${leaveTitleRow}:E${leaveTitleRow}`);
+ ws.getCell(`A${leaveTitleRow}`).value='BÁO CÁO NHÂN VIÊN NGHỈ';
+ ws.getCell(`A${leaveTitleRow}`).font={name:'Times New Roman',size:14,bold:true,underline:false,color:{argb:'FF17365D'}};
+ ws.getCell(`A${leaveTitleRow}`).alignment={vertical:'middle',horizontal:'left',indent:0};
+ ws.getRow(leaveTitleRow).height=30;
+ ws.mergeCells(`A${leaveDateRow}:E${leaveDateRow}`);
+ ws.getCell(`A${leaveDateRow}`).value=`NGÀY  ${dateText}`;
+ ws.getCell(`A${leaveDateRow}`).font={name:'Times New Roman',size:14,bold:true,underline:false};
+ ws.getCell(`A${leaveDateRow}`).alignment={vertical:'middle',horizontal:'left',indent:0};
+ ws.getRow(leaveDateRow).height=24;
 
  // Tiêu đề và ngày báo cáo không kẻ đường viền ô.
- [1,2,11,12].forEach(r=>{
+ [1,2,leaveTitleRow,leaveDateRow].forEach(r=>{
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
    cell.border={
@@ -412,7 +417,7 @@ async function exportTeamSummaryExcel(){
   }
  });
  // Khu vực ngăn cách giữa hai bảng luôn nền trắng, không có viền ô.
- [9,10,11,12].forEach(r=>{
+ [totalRow+1,leaveTitleRow,leaveDateRow].forEach(r=>{
   for(let c=1;c<=5;c++){
    const cell=ws.getCell(r,c);
    cell.fill=whiteFill;
@@ -428,8 +433,7 @@ async function exportTeamSummaryExcel(){
  leaveRows.forEach(e=>ws.addRow([e.employee_code||'',e.full_name||'',e.team||'',e.classification||'',e.status||'']));
  if(!leaveRows.length)ws.addRow(['','','','','Không có nhân viên nghỉ trong ngày này']);
 
- const leaveHeaderRow=13;
- const lastRow=13+Math.max(leaveRows.length,1);
+ const lastRow=leaveHeaderRow+Math.max(leaveRows.length,1);
  for(let r=leaveHeaderRow;r<=lastRow;r++){
   ws.getRow(r).height=24;
   for(let c=1;c<=5;c++){
