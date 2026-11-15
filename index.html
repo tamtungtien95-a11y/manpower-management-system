@@ -472,7 +472,7 @@ function renderEmployees(){
     <td><input id="inlineName_${x.id}" value="${safe(x.full_name)}"></td>
     <td><select id="inlineTeam_${x.id}">${teamOpts}</select></td>
     <td><select id="inlineClass_${x.id}">${['Chính Thức','Thời Vụ','Sinh Viên'].map(c=>`<option ${x.classification===c?'selected':''}>${c}</option>`).join('')}</select></td>
-    <td><div class="actions"><button type="button" onclick="saveInlineEmployee('${x.id}')">Lưu</button><button type="button" class="gray" onclick="cancelInlineEmployee()">Hủy</button></div></td>
+    <td><div class="actions"><button type="button" onclick="saveInlineEmployee('${x.id}')">Cập nhật</button><button type="button" class="gray" onclick="cancelInlineEmployee()">Hủy</button></div></td>
    </tr>`;
   }
   return `<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`;
