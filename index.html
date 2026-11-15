@@ -371,7 +371,12 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
  <div class="panel">
   <h3>BÁO CÁO TIÊU CHUẨN OT CA C</h3>
   <p class="note">Nhập tiêu chuẩn theo ngày cho từng nhóm. Thực tế được tính tự động từ các đăng ký OT đã lưu.</p>
-  <div class="toolbar"><b>Ngày áp dụng: <span id="otStandardDateLabel"></span></b><div class="actions"><button type="button" id="saveOtStandards" class="gray">Lưu tiêu chuẩn ngày</button><button type="button" id="exportOtStandardsExcel">Tải Excel báo cáo OT</button></div></div>
+  <div class="toolbar"><b>Ngày áp dụng: <span id="otStandardDateLabel"></span></b><div class="actions"><button type="button" id="saveOtStandards" class="gray">Lưu tiêu chuẩn ngày</button></div></div>
+  <div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px">
+   <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
+   <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
+   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
+  </div>
   <div class="scroll">
    <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
     <thead>
@@ -1127,82 +1132,68 @@ $('saveOtStandards').onclick=async()=>{
 
 function exportOtStandardsExcel(){
  if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện Excel. Hãy tải lại trang rồi thử lại.');return}
- const date=$('otDate').value, dateText=date?date.split('-').reverse().join('/'):'';
- const teams=otStandardTeams();
- const actualRows=overtimeRecords.filter(x=>x.date===date);
+ const from=$('otExportFromDate').value,to=$('otExportToDate').value;
+ if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
+ if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ const inRange=d=>d>=from&&d<=to;
+ const dateText=d=>d?d.split('-').reverse().join('/'):'';
+ const otRows=overtimeRecords.filter(x=>inRange(x.date)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.team).localeCompare(String(b.team))||String(a.code).localeCompare(String(b.code)));
+ const standardRows=otStandards.filter(x=>inRange(String(x.standard_date).slice(0,10))).sort((a,b)=>a.standard_date.localeCompare(b.standard_date)||String(a.team).localeCompare(String(b.team))||Number(a.hour_code)-Number(b.hour_code));
  const wb=new ExcelJS.Workbook();wb.creator='Hệ thống quản lý nhân lực MM';wb.created=new Date();
- const ws=wb.addWorksheet('Bao cao OT Ca C');
- ws.columns=[{width:18},{width:9},{width:9},{width:9},{width:9},{width:9},{width:9},{width:11},{width:9},{width:9},{width:9},{width:9},{width:9},{width:9},{width:11},{width:11}];
- const thin={top:{style:'thin',color:{argb:'FF000000'}},bottom:{style:'thin',color:{argb:'FF000000'}},left:{style:'thin',color:{argb:'FF000000'}},right:{style:'thin',color:{argb:'FF000000'}}};
- const green='FFE2EFDA',orange='FFF8CBAD',yellow='FFFFFF00';
- ws.mergeCells('A1:P1');ws.getCell('A1').value='BÁO CÁO TIÊU CHUẨN OT CA C';
- ws.getCell('A1').font={name:'Times New Roman',size:14,bold:true};
- ws.getCell('A1').alignment={vertical:'middle',horizontal:'left'};
- ws.getRow(1).height=26;
- ws.mergeCells('A2:P2');ws.getCell('A2').value=`NGÀY: ${dateText}`;
- ws.getCell('A2').font={name:'Times New Roman',size:12,bold:true};
- ws.getRow(2).height=22;
- ws.mergeCells('A4:A5');ws.getCell('A4').value='Nhóm';
- ws.mergeCells('B4:G4');ws.getCell('B4').value='Tiêu Chuẩn';
- ws.mergeCells('H4:H5');ws.getCell('H4').value='Tổng giờ OT';
- ws.mergeCells('I4:N4');ws.getCell('I4').value='Thực Tế';
- ws.mergeCells('O4:O5');ws.getCell('O4').value='Tổng giờ OT';
- ws.mergeCells('P4:P5');ws.getCell('P4').value='GAP';
+ const thin={top:{style:'thin',color:{argb:'FFB7C9D6'}},bottom:{style:'thin',color:{argb:'FFB7C9D6'}},left:{style:'thin',color:{argb:'FFB7C9D6'}},right:{style:'thin',color:{argb:'FFB7C9D6'}}};
+ const headFill='FF1F4E78',subFill='FFD9EAF7',green='FFE2EFDA',orange='FFF8CBAD',yellow='FFFFFF00';
+ function styleHeader(row,fill=headFill){
+  row.eachCell(c=>{c.font={name:'Times New Roman',size:11,bold:true,color:{argb:fill===headFill?'FFFFFFFF':'FF000000'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:fill}};c.alignment={horizontal:'center',vertical:'middle',wrapText:true};c.border=thin;});
+ }
+ function styleData(ws){
+  ws.eachRow((row,n)=>{if(n===1)return;row.eachCell(c=>{c.font={name:'Times New Roman',size:11};c.alignment={vertical:'middle',horizontal:'center'};c.border=thin;});});
+  ws.views=[{showGridLines:false}];
+  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:ws.columnCount}};
+  ws.getRow(1).height=30;
+ }
+ // 1) Chi tiết từng lượt OT đã lưu.
+ const detail=wb.addWorksheet('Chi tiet OT');
+ detail.columns=[{header:'Ngày OT',key:'date',width:14},{header:'Mã nhân viên',key:'code',width:16},{header:'Họ và tên',key:'name',width:28},{header:'Nhóm',key:'team',width:16},{header:'Số giờ OT',key:'hours',width:14},{header:'Ghi chú',key:'note',width:24}];
+ detail.addRows(otRows.map(x=>({date:dateText(x.date),code:x.code||'',name:x.name||'',team:x.team||'',hours:parseFloat(x.hours)||x.hours||'',note:x.note||''})));
+ styleHeader(detail.getRow(1));styleData(detail);
+ // 2) Tiêu chuẩn OT đã nhập theo từng ngày, nhóm và mức giờ.
+ const standards=wb.addWorksheet('Tieu chuan OT');
+ standards.columns=[{header:'Ngày áp dụng',key:'date',width:16},{header:'Nhóm',key:'team',width:18},{header:'Mức giờ OT',key:'hour',width:14},{header:'Số lượng tiêu chuẩn',key:'count',width:22}];
+ standards.addRows(standardRows.map(x=>({date:dateText(String(x.standard_date).slice(0,10)),team:x.team,hour:Number(x.hour_code),count:Number(x.standard_count)||0})));
+ styleHeader(standards.getRow(1), 'FFE2EFDA');styleData(standards);
+ // 3) Tổng hợp theo từng ngày và nhóm: tiêu chuẩn so với thực tế.
  const hrs=['1','1.4','1.5','2','2.5','3'];
- hrs.forEach((v,i)=>{ws.getCell(5,2+i).value=Number(v);ws.getCell(5,9+i).value=Number(v)});
- for(let c=1;c<=16;c++){
-  const cell=ws.getCell(4,c);
-  cell.font={name:'Times New Roman',size:12,bold:true};
-  cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
-  cell.border=thin;
-  if(c>=2&&c<=8)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
-  if(c>=9&&c<=15)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
-  if(c===16)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
- }
- for(let c=1;c<=16;c++){
-  const cell=ws.getCell(5,c);cell.font={name:'Times New Roman',size:12,bold:true};
-  cell.alignment={horizontal:'center',vertical:'middle'};cell.border=thin;
-  if(c>=2&&c<=7)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
-  if(c>=9&&c<=14)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
- }
- ws.getRow(4).height=28;ws.getRow(5).height=26;
- const reportRows=teams.map(team=>{
-  const std=hrs.map(h=>standardValue(team,h));
-  const act=hrs.map(h=>actualRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
-  const stdTotal=std.reduce((s,n,i)=>s+n*Number(hrs[i]),0);
-  const actTotal=actualRows.filter(x=>x.team===team).reduce((s,x)=>s+(parseFloat(x.hours)||0),0);
-  return {team,std,act,stdTotal,actTotal,gap:actTotal-stdTotal};
+ const dayTeamKeys=[...new Set([...otRows.map(x=>`${x.date}|${x.team}`),...standardRows.map(x=>`${String(x.standard_date).slice(0,10)}|${x.team}`)])].sort();
+ const summary=wb.addWorksheet('Tong hop ngay-nhom');
+ const headers=['Ngày','Nhóm',...hrs.map(h=>`TC ${h}h`),'Tổng giờ TC',...hrs.map(h=>`TT ${h}h`),'Tổng giờ TT','GAP'];
+ summary.addRow(headers);styleHeader(summary.getRow(1));
+ summary.columns=[{width:14},{width:17},...hrs.map(()=>({width:10})),{width:13},...hrs.map(()=>({width:10})),{width:13},{width:12}];
+ const sumRows=dayTeamKeys.map(key=>{
+  const [d,team]=key.split('|');
+  const std=hrs.map(h=>standardRows.filter(x=>String(x.standard_date).slice(0,10)===d&&x.team===team&&String(parseFloat(x.hour_code))===h).reduce((n,x)=>n+(Number(x.standard_count)||0),0));
+  const actual=otRows.filter(x=>x.date===d&&x.team===team);
+  const act=hrs.map(h=>actual.filter(x=>String(parseFloat(x.hours))===h).length);
+  const stdTotal=std.reduce((n,v,i)=>n+v*Number(hrs[i]),0);
+  const actTotal=actual.reduce((n,x)=>n+(parseFloat(x.hours)||0),0);
+  return [dateText(d),team,...std,Number(stdTotal.toFixed(2)),...act,Number(actTotal.toFixed(2)),Number((actTotal-stdTotal).toFixed(2))];
  });
- const totalStd=hrs.map((h,i)=>reportRows.reduce((s,r)=>s+r.std[i],0));
- const totalAct=hrs.map((h,i)=>reportRows.reduce((s,r)=>s+r.act[i],0));
- const totalStdHours=reportRows.reduce((s,r)=>s+r.stdTotal,0);
- const totalActHours=reportRows.reduce((s,r)=>s+r.actTotal,0);
- const fmt=n=>Number(n.toFixed(2));
- reportRows.forEach(r=>{
-  const vals=[r.team,...r.std,fmt(r.stdTotal),...r.act,fmt(r.actTotal),fmt(r.gap)];
-  const row=ws.addRow(vals);
-  row.height=24;
-  row.eachCell((cell,col)=>{cell.font={name:'Times New Roman',size:12};cell.alignment={horizontal:col===1?'left':'center',vertical:'middle'};cell.border=thin;});
- });
- const total=ws.addRow(['Total',...totalStd,fmt(totalStdHours),...totalAct,fmt(totalActHours),fmt(totalActHours-totalStdHours)]);
- total.height=25;total.eachCell(cell=>{cell.font={name:'Times New Roman',size:12,bold:true};cell.alignment={horizontal:'center',vertical:'middle'};cell.border=thin;});
- for(let c=1;c<=16;c++){
-  if(c===1)continue;
-  const cell=total.getCell(c);
-  if(c>=2&&c<=8)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
-  if(c>=9&&c<=15)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
-  if(c===16)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
- }
- ws.views=[{showGridLines:false}];
- ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,paperSize:ws.PAPER_SIZE_A4};
- ws.pageMargins={left:0.25,right:0.25,top:0.4,bottom:0.4,header:0.15,footer:0.15};
+ sumRows.forEach(r=>{const row=summary.addRow(r);row.eachCell(c=>{c.font={name:'Times New Roman',size:11};c.alignment={horizontal:'center',vertical:'middle'};c.border=thin;});});
+ styleData(summary);
+ // Header bands in summary.
+ for(let c=3;c<=8;c++)summary.getCell(1,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
+ for(let c=9;c<=15;c++)summary.getCell(1,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
+ summary.getCell(1,16).fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
+ const rangeLabel=`${dateText(from)}_${dateText(to)}`;
  wb.xlsx.writeBuffer().then(buf=>{
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`Bao_cao_tieu_chuan_OT_Ca_C_${date||'ngay'}.xlsx`;a.click();
+  a.href=url;a.download=`Du_lieu_OT_${from}_den_${to}.xlsx`;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }).catch(err=>alert('Xuất Excel thất bại: '+err.message));
 }
+const todayForOtExport=new Date().toLocaleDateString('en-CA');
+$('otExportFromDate').value=todayForOtExport;
+$('otExportToDate').value=todayForOtExport;
 $('exportOtStandardsExcel').onclick=exportOtStandardsExcel;
 // ===== QUAN LY OT: chon tung nguoi / chon tat ca, luu mot lan =====
 const OT_HOURS=['1h','1.4h','1.5h','2h','2.5h','3h','4h','5h'];
