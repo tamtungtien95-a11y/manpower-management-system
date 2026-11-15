@@ -135,7 +135,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 </div></section>
 <p id="appMsg" class="note"></p>
 <section id="overtime" class="view">
- <div class="panel"><h3>Nhân lực đi làm & đăng ký OT</h3><p class="note">Tự động hiển thị toàn bộ nhân viên được điểm danh “Đi Làm” theo ngày đã chọn. Có thể lọc theo nhóm; ghi chú OT gồm KHSX hoặc Vượt OT.</p>
+ <div class="panel"><h3>Nhân lực đi làm & đăng ký OT</h3><p class="note">Tự động hiển thị nhân viên được điểm danh “Đi Làm”. Khi lọc nhóm, danh sách nhân viên đăng ký OT cũng chỉ hiển thị người thuộc nhóm đó. Ghi chú gồm KHSX hoặc Vượt OT.</p>
  <form id="overtimeForm"><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
  <div><label>Ngày OT</label><input type="date" id="otDate" required></div>
  <div><label>Nhân viên (chỉ người Đi Làm)</label><select id="otEmployee" required><option value="">-- Chọn nhân viên --</option></select></div>
@@ -628,9 +628,12 @@ function workingEmployeesOn(date){
  return employees.filter(e=>ids.has(e.id));
 }
 function refreshOtEmployeeOptions(){
- const date=$('otDate').value, list=workingEmployeesOn(date), selected=$('otEmployee').value;
+ const date=$('otDate').value, selectedTeam=$('otFilterTeam').value;
+ const list=workingEmployeesOn(date).filter(x=>!selectedTeam||x.team===selectedTeam);
+ const selected=$('otEmployee').value;
  $('otEmployee').innerHTML='<option value="">-- Chọn nhân viên Đi Làm --</option>'+list.map(x=>`<option value="${x.id}">${safe(x.employee_code)} - ${safe(x.full_name)}</option>`).join('');
- if(list.some(x=>x.id===selected)) $('otEmployee').value=selected; else $('otTeam').value='';
+ if(list.some(x=>String(x.id)===String(selected))) $('otEmployee').value=selected;
+ else $('otTeam').value='';
 }
 $('otDate').onchange=refreshOtEmployeeOptions;
 $('otEmployee').onchange=()=>{const e=employees.find(x=>String(x.id)===String($('otEmployee').value));$('otTeam').value=e?(e.team||'Chưa cập nhật nhóm'):''};
@@ -651,7 +654,7 @@ function fillOtTeamFilter(){
  $('otFilterTeam').innerHTML='<option value="">Tất cả nhóm</option>'+teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
  if(teams.includes(current)) $('otFilterTeam').value=current;
 }
-$('otFilterDate').onchange=renderOvertime;$('otFilterTeam').onchange=renderOvertime;$('otSearch').oninput=renderOvertime;
+$('otFilterDate').onchange=()=>{renderOvertime();refreshOtEmployeeOptions()};$('otFilterTeam').onchange=()=>{renderOvertime();refreshOtEmployeeOptions()};$('otSearch').oninput=renderOvertime;
 $('overtimeForm').onsubmit=async ev=>{
  ev.preventDefault();const employee=employees.find(x=>x.id===$('otEmployee').value),date=$('otDate').value;
  if(!employee){alert('Vui lòng chọn nhân viên đã được điểm danh Đi Làm trong ngày OT.');return}
