@@ -214,7 +214,7 @@ async function exportTeamSummaryExcel(){
  ws.getCell('A1').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(1).height=34;
  ws.mergeCells('A2:E2');
- ws.getCell('A2').value=`Ngày  ${dateText}`;
+ ws.getCell('A2').value=`NGÀY  ${dateText}`;
  ws.getCell('A2').font={name:'Times New Roman',size:14,bold:true,underline:true};
  ws.getCell('A2').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(2).height=28;
@@ -270,10 +270,20 @@ async function exportTeamSummaryExcel(){
  ws.getCell('A11').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(11).height=30;
  ws.mergeCells('A12:E12');
- ws.getCell('A12').value=`Ngày làm việc: ${dateText}`;
+ ws.getCell('A12').value=`NGÀY  ${dateText}`;
  ws.getCell('A12').font={name:'Times New Roman',size:14,bold:true,underline:true};
  ws.getCell('A12').alignment={vertical:'middle',horizontal:'left',indent:3};
  ws.getRow(12).height=24;
+
+ // Tiêu đề và ngày báo cáo không kẻ đường viền ô.
+ [1,2,11,12].forEach(r=>{
+  for(let c=1;c<=5;c++){
+   const cell=ws.getCell(r,c);
+   cell.border={};
+   cell.fill=whiteFill;
+  }
+ });
+
  ws.addRow(['ID','Họ và tên','Nhóm','Phân loại','Trạng thái nghỉ']);
  leaveRows.forEach(e=>ws.addRow([e.employee_code||'',e.full_name||'',e.team||'',e.classification||'',e.status||'']));
  if(!leaveRows.length)ws.addRow(['','','','','Không có nhân viên nghỉ trong ngày này']);
