@@ -186,7 +186,7 @@ async function loadAll(){
  employees=e.data||[];
  attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
- attendanceDraft=new Map(attendanceRecords.filter(x=>x.date===$('attendanceDate').value).map(x=>[x.employee_id,x.status]));
+ setAttendanceDraftForDate($('attendanceDate').value);
  renderEmployees();fillOtTeamFilter();renderDashboard();renderAttendance();renderOvertime();
 }
 function renderEmployees(){
@@ -485,6 +485,12 @@ window.editEmployee=id=>{
 $('cancelEdit').onclick=()=>{$('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden')};
 window.deleteEmployee=async id=>{if(!confirm('Xóa nhân viên và các báo cáo liên quan?'))return;const {error}=await client.from('employees').delete().eq('id',id);if(error)alert(error.message);else await loadAll()};
 // ===== DIEM DANH NHAN VIEN =====
+function setAttendanceDraftForDate(date){
+ attendanceDraft=new Map(attendanceRecords
+  .filter(x=>x.date===date)
+  .map(x=>[String(x.employee_id),x.status]));
+}
+
 const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Phép','Nghỉ KHSX'];
 function renderAttendance(){
  const date=$('attendanceDate').value, team=$('attendanceTeamFilter').value, q=$('attendanceSearch').value.toLowerCase();
@@ -499,6 +505,19 @@ function renderAttendance(){
  $('attLeaveCount').textContent=values.filter(x=>x.status!=='Đi Làm').length;
  $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
 }
+$('attendanceBody').addEventListener('change',ev=>{
+ const select=ev.target.closest('.attendance-status');
+ if(!select)return;
+ const employeeId=String(select.dataset.employeeId);
+ const status=select.value;
+ if(status) attendanceDraft.set(employeeId,status);
+ else attendanceDraft.delete(employeeId);
+ // Update the counters without rebuilding the table the user is editing.
+ const values=[...attendanceDraft.values()];
+ $('attWorkCount').textContent=values.filter(x=>x==='Đi Làm').length;
+ $('attLeaveCount').textContent=values.filter(x=>x!=='Đi Làm').length;
+ $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
+});
 $('saveAttendance').onclick=async()=>{
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
  const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status}));
@@ -507,7 +526,7 @@ $('saveAttendance').onclick=async()=>{
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
  await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
-$('attendanceDate').onchange=renderAttendance;
+$('attendanceDate').onchange=()=>{setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
 $('attendanceTeamFilter').onchange=renderAttendance;
 $('attendanceSearch').oninput=renderAttendance;
 
