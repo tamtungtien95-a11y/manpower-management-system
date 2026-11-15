@@ -226,6 +226,16 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 #otStandardTable .ot-col-resizer.dragging{background:rgba(31,78,121,.35);}
 body.ot-column-resizing{cursor:col-resize !important;user-select:none !important;}
 
+/* FIX OT TABLE WIDTHS: readable headers and properly sized hour columns */
+#otStandardTable{width:1250px!important;min-width:1250px!important;max-width:none!important;table-layout:fixed!important;border-collapse:collapse!important}
+#otStandardTable th,#otStandardTable td{box-sizing:border-box!important;padding:6px 4px!important;overflow:hidden!important;vertical-align:middle!important}
+#otStandardTable thead th{white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.2!important;font-size:12px!important}
+#otStandardTable th:nth-child(1),#otStandardTable td:nth-child(1){text-align:left!important}
+#otStandardTable .ot-standard-input{display:block!important;width:calc(100% - 6px)!important;min-width:0!important;max-width:none!important;height:30px!important;margin:0 auto!important;padding:3px 2px!important;box-sizing:border-box!important;font-size:13px!important;text-align:center!important}
+#otStandardTable th.ot-resizable{position:relative!important;padding-right:9px!important}
+#otStandardTable .ot-col-resizer{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;user-select:none;touch-action:none;z-index:10}
+#otStandardTable .ot-col-resizer:hover,#otStandardTable .ot-col-resizer.dragging{background:rgba(31,78,121,.35)}
+body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </style>
 </head>
 <body>
@@ -1347,48 +1357,23 @@ const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;
  const table=document.getElementById('otStandardTable');
  if(!table || table.dataset.resizeReady==='1') return;
  table.dataset.resizeReady='1';
- const hourColumnIndexes=[1,2,3,4,5,6,8,9,10,11,12,13]; // chỉ số cột tính từ 0
- const storageKey='mmOtStandardHourColumnWidths';
+ const storageKey='mmOtStandardHourColumnWidths_v2';
+ const hourColumnIndexes=[1,2,3,4,5,6,8,9,10,11,12,13];
  let widths={};
  try{widths=JSON.parse(localStorage.getItem(storageKey)||'{}')||{};}catch(_){widths={};}
- const headerCells=table.querySelectorAll('thead tr:nth-child(2) th');
- // Bảo đảm bảng có colgroup để thay đổi chiều rộng cột ổn định.
  let colgroup=table.querySelector('colgroup');
- if(!colgroup){
-  colgroup=document.createElement('colgroup');
-  for(let i=0;i<16;i++) colgroup.appendChild(document.createElement('col'));
-  table.insertBefore(colgroup,table.firstChild);
- }
- const cols=[...colgroup.children];
- // Khởi tạo kích thước theo bố cục hiện tại, sau đó áp dụng kích thước đã lưu.
- const initial=[4,7.125,7.125,7.125,7.125,7.125,7.125,3.5,7.125,7.125,7.125,7.125,7.125,7.125,3.5,3.5];
- const tableWidth=Math.max(table.getBoundingClientRect().width,900);
- initial.forEach((pct,i)=>{if(!widths[i]) widths[i]=Math.round(tableWidth*pct/100);});
- function applyWidths(){
-  let total=0;
-  cols.forEach((col,i)=>{const w=Number(widths[i])||50;col.style.width=w+'px';total+=w;});
-  table.style.width=Math.max(total,900)+'px';
- }
+ if(!colgroup){colgroup=document.createElement('colgroup');for(let i=0;i<16;i++)colgroup.appendChild(document.createElement('col'));table.insertBefore(colgroup,table.firstChild);}
+ const cols=[...colgroup.children],baseWidth=1250;
+ const initial=[7,6.5,6.5,6.5,6.5,6.5,6.5,5,6.5,6.5,6.5,6.5,6.5,6.5,5,5];
+ initial.forEach((pct,i)=>{const saved=Number(widths[i]);if(!Number.isFinite(saved)||saved<35)widths[i]=Math.round(baseWidth*pct/100);});
+ function applyWidths(){let total=0;cols.forEach((col,i)=>{const w=Math.max(35,Number(widths[i])||50);col.style.width=w+'px';total+=w;});table.style.width=total+'px';table.style.minWidth=total+'px';}
  applyWidths();
- headerCells.forEach((th,idx)=>{
-  const colIndex=idx<6?idx+1:idx+2; // header hàng 2 bỏ qua cột Tổng giờ ở giữa
-  if(!hourColumnIndexes.includes(colIndex)) return;
-  th.classList.add('ot-resizable');
-  const handle=document.createElement('span');
-  handle.className='ot-col-resizer';
-  handle.title='Kéo để thay đổi độ rộng cột giờ';
-  th.appendChild(handle);
-  handle.addEventListener('pointerdown',ev=>{
-   ev.preventDefault();ev.stopPropagation();
-   const startX=ev.clientX,startWidth=Number(widths[colIndex])||th.getBoundingClientRect().width;
-   handle.classList.add('dragging');document.body.classList.add('ot-column-resizing');
-   handle.setPointerCapture?.(ev.pointerId);
-   const move=e=>{const next=Math.max(38,Math.min(260,startWidth+e.clientX-startX));widths[colIndex]=Math.round(next);applyWidths();};
-   const up=()=>{
-    handle.classList.remove('dragging');document.body.classList.remove('ot-column-resizing');
-    window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);
-    try{localStorage.setItem(storageKey,JSON.stringify(widths));}catch(_){}
-   };
+ table.querySelectorAll('thead tr:nth-child(2) th').forEach((th,idx)=>{
+  const colIndex=idx<6?idx+1:idx+2;if(!hourColumnIndexes.includes(colIndex))return;
+  th.classList.add('ot-resizable');const handle=document.createElement('span');handle.className='ot-col-resizer';handle.title='Kéo mép cột để chỉnh độ rộng';th.appendChild(handle);
+  handle.addEventListener('pointerdown',ev=>{ev.preventDefault();ev.stopPropagation();const startX=ev.clientX,startWidth=Number(widths[colIndex]);handle.classList.add('dragging');document.body.classList.add('ot-column-resizing');
+   const move=e=>{widths[colIndex]=Math.round(Math.max(42,Math.min(260,startWidth+e.clientX-startX)));applyWidths();};
+   const up=()=>{handle.classList.remove('dragging');document.body.classList.remove('ot-column-resizing');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);try{localStorage.setItem(storageKey,JSON.stringify(widths));}catch(_){}};
    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
   });
  });
