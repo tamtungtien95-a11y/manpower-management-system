@@ -750,7 +750,7 @@ function renderDashboard(){
  renderTeamWorkChart(rows);
  const countStatus=status=>rows.filter(e=>e.status===status).length;
  const work=countStatus('Đi Làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi Làm'&&s!=='Đổi Về HC').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
- const countClass=classification=>employees.filter(e=>(e.classification||'').trim()===classification).length;
+ const countClass=classification=>rows.filter(e=>(e.classification||'').trim()===classification).length;
   $('dashTotal').textContent=total;
   $('dashOfficial').textContent=countClass('Chính Thức');
   $('dashSeasonal').textContent=countClass('Thời Vụ');
@@ -827,11 +827,19 @@ window.saveInlineEmployee=async id=>{
  inlineEditingEmployeeId=null;await loadAll();alert('Đã cập nhật nhân viên.');
 };
 $('employeeForm').onsubmit=async ev=>{
- ev.preventDefault();const id='';
+ ev.preventDefault();
+ const id=$('editId').value.trim();
  const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),team:$('empTeam').value,classification:$('empClassification').value};
- const result=id?await client.from('employees').update(data).eq('id',id):await client.from('employees').insert(data);
- if(result.error){alert(result.error.message);return}
- $('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden');await loadAll();
+ if(!data.employee_code||!data.full_name){alert('Mã nhân viên và họ tên không được để trống.');return}
+ const saveButton=$('saveEmpBtn');saveButton.disabled=true;
+ const result=id
+  ?await client.from('employees').update(data).eq('id',id)
+  :await client.from('employees').insert(data);
+ saveButton.disabled=false;
+ if(result.error){alert((id?'Cập nhật':'Thêm')+' nhân viên thất bại: '+result.error.message);return}
+ $('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden');
+ await loadAll();
+ alert(id?'Đã cập nhật thông tin nhân viên.':'Đã thêm nhân viên mới.');
 };
 window.editEmployee=id=>{
  const x=employees.find(e=>e.id===id);if(!x)return;
