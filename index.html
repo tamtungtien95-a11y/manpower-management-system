@@ -38,7 +38,7 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 .note{font-size:12px;color:#64748b;line-height:1.5}.status-select{min-width:190px}.status-pill{display:inline-block;padding:4px 8px;border-radius:20px;background:#e0f2fe;color:#075985;font-size:12px}.actions{display:flex;gap:7px;flex-wrap:wrap}
 .click-count{background:transparent;color:#1d4ed8;padding:3px 6px;border-radius:5px;font-weight:700;text-decoration:underline;cursor:pointer}
 .click-count:hover{background:#eff6ff}.rate{font-weight:700;color:#0f766e}.dashboard-table{min-width:760px}.team-work-chart{width:100%;min-height:220px;overflow:hidden}.team-work-chart svg{display:block;width:100%;height:auto;max-height:290px}.chart-legend{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:8px 0 2px;font-size:13px;color:#334155}.chart-legend span{display:inline-flex;align-items:center;gap:7px}.legend-dot{width:12px;height:12px;border-radius:3px;display:inline-block}.team-chart-panel{padding:13px 16px;margin-bottom:12px}.team-chart-panel h3{font-size:16px}.detail-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:18px}.detail-box{background:#fff;border-radius:12px;padding:20px;width:min(900px,100%);max-height:85vh;overflow:auto;box-shadow:0 20px 60px #0003}.detail-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.detail-head h3{margin:0}.detail-box table{min-width:650px}.metric small{display:block;color:#64748b;margin-top:5px}
-.zalo-preview-box{width:min(850px,100%)}.zalo-preview-content{background:#f8fafc;border:1px solid #dbe3ee;border-radius:9px;padding:14px;max-height:55vh;overflow:auto;white-space:pre-wrap;font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;color:#1e293b}.zalo-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.zalo-send-button{background:#15803d}
+.zalo-preview-box{width:min(1100px,100%)}.zalo-preview-content{background:#f8fafc;border:1px solid #dbe3ee;border-radius:9px;padding:14px;max-height:65vh;overflow:auto;color:#1e293b}.zalo-preview-content img{display:block;width:100%;height:auto;background:#fff;border:1px solid #dbe3ee;border-radius:6px}.zalo-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}.zalo-send-button{background:#15803d}
 @media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:520px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{padding:10px;min-height:86px}.metric strong{font-size:22px}}
 
 .dashboard-export-button{white-space:nowrap;background:#64748b;color:#fff;align-self:flex-end}
@@ -295,7 +295,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </div>
 <div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
-<div id="zaloPreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="zaloPreviewTitle"><div class="detail-box zalo-preview-box"><div class="detail-head"><div><h3 id="zaloPreviewTitle">Xem trước báo cáo gửi Zalo</h3><p class="note" style="margin:5px 0 0">Kiểm tra nội dung bên dưới trước khi gửi vào nhóm Zalo.</p></div><button type="button" class="gray" id="closeZaloPreview">Đóng</button></div><div id="zaloPreviewContent" class="zalo-preview-content" style="margin-top:12px"></div><div id="zaloSendStatus" class="note" style="margin-top:9px"></div><div class="zalo-actions"><button type="button" class="gray" id="cancelZaloSend">Quay lại</button><button type="button" id="confirmZaloSend" class="zalo-send-button">Xác nhận gửi Zalo</button></div></div></div>
+<div id="zaloPreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="zaloPreviewTitle"><div class="detail-box zalo-preview-box"><div class="detail-head"><div><h3 id="zaloPreviewTitle">Xem trước báo cáo gửi Zalo</h3><p class="note" style="margin:5px 0 0">Xem trước ảnh chụp bảng báo cáo tổng hợp theo nhóm trước khi gửi vào nhóm Zalo.</p></div><button type="button" class="gray" id="closeZaloPreview">Đóng</button></div><div id="zaloPreviewContent" class="zalo-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="zaloSendStatus" class="note" style="margin-top:9px"></div><div class="zalo-actions"><button type="button" class="gray" id="cancelZaloSend">Quay lại</button><button type="button" id="confirmZaloSend" class="zalo-send-button">Xác nhận gửi Zalo</button></div></div></div>
 </section>
 <section id="employees" class="view">
 <div class="panel"><h3>Thông tin nhân viên</h3>
@@ -735,13 +735,61 @@ function buildZaloWorkforceReport(){
  else lines.push('Không có nhân viên nghỉ trong ngày này');
  return {date, dateText, total:rows.length, work, pending, leaveCount:leaveRows.length, groupRows, leaveRows:leaveRows.map(e=>({employee_code:e.employee_code||'',full_name:e.full_name||'',team:e.team||'',classification:e.classification||'',status:e.status||''})), message:lines.join('\n')};
 }
-function openZaloReportPreview(){
+let zaloReportImageBase64='';
+function makeZaloReportCanvas(report){
+ const scale=2, width=1600, pad=64, inner=width-pad*2;
+ const canvas=document.createElement('canvas'), ctx=canvas.getContext('2d');
+ const groups=report.groupRows||[], leaves=report.leaveRows||[];
+ const groupCols=[['Nhóm',250],['Tổng NV',230],['Đi Làm',230],['Thiếu',230],['Tỷ lệ đi làm',532]];
+ const leaveCols=[['Mã NV',210],['Họ và tên',430],['Nhóm',220],['Phân loại',300],['Trạng thái',312]];
+ const rowH=58, headH=66, titleH=115, metricH=132, gap=48;
+ const h=pad*2+titleH+metricH+gap+headH+(groups.length+1)*rowH+gap+headH+Math.max(1,leaves.length)*rowH+80;
+ canvas.width=width*scale;canvas.height=h*scale;ctx.scale(scale,scale);
+ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,h);
+ let y=pad;
+ ctx.fillStyle='#17365d';ctx.fillRect(pad,y,inner, titleH-18);
+ ctx.fillStyle='#ffffff';ctx.font='bold 36px Arial';ctx.fillText('BÁO CÁO NHÂN LỰC MM CA C',pad+28,y+48);
+ ctx.font='22px Arial';ctx.fillText('Ngày báo cáo: '+report.dateText,pad+28,y+84);
+ y+=titleH;
+ const metrics=[['TỔNG NHÂN LỰC',report.total],['ĐI LÀM',report.work],['NGHỈ',report.leaveCount],['CHƯA ĐIỂM DANH',report.pending]];
+ const mw=(inner-18*3)/4;
+ metrics.forEach((m,i)=>{const x=pad+i*(mw+18);ctx.fillStyle='#f1f5f9';ctx.fillRect(x,y,mw,metricH-20);ctx.strokeStyle='#cbd5e1';ctx.strokeRect(x,y,mw,metricH-20);ctx.fillStyle='#475569';ctx.font='bold 18px Arial';ctx.fillText(m[0],x+18,y+36);ctx.fillStyle='#17365d';ctx.font='bold 42px Arial';ctx.fillText(String(m[1]??0),x+18,y+91)});
+ y+=metricH+gap-20;
+ function drawTable(title,cols,rows){
+  ctx.fillStyle='#17365d';ctx.font='bold 27px Arial';ctx.fillText(title,pad,y+28);y+=48;
+  let x=pad;ctx.fillStyle='#d9ead3';ctx.fillRect(pad,y,inner,headH);
+  cols.forEach(([label,w])=>{ctx.fillStyle='#17365d';ctx.font='bold 19px Arial';ctx.fillText(label,x+12,y+40);x+=w});
+  ctx.strokeStyle='#94a3b8';ctx.strokeRect(pad,y,inner,headH);y+=headH;
+  rows.forEach((row,ri)=>{x=pad;const isTotal=!!row.__total;ctx.fillStyle=isTotal?'#d9ead3':(ri%2?'#f8fafc':'#ffffff');ctx.fillRect(pad,y,inner,rowH);cols.forEach(([label,w],ci)=>{let val=row[ci]??'';ctx.fillStyle='#1e293b';ctx.font=(isTotal?'bold ':'')+'18px Arial';const txt=String(val);ctx.save();ctx.beginPath();ctx.rect(x+10,y+5,w-18,rowH-10);ctx.clip();ctx.fillText(txt,x+12,y+36);ctx.restore();ctx.strokeStyle='#cbd5e1';ctx.strokeRect(x,y,w,rowH);x+=w});ctx.strokeStyle='#cbd5e1';ctx.strokeRect(pad,y,inner,rowH);y+=rowH});
+ }
+ const groupData=groups.map(g=>[g.team,g.total,g.work,g.shortage,g.rate]);
+ groupData.push(['Tổng cộng',report.total,report.work,report.work-report.total,report.total?(report.work/report.total*100).toFixed(1)+'%':'0.0%']);
+ groupData[groupData.length-1].__total=true;
+ drawTable('TỔNG HỢP THEO NHÓM',groupCols,groupData);
+ y+=gap-10;
+ const leaveData=leaves.length?leaves.map(e=>[e.employee_code,e.full_name,e.team,e.classification,e.status]):[['','','','', 'Không có nhân viên nghỉ trong ngày này']];
+ drawTable('BÁO CÁO NHÂN VIÊN NGHỈ',leaveCols,leaveData);
+ ctx.fillStyle='#64748b';ctx.font='16px Arial';ctx.fillText('Hệ thống quản lý nhân lực MM',pad,h-28);
+ return canvas;
+}
+async function createZaloReportImage(report){
+ const canvas=makeZaloReportCanvas(report);
+ const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+ if(!blob)throw new Error('Không tạo được ảnh báo cáo.');
+ const dataUrl=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)});
+ return {blob,dataUrl,base64:String(dataUrl).split(',')[1]};
+}
+async function openZaloReportPreview(){
  const report=buildZaloWorkforceReport();
- $('zaloPreviewContent').textContent=report.message;
- $('zaloSendStatus').textContent='';
- $('confirmZaloSend').disabled=false;
- $('confirmZaloSend').textContent='Xác nhận gửi Zalo';
+ $('zaloPreviewContent').innerHTML='<div class="note">Đang tạo ảnh báo cáo...</div>';
+ $('zaloSendStatus').textContent='';$('confirmZaloSend').disabled=true;$('confirmZaloSend').textContent='Xác nhận gửi ảnh Zalo';
  $('zaloPreviewModal').classList.remove('hidden');
+ try{
+  const img=await createZaloReportImage(report);zaloReportImageBase64=img.base64;
+  const image=document.createElement('img');image.alt='Ảnh xem trước báo cáo nhân lực MM';image.src=img.dataUrl;
+  $('zaloPreviewContent').replaceChildren(image);
+  $('confirmZaloSend').disabled=false;
+ }catch(err){$('zaloPreviewContent').textContent='Không tạo được ảnh: '+(err?.message||err);$('zaloSendStatus').textContent='Vui lòng thử lại.'}
 }
 async function sendZaloWorkforceReport(){
  const btn=$('confirmZaloSend'); btn.disabled=true; btn.textContent='Đang gửi...';
@@ -750,14 +798,16 @@ async function sendZaloWorkforceReport(){
   const {data:{session}}=await client.auth.getSession();
   if(!session) throw new Error('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
   const report=buildZaloWorkforceReport();
+  if(!zaloReportImageBase64) throw new Error('Chưa có ảnh báo cáo. Hãy đóng và mở lại phần xem trước.');
+  report.image_base64=zaloReportImageBase64; report.image_mime_type='image/png';
   const response=await fetch(`${SUPABASE_URL}/functions/v1/send-zalo-report`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${session.access_token}`,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify(report)});
   const result=await response.json().catch(()=>({}));
   if(!response.ok) throw new Error(result.error||result.message||`Máy chủ trả về lỗi ${response.status}`);
-  $('zaloSendStatus').textContent=result.message||'Đã gửi báo cáo vào nhóm Zalo.';
+  $('zaloSendStatus').textContent=result.message||'Đã gửi ảnh báo cáo vào nhóm Zalo.';
   btn.textContent='Đã gửi';
  }catch(err){
   console.error('Lỗi gửi báo cáo Zalo:',err);
-  $('zaloSendStatus').textContent='Chưa gửi được: '+(err?.message||err)+'. Cần cấu hình Supabase Edge Function và thông tin Zalo OA/nhóm trước khi gửi thật.';
+  $('zaloSendStatus').textContent='Chưa gửi được: '+(err?.message||err)+'. Cần cấu hình Supabase Edge Function để tải ảnh lên và gửi bằng Zalo OA/nhóm trước khi gửi thật.';
   btn.disabled=false; btn.textContent='Thử gửi lại';
  }
 }
