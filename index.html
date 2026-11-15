@@ -236,6 +236,9 @@ body.ot-column-resizing{cursor:col-resize !important;user-select:none !important
 #otStandardTable .ot-col-resizer{position:absolute;top:0;right:0;width:9px;height:100%;cursor:col-resize;user-select:none;touch-action:none;z-index:10}
 #otStandardTable .ot-col-resizer:hover,#otStandardTable .ot-col-resizer.dragging{background:rgba(31,78,121,.35)}
 body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
+
+.employee-inactive-row{background:#f8fafc;color:#64748b}
+.badge-inactive{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:10px;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:600}
 </style>
 </head>
 <body>
@@ -462,7 +465,9 @@ async function loadAll(){
 let inlineEditingEmployeeId=null;
 function renderEmployees(){
  const q=$('empSearch').value.toLowerCase();
- const rows=employees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
+ // Hiển thị cả nhân viên đang làm và đã tắt để có thể bật lại.
+ const sourceEmployees=(allEmployees&&allEmployees.length?allEmployees:employees);
+ const rows=sourceEmployees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
  $('employeeBody').innerHTML=rows.map((x,i)=>{
   if(String(inlineEditingEmployeeId)===String(x.id)){
    const teamOpts=TEAMS.map(t=>`<option value="${safe(t)}" ${x.team===t?'selected':''}>${safe(t)}</option>`).join('');
@@ -475,7 +480,8 @@ function renderEmployees(){
     <td><div class="actions"><button type="button" onclick="saveInlineEmployee('${x.id}')">Cập nhật</button><button type="button" class="gray" onclick="cancelInlineEmployee()">Hủy</button></div></td>
    </tr>`;
   }
-  return `<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button></div></td></tr>`;
+  const inactive=x.is_active===false;
+  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')} ${inactive?'<span class="badge-inactive">Đã tắt</span>':''}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
  }).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
 }
 let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
@@ -842,7 +848,7 @@ $('employeeForm').onsubmit=async ev=>{
  alert(id?'Đã cập nhật thông tin nhân viên.':'Đã thêm nhân viên mới.');
 };
 window.editEmployee=id=>{
- const x=employees.find(e=>String(e.id)===String(id));
+ const x=(allEmployees||employees).find(e=>String(e.id)===String(id));
  if(!x)return;
  inlineEditingEmployeeId=String(id);
  renderEmployees();
@@ -859,6 +865,15 @@ window.deactivateEmployee=async id=>{
  if(error){alert('Không thể tắt nhân viên: '+error.message+'\\nKiểm tra migration is_active/deactivated_at trong Supabase.');return}
  await loadAll();
  alert('Đã tắt nhân viên. Dữ liệu lịch sử vẫn được giữ nguyên.');
+};
+window.activateEmployee=async id=>{
+ const employee=(allEmployees||employees).find(e=>String(e.id)===String(id));
+ if(!employee)return;
+ if(!confirm(`Bật lại nhân viên "${employee.full_name}"?\\n\\nNhân viên sẽ xuất hiện trở lại trong danh sách làm việc, điểm danh và đăng ký OT.`))return;
+ const {error}=await client.from('employees').update({is_active:true,deactivated_at:null}).eq('id',id);
+ if(error){alert('Không thể bật lại nhân viên: '+error.message);return}
+ await loadAll();
+ alert('Đã bật lại nhân viên.');
 };
 // Tương thích với các nút cũ nếu còn tham chiếu.
 window.deleteEmployee=window.deactivateEmployee;
