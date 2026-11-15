@@ -96,14 +96,16 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 </div><input type="hidden" id="editId">
 <div class="actions" style="margin-top:12px"><button id="saveEmpBtn">Thêm nhân viên</button><button type="button" class="gray hidden" id="cancelEdit">Hủy</button></div></form>
 <div class="panel" style="background:#f8fafc;margin-top:16px">
- <h3>Quản lý nhóm nhân viên</h3>
- <p class="note">Danh sách nhóm dùng chung cho hồ sơ nhân viên, điểm danh, tổng quan và OT.</p>
- <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
-  <div><label>Nhóm hiện có</label><select id="groupCurrent"></select></div>
-  <div><label>Tên nhóm mới</label><input id="groupName" placeholder="Nhập tên nhóm"></div>
-  <div class="actions" style="align-items:end"><button type="button" id="addGroup">Thêm nhóm</button><button type="button" class="gray" id="renameGroup">Đổi tên / ghi đè</button><button type="button" class="red" id="deleteGroup">Xóa nhóm</button></div>
+ <div class="toolbar"><div><h3 style="margin:0">Quản lý nhóm nhân viên</h3><p class="note">Bấm nút để hiện phần thêm hoặc xóa nhóm.</p></div><button type="button" id="toggleGroupManager" class="gray">Thêm / Xóa nhóm</button></div>
+ <div id="groupManagerPanel" class="hidden" style="margin-top:14px">
+  <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+   <div><label>Tên nhóm mới</label><input id="groupName" placeholder="Nhập tên nhóm cần thêm"></div>
+   <div class="actions" style="align-items:end"><button type="button" id="addGroup">Thêm nhóm</button></div>
+  </div>
+  <h4>Danh sách nhóm hiện có</h4>
+  <div class="scroll"><table><thead><tr><th>STT</th><th>Tên nhóm</th><th>Số nhân viên</th><th>Thao tác</th></tr></thead><tbody id="groupListBody"></tbody></table></div>
+  <p class="note">Chỉ xóa được nhóm khi không còn nhân viên thuộc nhóm đó. Đổi tên nhóm được thực hiện bằng cách thêm nhóm mới, sau đó sửa nhóm trực tiếp tại bảng nhân viên.</p>
  </div>
- <p class="note">Đổi tên/ghi đè sẽ cập nhật nhóm cho toàn bộ nhân viên đang thuộc nhóm cũ và cập nhật tiêu chuẩn OT liên quan. Không xóa hồ sơ nhân viên.</p>
 </div>
 <div class="panel" style="background:#f8fafc;margin-top:16px">
 <h3>Cập nhật danh sách bằng Excel</h3>
@@ -229,17 +231,35 @@ async function loadAll(){
  setAttendanceDraftForDate($('attendanceDate').value);
  renderEmployees();fillOtTeamFilter();renderDashboard();renderAttendance();renderOvertime();
 }
+let inlineEditingEmployeeId=null;
 function renderEmployees(){
  const q=$('empSearch').value.toLowerCase();
  const rows=employees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
- $('employeeBody').innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
+ $('employeeBody').innerHTML=rows.map((x,i)=>{
+  if(String(inlineEditingEmployeeId)===String(x.id)){
+   const teamOpts=TEAMS.map(t=>`<option value="${safe(t)}" ${x.team===t?'selected':''}>${safe(t)}</option>`).join('');
+   return `<tr>
+    <td>${i+1}</td><td><input type="date" id="inlineHire_${x.id}" value="${safe(x.hire_date||'')}"></td>
+    <td><input id="inlineCode_${x.id}" value="${safe(x.employee_code)}"></td>
+    <td><input id="inlineName_${x.id}" value="${safe(x.full_name)}"></td>
+    <td><select id="inlineTeam_${x.id}">${teamOpts}</select></td>
+    <td><select id="inlineClass_${x.id}">${['Chính Thức','Thời Vụ','Sinh Viên'].map(c=>`<option ${x.classification===c?'selected':''}>${c}</option>`).join('')}</select></td>
+    <td><div class="actions"><button type="button" onclick="saveInlineEmployee('${x.id}')">Lưu</button><button type="button" class="gray" onclick="cancelInlineEmployee()">Hủy</button></div></td>
+   </tr>`;
+  }
+  return `<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`;
+ }).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
 }
 let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
 let teamMasterAvailable=true;
 function renderGroupControls(){
  const opts=TEAMS.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
  $('empTeam').innerHTML=opts;
- $('groupCurrent').innerHTML=opts;
+ renderGroupList();
+}
+function renderGroupList(){
+ const body=$('groupListBody');if(!body)return;
+ body.innerHTML=TEAMS.map((t,i)=>{const count=employees.filter(e=>e.team===t).length;return `<tr><td>${i+1}</td><td>${safe(t)}</td><td>${count}</td><td><button type="button" class="red" ${count?'disabled title="Chuyển nhân viên khỏi nhóm trước"':''} onclick="deleteGroupByName('${safe(t)}')">Xóa nhóm</button></td></tr>`}).join('')||'<tr><td colspan="4">Chưa có nhóm</td></tr>';
 }
 async function loadTeamMaster(){
  const {data,error}=await client.from('employee_groups').select('name').order('name');
@@ -525,6 +545,11 @@ async function showSession(session){
 client.auth.onAuthStateChange((_event,session)=>{showSession(session)});
 client.auth.getSession().then(({data})=>showSession(data.session));
 // ===== QUAN LY NHOM NHAN VIEN =====
+$('toggleGroupManager').onclick=()=>{
+ const panel=$('groupManagerPanel');panel.classList.toggle('hidden');
+ $('toggleGroupManager').textContent=panel.classList.contains('hidden')?'Thêm / Xóa nhóm':'Ẩn quản lý nhóm';
+ renderGroupList();
+};
 $('addGroup').onclick=async()=>{
  const name=$('groupName').value.trim();
  if(!name){alert('Vui lòng nhập tên nhóm.');return}
@@ -532,37 +557,33 @@ $('addGroup').onclick=async()=>{
  if(!teamMasterAvailable){alert('Chưa có bảng employee_groups. Hãy chạy migration v16 trước.');return}
  const {error}=await client.from('employee_groups').insert({name});
  if(error){alert('Không thêm được nhóm: '+error.message);return}
- $('groupName').value='';await loadAll();alert('Đã thêm nhóm '+name);
+ $('groupName').value='';await loadAll();$('groupManagerPanel').classList.remove('hidden');renderGroupList();alert('Đã thêm nhóm '+name);
 };
-$('renameGroup').onclick=async()=>{
- const oldName=$('groupCurrent').value,newName=$('groupName').value.trim();
- if(!oldName||!newName){alert('Chọn nhóm hiện tại và nhập tên nhóm mới.');return}
- if(oldName===newName){alert('Tên nhóm mới trùng tên hiện tại.');return}
- if(!confirm(`Đổi tên nhóm "${oldName}" thành "${newName}"? Toàn bộ nhân viên trong nhóm cũ sẽ được chuyển sang nhóm mới. Nếu nhóm mới đã tồn tại, dữ liệu nhóm sẽ được gộp/ghi đè theo tên mới.`))return;
- if(!teamMasterAvailable){alert('Chưa có bảng employee_groups. Hãy chạy migration v16 trước.');return}
- const {error:empError}=await client.from('employees').update({team:newName}).eq('team',oldName);
- if(empError){alert('Không cập nhật được nhân viên: '+empError.message);return}
- const {error:stdError}=await client.from('employee_ot_standards').update({team:newName}).eq('team',oldName);
- if(stdError && !/duplicate key|unique/i.test(stdError.message)){alert('Nhân viên đã chuyển nhóm nhưng tiêu chuẩn OT chưa chuyển: '+stdError.message);return}
- const {error:delError}=await client.from('employee_groups').delete().eq('name',oldName);
- if(delError){alert('Đã chuyển nhân viên nhưng chưa xóa được tên nhóm cũ: '+delError.message);return}
- const {error:addError}=await client.from('employee_groups').upsert({name:newName},{onConflict:'name'});
- if(addError){alert('Đã chuyển nhân viên nhưng chưa lưu được danh mục nhóm mới: '+addError.message);return}
- $('groupName').value='';await loadAll();alert('Đã đổi tên nhóm và cập nhật hồ sơ nhân viên.');
-};
-$('deleteGroup').onclick=async()=>{
- const name=$('groupCurrent').value;if(!name)return;
- const assigned=employees.filter(e=>e.team===name).length;
- if(assigned){alert(`Không thể xóa nhóm "${name}" vì còn ${assigned} nhân viên. Hãy chuyển nhân viên sang nhóm khác trước.`);return}
- if(!confirm(`Xóa nhóm "${name}" khỏi danh mục?`))return;
- if(!teamMasterAvailable){alert('Chưa có bảng employee_groups. Hãy chạy migration v16 trước.');return}
+window.deleteGroupByName=async name=>{
+ const count=employees.filter(e=>e.team===name).length;
+ if(count){alert(`Không thể xóa nhóm ${name} vì còn ${count} nhân viên. Hãy chuyển nhân viên sang nhóm khác trước.`);return}
+ if(!confirm(`Xóa nhóm "${name}"?`))return;
  const {error}=await client.from('employee_groups').delete().eq('name',name);
  if(error){alert('Không xóa được nhóm: '+error.message);return}
- await loadAll();alert('Đã xóa nhóm.');
+ await loadAll();$('groupManagerPanel').classList.remove('hidden');renderGroupList();
 };
-
+window.editEmployee=id=>{inlineEditingEmployeeId=id;renderEmployees()};
+window.cancelInlineEmployee=()=>{inlineEditingEmployeeId=null;renderEmployees()};
+window.saveInlineEmployee=async id=>{
+ const data={
+  hire_date:$(`inlineHire_${id}`).value||null,
+  employee_code:$(`inlineCode_${id}`).value.trim(),
+  full_name:$(`inlineName_${id}`).value.trim(),
+  team:$(`inlineTeam_${id}`).value,
+  classification:$(`inlineClass_${id}`).value
+ };
+ if(!data.employee_code||!data.full_name){alert('Mã nhân viên và họ tên không được để trống.');return}
+ const {error}=await client.from('employees').update(data).eq('id',id);
+ if(error){alert('Cập nhật nhân viên thất bại: '+error.message);return}
+ inlineEditingEmployeeId=null;await loadAll();alert('Đã cập nhật nhân viên.');
+};
 $('employeeForm').onsubmit=async ev=>{
- ev.preventDefault();const id=$('editId').value;
+ ev.preventDefault();const id='';
  const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),team:$('empTeam').value,classification:$('empClassification').value};
  const result=id?await client.from('employees').update(data).eq('id',id):await client.from('employees').insert(data);
  if(result.error){alert(result.error.message);return}
