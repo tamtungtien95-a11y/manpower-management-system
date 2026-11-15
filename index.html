@@ -289,7 +289,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
  <div class="chart-legend" aria-label="Chú giải biểu đồ"><span><i class="legend-dot" style="background:#2563eb"></i>Đi Làm</span><span><i class="legend-dot" style="background:#f59e0b"></i>Nghỉ (tất cả loại)</span></div>
  <div id="teamWorkChart" class="team-work-chart" role="img" aria-label="Biểu đồ cột so sánh nhân viên đi làm và nghỉ theo nhóm"></div>
 </div>
-<div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
+<div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 </section>
 <section id="employees" class="view">
@@ -328,7 +328,11 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
  <div><label>Ngày điểm danh</label><input type="date" id="attendanceDate"></div>
  <div><label>Lọc theo nhóm</label><select id="attendanceTeamFilter"><option value="">Tất cả nhóm</option></select></div>
- <div style="display:flex;align-items:end"><button type="button" id="saveAttendance">Lưu điểm danh</button></div>
+ <div style="display:flex;align-items:end;gap:6px;flex-wrap:wrap">
+  <button type="button" class="gray" id="attendanceDayShift">Ca ngày 08:00–20:00</button>
+  <button type="button" class="gray" id="attendanceNightShift">Ca đêm 20:00–08:00</button>
+  <button type="button" id="saveAttendance">Lưu điểm danh</button>
+ </div>
 </div>
 <div class="cards attendance-metrics" style="margin-top:10px">
  <div class="card metric"><span>Đi Làm</span><strong id="attWorkCount">0</strong></div>
@@ -417,8 +421,9 @@ const SUPABASE_URL = "https://juifxigovxddvmbwquyf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_alUSkneRYMVrZUnCmetIVQ_GK2PzWjh";
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let employees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
+let employees = [], allEmployees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
 const selectedAttendanceEmployees = new Set();
+let attendanceShift='day';
 
 function message(id, text){$(id).textContent=text;$(id).classList.remove('hidden')}
 
@@ -445,10 +450,11 @@ async function loadAll(){
  if(e.error||a.error||o.error){message('appMsg',(e.error||a.error||o.error).message);return}
  otStandards=s.error?[]:(s.data||[]);
  if(s.error) console.warn('Chưa tải được tiêu chuẩn OT:',s.error.message);
- employees=e.data||[];
+ allEmployees=e.data||[];
+ employees=allEmployees.filter(x=>x.is_active!==false);
  if(!g.error){teamMasterAvailable=true;TEAMS=[...new Set([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)])];}else{teamMasterAvailable=false;TEAMS=[...new Set(['SEVT','Shipment','Rear','Kitting','Office',...employees.map(e=>e.team).filter(Boolean)])];}
  renderGroupControls();
- attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
+ attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  setAttendanceDraftForDate($('attendanceDate').value);
  renderEmployees();fillOtTeamFilter();renderDashboard();renderAttendance();renderOvertime();
@@ -494,8 +500,10 @@ async function loadTeamMaster(){
 function pct(n,total){return total?`${(n/total*100).toFixed(1).replace('.',',')}%`:'0,0%'}
 function dashboardRows(){
  const d=$('summaryDate').value;
- const byEmployee=new Map(attendanceRecords.filter(x=>x.date===d).map(x=>[x.employee_id,x]));
- return employees.map(e=>({...e,attendance:byEmployee.get(e.id)||null,status:byEmployee.get(e.id)?.status||'Chưa điểm danh'}));
+ const byEmployee=new Map(attendanceRecords.filter(x=>x.date===d).map(x=>[String(x.employee_id),x]));
+ const reportEmployees=(allEmployees.length?allEmployees:employees).filter(e=>e.is_active!==false || !e.deactivated_at || d < String(e.deactivated_at).slice(0,10));
+ return reportEmployees.map(e=>({...e,attendance:byEmployee.get(String(e.id))||null,status:byEmployee.get(String(e.id))?.status||'Chưa điểm danh'}))
+  .filter(e=>e.status!=='Đổi Về HC');
 }
 function showDashboardDetails(kind,value,team=''){
  const rows=dashboardRows().filter(e=>(!team||e.team===team)&&(kind==='team'?true:e.status===value));
@@ -715,7 +723,7 @@ $('exportTeamSummary').addEventListener('click',async()=>{
 function renderTeamWorkChart(rows){
  const values=TEAMS.map(team=>{
   const group=rows.filter(e=>e.team===team);
-  return {team,work:group.filter(e=>e.status==='Đi Làm').length,leave:group.filter(e=>ATTENDANCE_STATUSES.includes(e.status)&&e.status!=='Đi Làm').length};
+  return {team,work:group.filter(e=>e.status==='Đi Làm').length,leave:group.filter(e=>ATTENDANCE_STATUSES.includes(e.status)&&e.status!=='Đi Làm'&&e.status!=='Đổi Về HC').length};
  });
  const maxValue=Math.max(1,...values.flatMap(x=>[x.work,x.leave]));
  const tickMax=Math.max(4,Math.ceil(maxValue/4)*4),tickStep=tickMax/4;
@@ -741,7 +749,7 @@ function renderDashboard(){
  const d=$('summaryDate').value, rows=dashboardRows(), total=rows.length;
  renderTeamWorkChart(rows);
  const countStatus=status=>rows.filter(e=>e.status===status).length;
- const work=countStatus('Đi Làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi Làm').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
+ const work=countStatus('Đi Làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi Làm'&&s!=='Đổi Về HC').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
  const countClass=classification=>employees.filter(e=>(e.classification||'').trim()===classification).length;
   $('dashTotal').textContent=total;
   $('dashOfficial').textContent=countClass('Chính Thức');
@@ -752,10 +760,10 @@ function renderDashboard(){
  $('teamSummaryBody').innerHTML=TEAMS.map(team=>{
   const group=rows.filter(e=>e.team===team), n=group.length;
   const cell=(st)=>{const c=group.filter(e=>e.status===st).length;return `<td><button class="click-count" onclick="showDashboardDetails('status','${safe(st)}','${safe(team)}')">${c}</button></td>`};
-  return `<tr><td>${teamTag(team)}</td><td><button class="click-count" onclick="showDashboardDetails('team','','${safe(team)}')">${n}</button></td>${cell('Đi Làm')}${cell('Nghỉ Tự Do')}${cell('Nghỉ Phép')}${cell('Nghỉ Không Lương')}${cell('Nghỉ 1/2 Ngày')}${cell('Chưa điểm danh')}<td class="rate">${pct(group.filter(e=>e.status==='Đi Làm').length,n)}</td></tr>`;
+  return `<tr><td>${teamTag(team)}</td><td><button class="click-count" onclick="showDashboardDetails('team','','${safe(team)}')">${n}</button></td>${cell('Đi Làm')}${cell('Nghỉ Tự Do')}${cell('Nghỉ Phép')}${cell('Nghỉ Không Lương')}${cell('Nghỉ 1/2 Ngày')}${cell('Nghỉ Nửa Ngày Đầu')}${cell('Nghỉ Nửa Ngày Sau')}${cell('Nghỉ KHSX')}${cell('Chưa điểm danh')}<td class="rate">${pct(group.filter(e=>e.status==='Đi Làm').length,n)}</td></tr>`;
  }).join('');
  const totalWork=work;
- $('teamSummaryFoot').innerHTML=`<tr><th>Tổng cộng</th><th>${total}</th><th>${totalWork}</th><th>${countStatus('Nghỉ Tự Do')}</th><th>${countStatus('Nghỉ Phép')}</th><th>${countStatus('Nghỉ Không Lương')}</th><th>${countStatus('Nghỉ 1/2 Ngày')}</th><th>${pending}</th><th class="rate">${pct(totalWork,total)}</th></tr>`;
+ $('teamSummaryFoot').innerHTML=`<tr><th>Tổng cộng</th><th>${total}</th><th>${totalWork}</th><th>${countStatus('Nghỉ Tự Do')}</th><th>${countStatus('Nghỉ Phép')}</th><th>${countStatus('Nghỉ Không Lương')}</th><th>${countStatus('Nghỉ 1/2 Ngày')}</th><th>${countStatus('Nghỉ Nửa Ngày Đầu')}</th><th>${countStatus('Nghỉ Nửa Ngày Sau')}</th><th>${countStatus('Nghỉ KHSX')}</th><th>${pending}</th><th class="rate">${pct(totalWork,total)}</th></tr>`;
 }
 $('closeDashboardDetail').onclick=()=>$('dashboardDetail').classList.add('hidden');
 $('dashboardDetail').addEventListener('click',ev=>{if(ev.target.id==='dashboardDetail')$('dashboardDetail').classList.add('hidden')});
@@ -831,15 +839,29 @@ window.editEmployee=id=>{
  $('saveEmpBtn').textContent='Cập nhật';$('cancelEdit').classList.remove('hidden');
 };
 $('cancelEdit').onclick=()=>{$('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden')};
-window.deleteEmployee=async id=>{if(!confirm('Xóa nhân viên và các báo cáo liên quan?'))return;const {error}=await client.from('employees').delete().eq('id',id);if(error)alert(error.message);else await loadAll()};
+window.deleteEmployee=async id=>{if(!confirm('Ngừng hoạt động nhân viên này? Dữ liệu điểm danh và OT các ngày cũ sẽ được giữ nguyên.'))return;const today=new Date().toLocaleDateString('en-CA');const {error}=await client.from('employees').update({is_active:false,deactivated_at:today}).eq('id',id);if(error)alert('Không thể ngừng hoạt động nhân viên: '+error.message+'\\nHãy chạy migration cập nhật trước.');else await loadAll()};
 // ===== DIEM DANH NHAN VIEN =====
 function setAttendanceDraftForDate(date){
+ const shifts=[...new Set(attendanceRecords.filter(x=>x.date===date).map(x=>x.shift).filter(Boolean))];
+ attendanceShift=shifts.includes('night')?'night':'day';
+ updateAttendanceShiftButtons();
  attendanceDraft=new Map(attendanceRecords
   .filter(x=>x.date===date)
   .map(x=>[String(x.employee_id),x.status]));
 }
 
-const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Phép','Nghỉ KHSX'];
+function updateAttendanceShiftButtons(){
+ const day=$('attendanceDayShift'),night=$('attendanceNightShift');
+ if(!day||!night)return;
+ day.classList.toggle('active',attendanceShift==='day');
+ night.classList.toggle('active',attendanceShift==='night');
+ day.classList.toggle('gray',attendanceShift!=='day');
+ night.classList.toggle('gray',attendanceShift!=='night');
+}
+$('attendanceDayShift').onclick=()=>{attendanceShift='day';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca ngày 08:00–20:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
+$('attendanceNightShift').onclick=()=>{attendanceShift='night';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca đêm 20:00–08:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
+
+const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Nửa Ngày Đầu','Nghỉ Nửa Ngày Sau','Nghỉ Phép','Nghỉ KHSX','Đổi Về HC'];
 $('attendanceQuickStatus').innerHTML='<option value="">-- Chọn nhanh trạng thái --</option>'+ATTENDANCE_STATUSES.map(s=>`<option value="${safe(s)}">${safe(s)}</option>`).join('');
 
 function fillAttendanceTeamFilter(){
@@ -864,10 +886,11 @@ function updateAttendanceHeaderSelectAll(){
  header.indeterminate=checked>0&&checked<boxes.length;
 }
 function renderAttendance(){
+ updateAttendanceShiftButtons();
  syncVisibleAttendanceDraft();
  fillAttendanceTeamFilter();
  const date=$('attendanceDate').value, team=$('attendanceTeamFilter').value, q=$('attendanceSearch').value.toLowerCase();
- const filtered=employees.filter(e=>(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)));
+ const filtered=employees.filter(e=>(e.is_active!==false)&&(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)));
  $('attendanceBody').innerHTML=filtered.map((e,i)=>{
   const current=attendanceDraft.get(String(e.id))||'';
   const checked=selectedAttendanceEmployees.has(String(e.id))?'checked':'';
@@ -935,9 +958,11 @@ $('attendanceBody').addEventListener('change',ev=>{
 $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
- const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status}));
+ const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,shift:attendanceShift}));
  if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
  const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
+ const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
+ if(shiftUpdate.error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không cập nhật được ca cho ngày này: '+shiftUpdate.error.message);return}
  const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
  saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
@@ -983,7 +1008,7 @@ $('attendanceExcelFile').addEventListener('change',async ev=>{
 $('applyAttendanceExcel').onclick=async()=>{
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn Ngày điểm danh trước khi upload.');return}
  if(!attendanceExcelRows.length||attendanceExcelRows.some(x=>x.error))return;
- const payload=attendanceExcelRows.map(x=>({employee_id:x.employee_id,attendance_date:date,status:x.status}));
+ const payload=attendanceExcelRows.map(x=>({employee_id:x.employee_id,attendance_date:date,status:x.status,shift:attendanceShift}));
  const b=$('applyAttendanceExcel');setBusy(b,true,'Đang cập nhật...');
  const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
  setBusy(b,false,'Cập nhật điểm danh');
@@ -993,7 +1018,7 @@ $('applyAttendanceExcel').onclick=async()=>{
 };
 $('cancelAttendanceExcel').onclick=()=>{$('attendanceExcelFile').value='';$('attendanceExcelPreview').classList.add('hidden');attendanceExcelRows=[]};
 function exportAttendanceWorkbook(data,fileName){
- const ws=XLSX.utils.json_to_sheet(data,{header:['Mã Nhân Viên','Nhân Viên','Trạng Thái Nghỉ']});
+ const ws=XLSX.utils.json_to_sheet(data,{header:['Mã Nhân Viên','Nhân Viên','Trạng Thái Nghỉ','Ca']});
  ws['!cols']=[{wch:20},{wch:30},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'DiemDanh');XLSX.writeFile(wb,fileName);
 }
 $('attendanceTemplate').onclick=()=>{
@@ -1002,7 +1027,7 @@ $('attendanceTemplate').onclick=()=>{
 };
 $('attendanceExport').onclick=()=>{
  const d=$('attendanceDate').value;
- const rows=attendanceRecords.filter(x=>x.date===d).map(x=>({'Mã Nhân Viên':x.code,'Nhân Viên':x.name,'Trạng Thái Nghỉ':x.status}));
+ const rows=attendanceRecords.filter(x=>x.date===d).map(x=>({'Mã Nhân Viên':x.code,'Nhân Viên':x.name,'Trạng Thái Nghỉ':x.status,'Ca':x.shift==='night'?'Ca đêm':'Ca ngày'}));
  exportAttendanceWorkbook(rows,`Diem_danh_${d||'ngay'}.xlsx`);
 };
 
@@ -1219,8 +1244,8 @@ $('otDate').value=new Date().toLocaleDateString('en-CA');
 $('otFilterDate').value=new Date().toLocaleDateString('en-CA');
 
 function workingEmployeesOn(date){
- const ids=new Set(attendanceRecords.filter(x=>x.date===date&&x.status==='Đi Làm').map(x=>String(x.employee_id)));
- return employees.filter(e=>ids.has(String(e.id)));
+ const ids=new Set(attendanceRecords.filter(x=>x.date===date&&(x.status==='Đi Làm'||x.status==='Nghỉ Nửa Ngày Đầu')).map(x=>String(x.employee_id)));
+ return employees.filter(e=>e.is_active!==false&&ids.has(String(e.id)));
 }
 function otDraftKey(date,id){return date+'|'+String(id)}
 function initOtDraftForDate(date){
@@ -1264,7 +1289,7 @@ function renderOvertime(){
    <td>${saved?'<span class="tag">Đã lưu</span>':(v.selected?'<span class="tag">Đang chọn</span>':'—')}</td>
    <td>${saved?`<button type="button" class="red" onclick="removeSavedOt('${saved.id}')">Xóa OT</button>`:'—'}</td>
   </tr>`;
- }).join('')||'<tr><td colspan="9">Không có nhân viên Đi Làm trong ngày/nhóm đã chọn</td></tr>';
+ }).join('')||'<tr><td colspan="9">Không có nhân viên Đi Làm hoặc Nghỉ Nửa Ngày Đầu trong ngày/nhóm đã chọn</td></tr>';
  $('otSelectVisible').checked=rows.length>0&&rows.every(x=>otDraft.get(otDraftKey(d,x.id))?.selected);
  updateOtSelectedCount();
  renderOtHistory();
@@ -1306,7 +1331,7 @@ $('otSaveAll').onclick=async()=>{
  if(!selected.length){alert('Bạn chưa chọn nhân viên nào để đăng ký OT.');return}
  const invalid=selected.find(v=>!OT_HOURS.includes(v.hours));
  if(invalid){const e=employees.find(x=>String(x.id)===String(invalid.employee_id));alert(`Vui lòng chọn số giờ OT cho ${e?.full_name||'nhân viên'} trước khi lưu.`);return}
- const notWorking=selected.filter(v=>!attendanceRecords.some(a=>String(a.employee_id)===String(v.employee_id)&&a.date===d&&a.status==='Đi Làm'));
+ const notWorking=selected.filter(v=>!attendanceRecords.some(a=>String(a.employee_id)===String(v.employee_id)&&a.date===d&&(a.status==='Đi Làm'||a.status==='Nghỉ Nửa Ngày Đầu')));
  if(notWorking.length){alert('Có nhân viên không còn trạng thái Đi Làm trong ngày đã chọn. Vui lòng tải lại danh sách.');return}
  $('otSaveAll').disabled=true;$('otSaveAll').textContent='Đang lưu...';
  try{
