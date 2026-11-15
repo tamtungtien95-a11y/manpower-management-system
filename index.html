@@ -747,11 +747,14 @@ $('excelFile').addEventListener('change',async ev=>{
    const hire=parseExcelDate(rawDate);
    const code=String(cellValue(r,['Mã Nhân Viên','Mã nhân viên','Mã NV'])??'').trim();
    const name=String(cellValue(r,['Họ Và tên','Họ và tên','Họ tên'])??'').trim();
-   const team=String(cellValue(r,['Nhóm','Team'])??'').trim();
+   const importedTeam=String(cellValue(r,['Nhóm','Team'])??'').trim();
+   // Chuẩn hóa tên nhóm theo đúng cách viết đang lưu trong danh mục nhóm.
+   // Tránh trường hợp Excel ghi "kitting" nhưng hệ thống lưu "Kitting".
+   const team=TEAMS.find(t=>t.toLocaleLowerCase('vi')===importedTeam.toLocaleLowerCase('vi'))||importedTeam;
    const classification=String(cellValue(r,['Phân Loại','Phân loại','Classification'])??'').trim();
    let error='';
    if(!code)error='Thiếu mã nhân viên';else if(!name)error='Thiếu họ và tên';
-   else if(!TEAMS.some(t=>t.toLowerCase()===team.toLowerCase()))error='Nhóm không hợp lệ (hãy dùng nhóm đang có trong hệ thống)';
+   else if(!TEAMS.some(t=>t.toLocaleLowerCase('vi')===importedTeam.toLocaleLowerCase('vi')))error='Nhóm không hợp lệ (hãy dùng nhóm đang có trong hệ thống)';
    else if(!['Chính Thức','Thời Vụ','Sinh Viên'].includes(classification))error='Phân loại không hợp lệ';
    else if(rawDate&&!hire)error='Ngày vào công ty không đúng định dạng';
    const key=code.toLowerCase();if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
