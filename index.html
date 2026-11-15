@@ -139,9 +139,9 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  <form id="overtimeForm"><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
  <div><label>Ngày OT</label><input type="date" id="otDate" required></div>
  <div><label>Nhân viên (chỉ người Đi Làm)</label><select id="otEmployee" required><option value="">-- Chọn nhân viên --</option></select></div>
- <div><label>Nhóm</label><input id="otTeam" readonly></div>
+ <div><label>Nhóm (tự động)</label><input id="otTeam" readonly placeholder="Tự lấy theo nhân viên"></div>
  <div><label>Số giờ OT</label><select id="otHours" required><option value="">-- Chọn số giờ --</option><option>1h</option><option>1.4h</option><option>1.5h</option><option>2h</option><option>2.5h</option><option>3h</option><option>4h</option><option>5h</option></select></div>
- <div><label>Ghi chú</label><select id="otNote"><option value="">-- Chọn ghi chú --</option><option>KHSX</option><option>Vượt OT</option></select></div></div>
+ <div><label>Ghi chú</label><select id="otNote"><option value="">-- Chọn ghi chú --</option><option value="KHSX">KHSX</option><option value="Vượt OT">Vượt OT</option></select></div></div>
  <div class="actions" style="margin-top:12px"><button type="submit" id="otSave">Lưu OT</button><button type="button" class="gray hidden" id="otCancelEdit">Hủy sửa</button></div></form></div>
  <div class="panel"><div class="toolbar"><b>Toàn bộ nhân lực Đi Làm</b><div class="actions"><input type="date" id="otFilterDate" aria-label="Lọc ngày OT"><select id="otFilterTeam" aria-label="Lọc nhóm"><option value="">Tất cả nhóm</option></select><input id="otSearch" placeholder="Tìm mã hoặc họ tên"></div></div>
  <div class="scroll"><table><thead><tr><th>STT</th><th>Ngày</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT đã đăng ký</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody id="otBody"></tbody></table></div></div>
@@ -633,7 +633,7 @@ function refreshOtEmployeeOptions(){
  if(list.some(x=>x.id===selected)) $('otEmployee').value=selected; else $('otTeam').value='';
 }
 $('otDate').onchange=refreshOtEmployeeOptions;
-$('otEmployee').onchange=()=>{const e=employees.find(x=>x.id===$('otEmployee').value);$('otTeam').value=e?e.team:''};
+$('otEmployee').onchange=()=>{const e=employees.find(x=>String(x.id)===String($('otEmployee').value));$('otTeam').value=e?(e.team||'Chưa cập nhật nhóm'):''};
 function renderOvertime(){
  const d=$('otFilterDate').value,team=$('otFilterTeam').value,q=$('otSearch').value.toLowerCase();
  const working=attendanceRecords.filter(x=>x.date===d&&x.status==='Đi Làm');
