@@ -138,8 +138,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  <div class="panel"><h3>Nhân lực đi làm & đăng ký OT</h3><p class="note">Chọn nhóm trong danh sách nhóm đã khai báo ở tab Nhân viên. Mục Nhân viên sẽ chỉ liệt kê người thuộc nhóm đó và có trạng thái điểm danh “Đi Làm” trong ngày OT.</p>
  <form id="overtimeForm"><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
  <div><label>Ngày OT</label><input type="date" id="otDate" required></div>
- <div><label>Nhóm</label><select id="otTeam"><option value="">-- Chọn nhóm --</option></select></div>
  <div><label>Nhân viên (chỉ người Đi Làm)</label><select id="otEmployee" required><option value="">-- Chọn nhân viên --</option></select></div>
+ <div><label>Nhóm</label><select id="otTeam"><option value="">-- Chọn nhóm --</option></select></div>
  <div><label>Số giờ OT</label><select id="otHours" required><option value="">-- Chọn số giờ --</option><option>1h</option><option>1.4h</option><option>1.5h</option><option>2h</option><option>2.5h</option><option>3h</option><option>4h</option><option>5h</option></select></div>
  <div><label>Ghi chú</label><select id="otNote"><option value="">-- Chọn ghi chú --</option><option value="KHSX">KHSX</option><option value="Vượt OT">Vượt OT</option></select></div></div>
  <div class="actions" style="margin-top:12px"><button type="submit" id="otSave">Lưu OT</button><button type="button" class="gray hidden" id="otCancelEdit">Hủy sửa</button></div></form></div>
@@ -643,9 +643,9 @@ function refreshOtEmployeeOptions(){
  const date=$('otDate').value, selectedTeam=$('otTeam').value;
  const alreadyHasOt=new Set(overtimeRecords
   .filter(v=>v.date===date && v.id!==editingOtId)
-  .map(v=>v.employee_id));
+  .map(v=>String(v.employee_id)));
  const list=workingEmployeesOn(date)
-  .filter(x=>(!selectedTeam||x.team===selectedTeam) && !alreadyHasOt.has(x.id));
+  .filter(x=>(!selectedTeam||x.team===selectedTeam) && !alreadyHasOt.has(String(x.id)));
  const selected=$('otEmployee').value;
  $('otEmployee').innerHTML='<option value="">-- Chọn nhân viên Đi Làm --</option>'+list.map(x=>`<option value="${x.id}">${safe(x.employee_code)} - ${safe(x.full_name)}</option>`).join('');
  if(list.some(x=>String(x.id)===String(selected))) $('otEmployee').value=selected;
