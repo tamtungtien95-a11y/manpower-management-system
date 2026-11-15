@@ -188,14 +188,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
    <div><label>Tìm nhân viên</label><input id="otSearch" placeholder="Mã nhân viên / họ tên"></div>
    <div style="display:flex;align-items:end;gap:8px"><button type="button" id="otSelectAll" class="gray">Chọn tất cả</button><button type="button" id="otClearAll" class="gray">Bỏ chọn</button></div>
   </div>
-  <div class="toolbar" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+  <div class="toolbar" style="margin-top:12px">
    <span id="otSelectedCount" class="note">Đã chọn: 0 nhân viên</span>
-   <div class="actions" style="margin-left:auto;gap:8px">
-    <select id="otQuickHours" aria-label="Chọn nhanh số giờ OT" style="width:auto;min-width:160px">
-     <option value="">-- Chọn nhanh số giờ OT --</option>
-    </select>
-    <button type="button" id="otSaveAll">Lưu tất cả OT đã chọn</button>
-   </div>
   </div>
  </div>
  <div class="panel">
@@ -223,6 +217,12 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
   <p class="note">GAP = Tổng giờ OT thực tế − Tổng giờ OT tiêu chuẩn. Các mức OT 4h và 5h (nếu có) được tính vào tổng giờ thực tế.</p>
  </div>
  <div class="panel">
+  <div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+   <select id="otQuickHours" aria-label="Chọn nhanh số giờ OT" style="width:auto;min-width:180px">
+    <option value="">-- Chọn nhanh số giờ OT --</option>
+   </select>
+   <button type="button" id="otSaveAll">Lưu tất cả OT đã chọn</button>
+  </div>
   <div class="scroll"><table><thead><tr><th><input type="checkbox" id="otSelectVisible" aria-label="Chọn tất cả nhân viên đang hiển thị"></th><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="otBody"></tbody></table></div>
  </div>
  <div class="panel"><div class="toolbar"><b>Lịch sử OT đã lưu</b><div class="actions"><input type="date" id="otFilterDate" aria-label="Lọc ngày OT"><select id="otFilterTeam" aria-label="Lọc nhóm lịch sử"><option value="">Tất cả nhóm</option></select><input id="otHistorySearch" placeholder="Tìm mã hoặc họ tên"></div></div>
