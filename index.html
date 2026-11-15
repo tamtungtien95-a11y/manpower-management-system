@@ -384,7 +384,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
   <div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px">
    <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
    <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
-   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
+   <button type="button" id="previewOtExcel" class="gray">Xem trước Excel</button><button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
   </div>
   <div class="scroll">
    <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
@@ -418,6 +418,20 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
  <div class="panel"><div class="toolbar"><b>Lịch sử OT đã lưu</b><div class="actions"><input type="date" id="otFilterDate" aria-label="Lọc ngày OT"><select id="otFilterTeam" aria-label="Lọc nhóm lịch sử"><option value="">Tất cả nhóm</option></select><input id="otHistorySearch" placeholder="Tìm mã hoặc họ tên"></div></div>
   <div class="scroll"><table><thead><tr><th>STT</th><th>Ngày</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody id="otHistoryBody"></tbody></table></div>
  </div>
+<div id="otExcelPreviewModal" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;padding:20px;overflow:auto">
+ <div style="background:#fff;max-width:1200px;margin:20px auto;border-radius:10px;padding:18px;box-shadow:0 10px 35px rgba(0,0,0,.25)">
+  <div class="toolbar"><div><h3 style="margin:0">Xem trước file Excel báo cáo OT</h3><div id="otExcelPreviewRange" class="note"></div></div><button type="button" class="gray" id="closeOtExcelPreview">Đóng</button></div>
+  <div class="scroll" style="margin-top:14px">
+   <table style="min-width:1100px;border-collapse:collapse;text-align:center;font-family:'Times New Roman',serif">
+    <thead>
+     <tr><th rowspan="2" style="background:#e2efda">Nhóm</th><th colspan="6" style="background:#e2efda">Tiêu Chuẩn</th><th rowspan="2" style="background:#e2efda">Tổng giờ OT</th><th colspan="6" style="background:#f8cbad">Thực Tế</th><th rowspan="2" style="background:#f8cbad">Tổng giờ OT</th><th rowspan="2" style="background:#fff200">GAP</th></tr>
+     <tr><th style="background:#e2efda">1</th><th style="background:#e2efda">1.4</th><th style="background:#e2efda">1.5</th><th style="background:#e2efda">2</th><th style="background:#e2efda">2.5</th><th style="background:#e2efda">3</th><th style="background:#f8cbad">1</th><th style="background:#f8cbad">1.4</th><th style="background:#f8cbad">1.5</th><th style="background:#f8cbad">2</th><th style="background:#f8cbad">2.5</th><th style="background:#f8cbad">3</th></tr>
+    </thead><tbody id="otExcelPreviewBody"></tbody>
+   </table>
+  </div>
+  <div class="actions" style="justify-content:flex-end;margin-top:14px"><button type="button" class="gray" id="closeOtExcelPreview2">Đóng</button><button type="button" class="gray" id="downloadOtImageFromPreview">Tải ảnh PNG</button><button type="button" id="downloadOtExcelFromPreview">Tải Excel</button></div>
+ </div>
+</div>
 </section>
 </main>
 <script>
@@ -990,20 +1004,8 @@ function updateAttendanceShiftButtons(){
  day.classList.toggle('gray',attendanceShift!=='day');
  night.classList.toggle('gray',attendanceShift!=='night');
 }
-function resetAttendanceStatusesForShift(shift){
- // Chốt các thay đổi đang hiển thị rồi chủ động xóa toàn bộ bản nháp trạng thái.
- // Khi render lại, tất cả dropdown trở về '-- Chọn trạng thái --'.
- attendanceShift=shift;
- attendanceDraft.clear();
- document.querySelectorAll('#attendanceBody .attendance-status').forEach(select=>{select.value='';});
- updateAttendanceShiftButtons();
- renderAttendance();
- const shiftLabel=shift==='day'?'Ca ngày 08:00–20:00':'Ca đêm 20:00–08:00';
- $('attendanceQuickMessage').textContent=`Đã chọn ${shiftLabel}. Trạng thái của toàn bộ nhân viên đã được reset về "-- Chọn trạng thái --". Hãy chọn lại trạng thái và bấm Lưu điểm danh để cập nhật.`;
- $('attendanceQuickMessage').classList.remove('hidden');
-}
-$('attendanceDayShift').onclick=()=>resetAttendanceStatusesForShift('day');
-$('attendanceNightShift').onclick=()=>resetAttendanceStatusesForShift('night');
+$('attendanceDayShift').onclick=()=>{attendanceShift='day';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca ngày 08:00–20:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
+$('attendanceNightShift').onclick=()=>{attendanceShift='night';updateAttendanceShiftButtons();$('attendanceQuickMessage').textContent='Đã chọn Ca đêm 20:00–08:00 cho toàn bộ nhân viên trong ngày. Nhấn Lưu điểm danh để lưu.';$('attendanceQuickMessage').classList.remove('hidden')};
 
 const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Nửa Ngày Đầu','Nghỉ Nửa Ngày Sau','Nghỉ Phép','Nghỉ KHSX','Đổi Về HC'];
 $('attendanceQuickStatus').innerHTML='<option value="">-- Chọn nhanh trạng thái --</option>'+ATTENDANCE_STATUSES.map(s=>`<option value="${safe(s)}">${safe(s)}</option>`).join('');
@@ -1103,24 +1105,14 @@ $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
  const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,shift:attendanceShift}));
+ if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
  const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
- // Khi đã reset trạng thái và người dùng lưu, xóa các bản ghi cũ trong ngày trước,
- // sau đó chỉ ghi lại những nhân viên đã được chọn trạng thái mới.
- const existingIds=attendanceRecords.filter(x=>x.date===date).map(x=>String(x.employee_id));
- const selectedIds=new Set(payload.map(x=>String(x.employee_id)));
- const idsToDelete=existingIds.filter(id=>!selectedIds.has(id));
- if(idsToDelete.length){
-  const {error:deleteError}=await client.from('employee_attendance').delete().eq('attendance_date',date).in('employee_id',idsToDelete);
-  if(deleteError){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không thể xóa trạng thái cũ: '+deleteError.message);return}
- }
  const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
  if(shiftUpdate.error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không cập nhật được ca cho ngày này: '+shiftUpdate.error.message);return}
- if(payload.length){
-  const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
-  if(error){saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';alert('Không lưu được điểm danh: '+error.message);return}
- }
+ const {error}=await client.from('employee_attendance').upsert(payload,{onConflict:'employee_id,attendance_date'});
  saveButton.disabled=false;saveButton.textContent='Lưu điểm danh';
- await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên; các trạng thái cũ không được chọn đã được reset.`);
+ if(error){alert('Không lưu được điểm danh: '+error.message);return}
+ await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
 $('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
 $('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
@@ -1309,64 +1301,157 @@ $('saveOtStandards').onclick=async()=>{
 };
 
 
+function renderOtExcelPreview(){
+ const from=$('otExportFromDate').value,to=$('otExportToDate').value;
+ if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
+ if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ const inRange=d=>d>=from&&d<=to, hrs=['1','1.4','1.5','2','2.5','3'];
+ const otRows=overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10)));
+ const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
+ const teams=[...new Set([...otStandardTeams(),...otRows.map(x=>x.team).filter(Boolean),...standardRows.map(x=>x.team).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
+ const rows=teams.map(team=>{
+  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&String(parseFloat(x.hour_code))===h).reduce((s,x)=>s+(Number(x.standard_count)||0),0));
+  const actual=hrs.map(h=>otRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const standardHours=standard.reduce((s,n,i)=>s+n*Number(hrs[i]),0);
+  const actualHours=otRows.filter(x=>x.team===team).reduce((s,x)=>s+(parseFloat(x.hours)||0),0);
+  return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
+ });
+ const totalStd=hrs.map((h,i)=>rows.reduce((s,r)=>s+r.standard[i],0));
+ const totalAct=hrs.map((h,i)=>rows.reduce((s,r)=>s+r.actual[i],0));
+ const totalStdHours=rows.reduce((s,r)=>s+r.standardHours,0),totalActHours=rows.reduce((s,r)=>s+r.actualHours,0);
+ const fmt=n=>Number(n.toFixed(2)).toLocaleString('vi-VN');
+ const cell=(v,bg='')=>`<td style="border:1px solid #000;padding:7px 5px;${bg?`background:${bg};`:''}">${v===0?'':v}</td>`;
+ const body=rows.map(r=>'<tr>'+cell(r.team)+r.standard.map(v=>cell(v,'#e2efda')).join('')+cell(fmt(r.standardHours),'#e2efda')+r.actual.map(v=>cell(v,'#f8cbad')).join('')+cell(fmt(r.actualHours),'#f8cbad')+cell(fmt(r.gap),'#fffbd1')+'</tr>').join('');
+ const total='<tr style="font-weight:bold">'+cell('ToTal','#e2efda')+totalStd.map(v=>cell(v,'#e2efda')).join('')+cell(fmt(totalStdHours),'#e2efda')+totalAct.map(v=>cell(v,'#f8cbad')).join('')+cell(fmt(totalActHours),'#f8cbad')+cell(fmt(totalActHours-totalStdHours),'#fff200')+'</tr>';
+ $('otExcelPreviewBody').innerHTML=body+total;
+ $('otExcelPreviewRange').textContent=`Khoảng ngày: ${from} đến ${to} · ${rows.length} nhóm`;
+ $('otExcelPreviewModal').classList.remove('hidden');
+}
+$('previewOtExcel').onclick=renderOtExcelPreview;
+const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
+$('closeOtExcelPreview').onclick=closeOtExcelPreview;
+$('closeOtExcelPreview2').onclick=closeOtExcelPreview;
+$('downloadOtExcelFromPreview').onclick=()=>{closeOtExcelPreview();exportOtStandardsExcel();};
+
+$('downloadOtImageFromPreview').onclick=()=>{
+ const from=$('otExportFromDate').value,to=$('otExportToDate').value;
+ const source=$('otExcelPreviewTable');
+ if(!source||!source.querySelector('tbody tr')){alert('Chưa có dữ liệu xem trước để tạo ảnh.');return}
+ const widths=[130,70,70,70,70,70,70,95,70,70,70,70,70,70,95,85];
+ const rowH=34,headH1=42,headH2=34,margin=24,titleH=62;
+ const totalW=widths.reduce((a,b)=>a+b,0),rows=[...source.tBodies[0].rows];
+ const canvas=document.createElement('canvas');
+ canvas.width=totalW+margin*2;canvas.height=titleH+headH1+headH2+rows.length*rowH+margin*2;
+ const ctx=canvas.getContext('2d');
+ ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.fillStyle='#111827';ctx.font='bold 25px "Times New Roman"';ctx.textAlign='left';
+ ctx.fillText('BÁO CÁO TIÊU CHUẨN OT CA C',margin,margin+27);
+ ctx.font='16px "Times New Roman"';ctx.fillText(`Thời gian: ${from} đến ${to}`,margin,margin+51);
+ const x0=margin,y0=margin+titleH;
+ const green='#e2efda',orange='#f8cbad',yellow='#fff200',border='#000000';
+ const drawCell=(x,y,w,h,text,fill='#ffffff',bold=false)=>{
+  ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=border;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);
+  ctx.fillStyle='#000000';ctx.font=`${bold?'bold ':''}16px "Times New Roman"`;ctx.textAlign='center';ctx.textBaseline='middle';
+  const words=String(text??'').split('\n');words.forEach((line,i)=>ctx.fillText(line,x+w/2,y+h/2+(i-(words.length-1)/2)*18));
+ };
+ let x=x0;
+ drawCell(x,y0,widths[0],headH1+headH2,'Nhóm',green,true);x+=widths[0];
+ drawCell(x,y0,widths.slice(1,7).reduce((a,b)=>a+b,0),headH1,'Tiêu Chuẩn',green,true);
+ drawCell(x,y0+headH1,widths[1],headH2,'1',green,true);
+ for(let i=1;i<6;i++)drawCell(x+widths.slice(1,1+i).reduce((a,b)=>a+b,0),y0+headH1,widths[i+1],headH2,['1.4','1.5','2','2.5','3'][i-1],green,true);
+ x+=widths.slice(1,7).reduce((a,b)=>a+b,0);
+ drawCell(x,y0,widths[7],headH1+headH2,'Tổng giờ\nOT',green,true);x+=widths[7];
+ drawCell(x,y0,widths.slice(8,14).reduce((a,b)=>a+b,0),headH1,'Thực Tế',orange,true);
+ for(let i=0;i<6;i++)drawCell(x+widths.slice(8,8+i).reduce((a,b)=>a+b,0),y0+headH1,widths[8+i],headH2,['1','1.4','1.5','2','2.5','3'][i],orange,true);
+ x+=widths.slice(8,14).reduce((a,b)=>a+b,0);
+ drawCell(x,y0,widths[14],headH1+headH2,'Tổng giờ\nOT',orange,true);x+=widths[14];
+ drawCell(x,y0,widths[15],headH1+headH2,'GAP',yellow,true);
+ rows.forEach((tr,ri)=>{
+  let xx=x0,yy=y0+headH1+headH2+ri*rowH;
+  [...tr.cells].forEach((td,ci)=>{
+   let fill='#ffffff';
+   if(ci>=1&&ci<=7)fill=green;
+   else if(ci>=8&&ci<=14)fill=orange;
+   else if(ci===15)fill=yellow;
+   drawCell(xx,yy,widths[ci],rowH,td.textContent.trim(),fill,ri===rows.length-1);
+   xx+=widths[ci];
+  });
+ });
+ canvas.toBlob(blob=>{
+  if(!blob){alert('Không tạo được ảnh PNG.');return}
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`Bao_cao_OT_${from}_den_${to}.png`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+ },'image/png');
+};
+
+
 function exportOtStandardsExcel(){
  if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện Excel. Hãy tải lại trang rồi thử lại.');return}
  const from=$('otExportFromDate').value,to=$('otExportToDate').value;
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  const inRange=d=>d>=from&&d<=to;
- const dateText=d=>d?d.split('-').reverse().join('/'):'';
- const otRows=overtimeRecords.filter(x=>inRange(x.date)).sort((a,b)=>a.date.localeCompare(b.date)||String(a.team).localeCompare(String(b.team))||String(a.code).localeCompare(String(b.code)));
- const standardRows=otStandards.filter(x=>inRange(String(x.standard_date).slice(0,10))).sort((a,b)=>a.standard_date.localeCompare(b.standard_date)||String(a.team).localeCompare(String(b.team))||Number(a.hour_code)-Number(b.hour_code));
- const wb=new ExcelJS.Workbook();wb.creator='Hệ thống quản lý nhân lực MM';wb.created=new Date();
- const thin={top:{style:'thin',color:{argb:'FFB7C9D6'}},bottom:{style:'thin',color:{argb:'FFB7C9D6'}},left:{style:'thin',color:{argb:'FFB7C9D6'}},right:{style:'thin',color:{argb:'FFB7C9D6'}}};
- const headFill='FF1F4E78',subFill='FFD9EAF7',green='FFE2EFDA',orange='FFF8CBAD',yellow='FFFFFF00';
- function styleHeader(row,fill=headFill){
-  row.eachCell(c=>{c.font={name:'Times New Roman',size:11,bold:true,color:{argb:fill===headFill?'FFFFFFFF':'FF000000'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:fill}};c.alignment={horizontal:'center',vertical:'middle',wrapText:true};c.border=thin;});
- }
- function styleData(ws){
-  ws.eachRow((row,n)=>{if(n===1)return;row.eachCell(c=>{c.font={name:'Times New Roman',size:11};c.alignment={vertical:'middle',horizontal:'center'};c.border=thin;});});
-  ws.views=[{showGridLines:false}];
-  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:ws.columnCount}};
-  ws.getRow(1).height=30;
- }
- // 1) Chi tiết từng lượt OT đã lưu.
- const detail=wb.addWorksheet('Chi tiet OT');
- detail.columns=[{header:'Ngày OT',key:'date',width:14},{header:'Mã nhân viên',key:'code',width:16},{header:'Họ và tên',key:'name',width:28},{header:'Nhóm',key:'team',width:16},{header:'Số giờ OT',key:'hours',width:14},{header:'Ghi chú',key:'note',width:24}];
- detail.addRows(otRows.map(x=>({date:dateText(x.date),code:x.code||'',name:x.name||'',team:x.team||'',hours:parseFloat(x.hours)||x.hours||'',note:x.note||''})));
- styleHeader(detail.getRow(1));styleData(detail);
- // 2) Tiêu chuẩn OT đã nhập theo từng ngày, nhóm và mức giờ.
- const standards=wb.addWorksheet('Tieu chuan OT');
- standards.columns=[{header:'Ngày áp dụng',key:'date',width:16},{header:'Nhóm',key:'team',width:18},{header:'Mức giờ OT',key:'hour',width:14},{header:'Số lượng tiêu chuẩn',key:'count',width:22}];
- standards.addRows(standardRows.map(x=>({date:dateText(String(x.standard_date).slice(0,10)),team:x.team,hour:Number(x.hour_code),count:Number(x.standard_count)||0})));
- styleHeader(standards.getRow(1), 'FFE2EFDA');styleData(standards);
- // 3) Tổng hợp theo từng ngày và nhóm: tiêu chuẩn so với thực tế.
  const hrs=['1','1.4','1.5','2','2.5','3'];
- const dayTeamKeys=[...new Set([...otRows.map(x=>`${x.date}|${x.team}`),...standardRows.map(x=>`${String(x.standard_date).slice(0,10)}|${x.team}`)])].sort();
- const summary=wb.addWorksheet('Tong hop ngay-nhom');
- const headers=['Ngày','Nhóm',...hrs.map(h=>`TC ${h}h`),'Tổng giờ TC',...hrs.map(h=>`TT ${h}h`),'Tổng giờ TT','GAP'];
- summary.addRow(headers);styleHeader(summary.getRow(1));
- summary.columns=[{width:14},{width:17},...hrs.map(()=>({width:10})),{width:13},...hrs.map(()=>({width:10})),{width:13},{width:12}];
- const sumRows=dayTeamKeys.map(key=>{
-  const [d,team]=key.split('|');
-  const std=hrs.map(h=>standardRows.filter(x=>String(x.standard_date).slice(0,10)===d&&x.team===team&&String(parseFloat(x.hour_code))===h).reduce((n,x)=>n+(Number(x.standard_count)||0),0));
-  const actual=otRows.filter(x=>x.date===d&&x.team===team);
-  const act=hrs.map(h=>actual.filter(x=>String(parseFloat(x.hours))===h).length);
-  const stdTotal=std.reduce((n,v,i)=>n+v*Number(hrs[i]),0);
-  const actTotal=actual.reduce((n,x)=>n+(parseFloat(x.hours)||0),0);
-  return [dateText(d),team,...std,Number(stdTotal.toFixed(2)),...act,Number(actTotal.toFixed(2)),Number((actTotal-stdTotal).toFixed(2))];
+ const otRows=overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10)));
+ const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
+ const teams=[...new Set([
+  ...otStandardTeams(),
+  ...otRows.map(x=>x.team).filter(Boolean),
+  ...standardRows.map(x=>x.team).filter(Boolean)
+ ])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
+ const rows=teams.map(team=>{
+  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&String(parseFloat(x.hour_code))===h).reduce((sum,x)=>sum+(Number(x.standard_count)||0),0));
+  const actual=hrs.map(h=>otRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const standardHours=standard.reduce((sum,n,i)=>sum+n*Number(hrs[i]),0);
+  // Tổng giờ thực tế tính tất cả lượt OT trong khoảng ngày, kể cả mức 4h và 5h.
+  const actualHours=otRows.filter(x=>x.team===team).reduce((sum,x)=>sum+(parseFloat(x.hours)||0),0);
+  return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
  });
- sumRows.forEach(r=>{const row=summary.addRow(r);row.eachCell(c=>{c.font={name:'Times New Roman',size:11};c.alignment={horizontal:'center',vertical:'middle'};c.border=thin;});});
- styleData(summary);
- // Header bands in summary.
- for(let c=3;c<=8;c++)summary.getCell(1,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
- for(let c=9;c<=15;c++)summary.getCell(1,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
- summary.getCell(1,16).fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
- const rangeLabel=`${dateText(from)}_${dateText(to)}`;
+ const totalStd=hrs.map((h,i)=>rows.reduce((sum,r)=>sum+r.standard[i],0));
+ const totalAct=hrs.map((h,i)=>rows.reduce((sum,r)=>sum+r.actual[i],0));
+ const totalStdHours=rows.reduce((sum,r)=>sum+r.standardHours,0);
+ const totalActHours=rows.reduce((sum,r)=>sum+r.actualHours,0);
+ const wb=new ExcelJS.Workbook();wb.creator='Hệ thống quản lý nhân lực MM';wb.created=new Date();
+ const ws=wb.addWorksheet('Bao cao OT');ws.views=[{showGridLines:false}];
+ ws.columns=[{width:15},...Array.from({length:6},()=>({width:10})),{width:9},...Array.from({length:6},()=>({width:10})),{width:9},{width:9}];
+ const black={style:'thin',color:{argb:'FF000000'}};
+ const border={top:black,bottom:black,left:black,right:black};
+ const green='FFE2EFDA',orange='FFF8CBAD',yellow='FFFFFF00';
+ const center={horizontal:'center',vertical:'middle',wrapText:true};
+ ws.mergeCells('A1:P1');
+ const title=ws.getCell('A1');title.value='BÁO CÁO TIÊU CHUẨN OT CA C';
+ title.font={name:'Times New Roman',size:14,color:{argb:'FF000000'}};title.alignment={horizontal:'left',vertical:'middle'};ws.getRow(1).height=24;
+ ws.getRow(2).height=12;
+ ws.mergeCells('A3:A4');ws.getCell('A3').value='Nhóm';
+ ws.mergeCells('B3:G3');ws.getCell('B3').value='Tiêu Chuẩn';
+ ws.mergeCells('H3:H4');ws.getCell('H3').value='Tổng giờ OT';
+ ws.mergeCells('I3:N3');ws.getCell('I3').value='Thực Tế';
+ ws.mergeCells('O3:O4');ws.getCell('O3').value='Tổng giờ OT';
+ ws.mergeCells('P3:P4');ws.getCell('P3').value='GAP';
+ hrs.forEach((h,i)=>{ws.getCell(4,2+i).value=Number(h);ws.getCell(4,9+i).value=Number(h);});
+ for(let c=1;c<=16;c++){
+  for(let r=3;r<=4;r++){const cell=ws.getCell(r,c);cell.font={name:'Times New Roman',size:14};cell.alignment=center;cell.border=border;}
+ }
+ for(let c=1;c<=8;c++){ws.getCell(3,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};ws.getCell(4,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};}
+ for(let c=9;c<=15;c++){ws.getCell(3,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};ws.getCell(4,c).fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};}
+ ws.getCell('P3').fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
+ ws.getRow(3).height=34;ws.getRow(4).height=30;
+ const fmt=n=>Number(n.toFixed(2));
+ rows.forEach(r=>{
+  const row=ws.addRow([r.team,...r.standard,fmt(r.standardHours),...r.actual,fmt(r.actualHours),fmt(r.gap)]);row.height=24;
+  row.eachCell((cell,col)=>{cell.font={name:'Times New Roman',size:14};cell.alignment=center;cell.border=border;if(col===16&&r.gap<0)cell.font={name:'Times New Roman',size:14,color:{argb:'FFDC2626'}};});
+ });
+ const total=ws.addRow(['ToTal',...totalStd,fmt(totalStdHours),...totalAct,fmt(totalActHours),fmt(totalActHours-totalStdHours)]);total.height=25;
+ total.eachCell((cell,col)=>{cell.font={name:'Times New Roman',size:14};cell.alignment=center;cell.border=border;});
+ for(let c=1;c<=16;c++){
+  const cell=ws.getCell(total.number,c);
+  cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:c===16?yellow:(c>=9&&c<=15?orange:green)}};
+ }
  wb.xlsx.writeBuffer().then(buf=>{
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`Du_lieu_OT_${from}_den_${to}.xlsx`;a.click();
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
+  a.download=`Bao_cao_tieu_chuan_OT_ca_C_${from}_den_${to}.xlsx`;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
  }).catch(err=>alert('Xuất Excel thất bại: '+err.message));
 }
