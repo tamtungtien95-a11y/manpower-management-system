@@ -147,6 +147,30 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
   <div class="toolbar" style="margin-top:12px"><span id="otSelectedCount" class="note">Đã chọn: 0 nhân viên</span><button type="button" id="otSaveAll">Lưu tất cả OT đã chọn</button></div>
  </div>
  <div class="panel">
+  <h3>BÁO CÁO TIÊU CHUẨN OT CA C</h3>
+  <p class="note">Nhập tiêu chuẩn theo ngày cho từng nhóm. Thực tế được tính tự động từ các đăng ký OT đã lưu.</p>
+  <div class="toolbar"><b>Ngày áp dụng: <span id="otStandardDateLabel"></span></b><div class="actions"><button type="button" id="saveOtStandards" class="gray">Lưu tiêu chuẩn ngày</button><button type="button" id="exportOtStandardsExcel">Tải Excel báo cáo OT</button></div></div>
+  <div class="scroll">
+   <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
+    <thead>
+     <tr>
+      <th rowspan="2">Nhóm</th>
+      <th colspan="6" style="background:#e2efda">Tiêu Chuẩn</th>
+      <th rowspan="2" style="background:#e2efda">Tổng giờ OT</th>
+      <th colspan="6" style="background:#f8cbad">Thực Tế</th>
+      <th rowspan="2" style="background:#f8cbad">Tổng giờ OT</th>
+      <th rowspan="2" style="background:#fff200">GAP</th>
+     </tr>
+     <tr>
+      <th style="background:#e2efda">1</th><th style="background:#e2efda">1.4</th><th style="background:#e2efda">1.5</th><th style="background:#e2efda">2</th><th style="background:#e2efda">2.5</th><th style="background:#e2efda">3</th>
+      <th style="background:#f8cbad">1</th><th style="background:#f8cbad">1.4</th><th style="background:#f8cbad">1.5</th><th style="background:#f8cbad">2</th><th style="background:#f8cbad">2.5</th><th style="background:#f8cbad">3</th>
+     </tr>
+    </thead><tbody id="otStandardBody"></tbody>
+   </table>
+  </div>
+  <p class="note">GAP = Tổng giờ OT thực tế − Tổng giờ OT tiêu chuẩn. Các mức OT 4h và 5h (nếu có) được tính vào tổng giờ thực tế.</p>
+ </div>
+ <div class="panel">
   <div class="scroll"><table><thead><tr><th><input type="checkbox" id="otSelectVisible" aria-label="Chọn tất cả nhân viên đang hiển thị"></th><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="otBody"></tbody></table></div>
  </div>
  <div class="panel"><div class="toolbar"><b>Lịch sử OT đã lưu</b><div class="actions"><input type="date" id="otFilterDate" aria-label="Lọc ngày OT"><select id="otFilterTeam" aria-label="Lọc nhóm lịch sử"><option value="">Tất cả nhóm</option></select><input id="otHistorySearch" placeholder="Tìm mã hoặc họ tên"></div></div>
@@ -160,7 +184,7 @@ const SUPABASE_URL = "https://juifxigovxddvmbwquyf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_alUSkneRYMVrZUnCmetIVQ_GK2PzWjh";
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let employees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
+let employees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
 
 function message(id, text){$(id).textContent=text;$(id).classList.remove('hidden')}
 
@@ -177,12 +201,15 @@ function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 function formatDate(v){return v?String(v).slice(0,10):''}
 function setBusy(btn,busy,text){btn.disabled=busy;btn.textContent=busy?'Đang xử lý...':text}
 async function loadAll(){
- const [e,a,o]=await Promise.all([
+ const [e,a,o,s]=await Promise.all([
   client.from('employees').select('*').order('employee_code'),
   client.from('employee_attendance').select('*, employees(employee_code,full_name,team)').order('attendance_date',{ascending:false}),
-  client.from('employee_overtime').select('*, employees(employee_code,full_name,team)').order('overtime_date',{ascending:false})
+  client.from('employee_overtime').select('*, employees(employee_code,full_name,team)').order('overtime_date',{ascending:false}),
+  client.from('employee_ot_standards').select('*')
  ]);
  if(e.error||a.error||o.error){message('appMsg',(e.error||a.error||o.error).message);return}
+ otStandards=s.error?[]:(s.data||[]);
+ if(s.error) console.warn('Chưa tải được tiêu chuẩn OT:',s.error.message);
  employees=e.data||[];
  attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
@@ -667,6 +694,136 @@ $('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':
 
 $('empSearch').oninput=renderEmployees;$('summaryDate').onchange=renderDashboard;
 
+// ===== BAO CAO TIEU CHUAN OT CA C =====
+const OT_REPORT_HOURS=['1','1.4','1.5','2','2.5','3'];
+function otStandardTeams(){
+ const preferred=['SEVT','Shipmet','Rear','Kitting','Office'];
+ const actual=[...new Set(employees.map(e=>e.team).filter(Boolean))];
+ return [...new Set([...preferred,...actual])];
+}
+function standardValue(team,hour){
+ const row=otStandards.find(x=>x.standard_date===$('otDate').value&&x.team===team&&String(x.hour_code)===String(hour));
+ return row?Number(row.standard_count)||0:0;
+}
+function renderOtStandards(){
+ const date=$('otDate').value;
+ $('otStandardDateLabel').textContent=date;
+ const teams=otStandardTeams();
+ const actualRows=overtimeRecords.filter(x=>x.date===date);
+ const rows=teams.map(team=>{
+  const standard=OT_REPORT_HOURS.map(h=>standardValue(team,h));
+  const actual=OT_REPORT_HOURS.map(h=>actualRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const standardHours=standard.reduce((sum,n,i)=>sum+n*Number(OT_REPORT_HOURS[i]),0);
+  const actualHours=actualRows.filter(x=>x.team===team).reduce((sum,x)=>sum+(parseFloat(x.hours)||0),0);
+  return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
+ });
+ const totalStd=OT_REPORT_HOURS.map((h,i)=>rows.reduce((s,r)=>s+r.standard[i],0));
+ const totalAct=OT_REPORT_HOURS.map((h,i)=>rows.reduce((s,r)=>s+r.actual[i],0));
+ const totalStdHours=rows.reduce((s,r)=>s+r.standardHours,0);
+ const totalActHours=rows.reduce((s,r)=>s+r.actualHours,0);
+ const fmt=n=>Number(n.toFixed(2)).toLocaleString('vi-VN');
+ $('otStandardBody').innerHTML=rows.map(r=>`<tr>
+  <td><b>${safe(r.team)}</b></td>
+  ${r.standard.map((v,i)=>`<td><input class="ot-standard-input" type="number" min="0" step="1" data-team="${safe(r.team)}" data-hour="${OT_REPORT_HOURS[i]}" value="${v}" style="width:58px;text-align:center;padding:5px"></td>`).join('')}
+  <td><b>${fmt(r.standardHours)}</b></td>
+  ${r.actual.map(v=>`<td>${v||''}</td>`).join('')}
+  <td><b>${fmt(r.actualHours)}</b></td><td style="background:#fffbd1;color:${r.gap<0?'#dc2626':'#111'}"><b>${fmt(r.gap)}</b></td>
+ </tr>`).join('')+`<tr style="font-weight:bold;background:#f1f5f9">
+  <td>Total</td>${totalStd.map(v=>`<td>${v||''}</td>`).join('')}<td>${fmt(totalStdHours)}</td>
+  ${totalAct.map(v=>`<td>${v||''}</td>`).join('')}<td>${fmt(totalActHours)}</td><td>${fmt(totalActHours-totalStdHours)}</td>
+ </tr>`;
+}
+$('saveOtStandards').onclick=async()=>{
+ const date=$('otDate').value;
+ const inputs=[...document.querySelectorAll('.ot-standard-input')];
+ const payload=inputs.map(i=>({standard_date:date,team:i.dataset.team,hour_code:i.dataset.hour,standard_count:Math.max(0,Number(i.value)||0)}));
+ const {error}=await client.from('employee_ot_standards').upsert(payload,{onConflict:'standard_date,team,hour_code'});
+ if(error){alert('Không lưu được tiêu chuẩn OT. Hãy chạy SQL migration v14.3: '+error.message);return}
+ const {data,error:readError}=await client.from('employee_ot_standards').select('*').eq('standard_date',date);
+ if(!readError)otStandards=[...otStandards.filter(x=>x.standard_date!==date),...(data||[])];
+ renderOtStandards();alert('Đã lưu tiêu chuẩn OT ngày '+date);
+};
+
+
+function exportOtStandardsExcel(){
+ if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện Excel. Hãy tải lại trang rồi thử lại.');return}
+ const date=$('otDate').value, dateText=date?date.split('-').reverse().join('/'):'';
+ const teams=otStandardTeams();
+ const actualRows=overtimeRecords.filter(x=>x.date===date);
+ const wb=new ExcelJS.Workbook();wb.creator='Hệ thống quản lý nhân lực MM';wb.created=new Date();
+ const ws=wb.addWorksheet('Bao cao OT Ca C');
+ ws.columns=[{width:18},{width:9},{width:9},{width:9},{width:9},{width:9},{width:9},{width:11},{width:9},{width:9},{width:9},{width:9},{width:9},{width:9},{width:11},{width:11}];
+ const thin={top:{style:'thin',color:{argb:'FF000000'}},bottom:{style:'thin',color:{argb:'FF000000'}},left:{style:'thin',color:{argb:'FF000000'}},right:{style:'thin',color:{argb:'FF000000'}}};
+ const green='FFE2EFDA',orange='FFF8CBAD',yellow='FFFFFF00';
+ ws.mergeCells('A1:P1');ws.getCell('A1').value='BÁO CÁO TIÊU CHUẨN OT CA C';
+ ws.getCell('A1').font={name:'Times New Roman',size:14,bold:true};
+ ws.getCell('A1').alignment={vertical:'middle',horizontal:'left'};
+ ws.getRow(1).height=26;
+ ws.mergeCells('A2:P2');ws.getCell('A2').value=`NGÀY: ${dateText}`;
+ ws.getCell('A2').font={name:'Times New Roman',size:12,bold:true};
+ ws.getRow(2).height=22;
+ ws.mergeCells('A4:A5');ws.getCell('A4').value='Nhóm';
+ ws.mergeCells('B4:G4');ws.getCell('B4').value='Tiêu Chuẩn';
+ ws.mergeCells('H4:H5');ws.getCell('H4').value='Tổng giờ OT';
+ ws.mergeCells('I4:N4');ws.getCell('I4').value='Thực Tế';
+ ws.mergeCells('O4:O5');ws.getCell('O4').value='Tổng giờ OT';
+ ws.mergeCells('P4:P5');ws.getCell('P4').value='GAP';
+ const hrs=['1','1.4','1.5','2','2.5','3'];
+ hrs.forEach((v,i)=>{ws.getCell(5,2+i).value=Number(v);ws.getCell(5,9+i).value=Number(v)});
+ for(let c=1;c<=16;c++){
+  const cell=ws.getCell(4,c);
+  cell.font={name:'Times New Roman',size:12,bold:true};
+  cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
+  cell.border=thin;
+  if(c>=2&&c<=8)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
+  if(c>=9&&c<=15)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
+  if(c===16)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
+ }
+ for(let c=1;c<=16;c++){
+  const cell=ws.getCell(5,c);cell.font={name:'Times New Roman',size:12,bold:true};
+  cell.alignment={horizontal:'center',vertical:'middle'};cell.border=thin;
+  if(c>=2&&c<=7)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
+  if(c>=9&&c<=14)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
+ }
+ ws.getRow(4).height=28;ws.getRow(5).height=26;
+ const reportRows=teams.map(team=>{
+  const std=hrs.map(h=>standardValue(team,h));
+  const act=hrs.map(h=>actualRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const stdTotal=std.reduce((s,n,i)=>s+n*Number(hrs[i]),0);
+  const actTotal=actualRows.filter(x=>x.team===team).reduce((s,x)=>s+(parseFloat(x.hours)||0),0);
+  return {team,std,act,stdTotal,actTotal,gap:actTotal-stdTotal};
+ });
+ const totalStd=hrs.map((h,i)=>reportRows.reduce((s,r)=>s+r.std[i],0));
+ const totalAct=hrs.map((h,i)=>reportRows.reduce((s,r)=>s+r.act[i],0));
+ const totalStdHours=reportRows.reduce((s,r)=>s+r.stdTotal,0);
+ const totalActHours=reportRows.reduce((s,r)=>s+r.actTotal,0);
+ const fmt=n=>Number(n.toFixed(2));
+ reportRows.forEach(r=>{
+  const vals=[r.team,...r.std,fmt(r.stdTotal),...r.act,fmt(r.actTotal),fmt(r.gap)];
+  const row=ws.addRow(vals);
+  row.height=24;
+  row.eachCell((cell,col)=>{cell.font={name:'Times New Roman',size:12};cell.alignment={horizontal:col===1?'left':'center',vertical:'middle'};cell.border=thin;});
+ });
+ const total=ws.addRow(['Total',...totalStd,fmt(totalStdHours),...totalAct,fmt(totalActHours),fmt(totalActHours-totalStdHours)]);
+ total.height=25;total.eachCell(cell=>{cell.font={name:'Times New Roman',size:12,bold:true};cell.alignment={horizontal:'center',vertical:'middle'};cell.border=thin;});
+ for(let c=1;c<=16;c++){
+  if(c===1)continue;
+  const cell=total.getCell(c);
+  if(c>=2&&c<=8)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:green}};
+  if(c>=9&&c<=15)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:orange}};
+  if(c===16)cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
+ }
+ ws.views=[{showGridLines:false}];
+ ws.pageSetup={orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:1,paperSize:ws.PAPER_SIZE_A4};
+ ws.pageMargins={left:0.25,right:0.25,top:0.4,bottom:0.4,header:0.15,footer:0.15};
+ wb.xlsx.writeBuffer().then(buf=>{
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`Bao_cao_tieu_chuan_OT_Ca_C_${date||'ngay'}.xlsx`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }).catch(err=>alert('Xuất Excel thất bại: '+err.message));
+}
+$('exportOtStandardsExcel').onclick=exportOtStandardsExcel;
 // ===== QUAN LY OT: chon tung nguoi / chon tat ca, luu mot lan =====
 const OT_HOURS=['1h','1.4h','1.5h','2h','2.5h','3h','4h','5h'];
 $('otDate').value=new Date().toLocaleDateString('en-CA');
@@ -702,6 +859,7 @@ function updateOtSelectedCount(){
  $('otSelectedCount').textContent=`Đã chọn: ${count} nhân viên (bao gồm các nhóm đang ẩn)`;
 }
 function renderOvertime(){
+ renderOtStandards();
  const d=$('otDate').value,team=$('otTeam').value,q=$('otSearch').value.toLowerCase();
  initOtDraftForDate(d);
  const rows=workingEmployeesOn(d).filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team].join(' ').toLowerCase().includes(q)));
