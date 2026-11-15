@@ -91,10 +91,20 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 <div><label>Ngày Vào Cty</label><input id="empHireDate" type="date"></div>
 <div><label>Mã Nhân Viên</label><input id="empCode" required></div>
 <div><label>Họ Và tên</label><input id="empName" required></div>
-<div><label>Nhóm</label><select id="empTeam"><option>Kitting</option><option>Shipment</option><option>Shift LD</option><option>Item</option></select></div>
+<div><label>Nhóm</label><select id="empTeam"></select></div>
 <div><label>Phân Loại</label><select id="empClassification"><option>Chính Thức</option><option>Thời Vụ</option><option>Sinh Viên</option></select></div>
 </div><input type="hidden" id="editId">
 <div class="actions" style="margin-top:12px"><button id="saveEmpBtn">Thêm nhân viên</button><button type="button" class="gray hidden" id="cancelEdit">Hủy</button></div></form>
+<div class="panel" style="background:#f8fafc;margin-top:16px">
+ <h3>Quản lý nhóm nhân viên</h3>
+ <p class="note">Danh sách nhóm dùng chung cho hồ sơ nhân viên, điểm danh, tổng quan và OT.</p>
+ <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+  <div><label>Nhóm hiện có</label><select id="groupCurrent"></select></div>
+  <div><label>Tên nhóm mới</label><input id="groupName" placeholder="Nhập tên nhóm"></div>
+  <div class="actions" style="align-items:end"><button type="button" id="addGroup">Thêm nhóm</button><button type="button" class="gray" id="renameGroup">Đổi tên / ghi đè</button><button type="button" class="red" id="deleteGroup">Xóa nhóm</button></div>
+ </div>
+ <p class="note">Đổi tên/ghi đè sẽ cập nhật nhóm cho toàn bộ nhân viên đang thuộc nhóm cũ và cập nhật tiêu chuẩn OT liên quan. Không xóa hồ sơ nhân viên.</p>
+</div>
 <div class="panel" style="background:#f8fafc;margin-top:16px">
 <h3>Cập nhật danh sách bằng Excel</h3>
 <p class="note">File Excel gồm 5 cột: Ngày Vào Cty, Mã Nhân Viên, Họ Và tên, Nhóm, Phân Loại. Mã đã tồn tại sẽ được cập nhật; mã mới sẽ được thêm. Nhân viên không có trong file vẫn được giữ nguyên.</p>
@@ -201,16 +211,19 @@ function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&
 function formatDate(v){return v?String(v).slice(0,10):''}
 function setBusy(btn,busy,text){btn.disabled=busy;btn.textContent=busy?'Đang xử lý...':text}
 async function loadAll(){
- const [e,a,o,s]=await Promise.all([
+ const [e,a,o,s,g]=await Promise.all([
   client.from('employees').select('*').order('employee_code'),
   client.from('employee_attendance').select('*, employees(employee_code,full_name,team)').order('attendance_date',{ascending:false}),
   client.from('employee_overtime').select('*, employees(employee_code,full_name,team)').order('overtime_date',{ascending:false}),
-  client.from('employee_ot_standards').select('*')
+  client.from('employee_ot_standards').select('*'),
+  client.from('employee_groups').select('name').order('name')
  ]);
  if(e.error||a.error||o.error){message('appMsg',(e.error||a.error||o.error).message);return}
  otStandards=s.error?[]:(s.data||[]);
  if(s.error) console.warn('Chưa tải được tiêu chuẩn OT:',s.error.message);
  employees=e.data||[];
+ if(!g.error){teamMasterAvailable=true;TEAMS=[...new Set([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)])];}else{teamMasterAvailable=false;TEAMS=[...new Set(['SEVT','Shipment','Rear','Kitting','Office',...employees.map(e=>e.team).filter(Boolean)])];}
+ renderGroupControls();
  attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  setAttendanceDraftForDate($('attendanceDate').value);
@@ -221,7 +234,21 @@ function renderEmployees(){
  const rows=employees.filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q));
  $('employeeBody').innerHTML=rows.map((x,i)=>`<tr><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button><button class="red" onclick="deleteEmployee('${x.id}')">Xóa</button></div></td></tr>`).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
 }
-const TEAMS=['Kitting','Shipment','Shift LD','Item'];
+let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
+let teamMasterAvailable=true;
+function renderGroupControls(){
+ const opts=TEAMS.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
+ $('empTeam').innerHTML=opts;
+ $('groupCurrent').innerHTML=opts;
+}
+async function loadTeamMaster(){
+ const {data,error}=await client.from('employee_groups').select('name').order('name');
+ if(error){teamMasterAvailable=false;console.warn('Không tải được employee_groups, dùng nhóm mặc định và nhóm đang có trong hồ sơ:',error.message);}
+ else {teamMasterAvailable=true;}
+ const names=(data||[]).map(x=>x.name);
+ TEAMS=[...new Set([...(names.length?names:['SEVT','Shipment','Rear','Kitting','Office']),...((employees||[]).map(e=>e.team).filter(Boolean))])];
+ renderGroupControls();
+}
 function pct(n,total){return total?`${(n/total*100).toFixed(1).replace('.',',')}%`:'0,0%'}
 function dashboardRows(){
  const d=$('summaryDate').value;
@@ -241,7 +268,7 @@ async function exportTeamSummaryExcel(){
  const rows=dashboardRows();
  const date=$('summaryDate').value;
  const dateText=date?date.split('-').reverse().join('/') : '';
- const teamOrder=['Shift LD','Item','Kitting','Shipment'];
+ const teamOrder=[...TEAMS];
  const classOrder={'Chính Thức':0,'Thời Vụ':1,'Sinh Viên':2};
  const workbook=new ExcelJS.Workbook();
  workbook.creator='Hệ thống quản lý nhân lực MM';
@@ -497,6 +524,43 @@ async function showSession(session){
 }
 client.auth.onAuthStateChange((_event,session)=>{showSession(session)});
 client.auth.getSession().then(({data})=>showSession(data.session));
+// ===== QUAN LY NHOM NHAN VIEN =====
+$('addGroup').onclick=async()=>{
+ const name=$('groupName').value.trim();
+ if(!name){alert('Vui lòng nhập tên nhóm.');return}
+ if(TEAMS.some(t=>t.toLowerCase()===name.toLowerCase())){alert('Tên nhóm đã tồn tại.');return}
+ if(!teamMasterAvailable){alert('Chưa có bảng employee_groups. Hãy chạy migration v16 trước.');return}
+ const {error}=await client.from('employee_groups').insert({name});
+ if(error){alert('Không thêm được nhóm: '+error.message);return}
+ $('groupName').value='';await loadAll();alert('Đã thêm nhóm '+name);
+};
+$('renameGroup').onclick=async()=>{
+ const oldName=$('groupCurrent').value,newName=$('groupName').value.trim();
+ if(!oldName||!newName){alert('Chọn nhóm hiện tại và nhập tên nhóm mới.');return}
+ if(oldName===newName){alert('Tên nhóm mới trùng tên hiện tại.');return}
+ if(!confirm(`Đổi tên nhóm "${oldName}" thành "${newName}"? Toàn bộ nhân viên trong nhóm cũ sẽ được chuyển sang nhóm mới. Nếu nhóm mới đã tồn tại, dữ liệu nhóm sẽ được gộp/ghi đè theo tên mới.`))return;
+ if(!teamMasterAvailable){alert('Chưa có bảng employee_groups. Hãy chạy migration v16 trước.');return}
+ const {error:empError}=await client.from('employees').update({team:newName}).eq('team',oldName);
+ if(empError){alert('Không cập nhật được nhân viên: '+empError.message);return}
+ const {error:stdError}=await client.from('employee_ot_standards').update({team:newName}).eq('team',oldName);
+ if(stdError && !/duplicate key|unique/i.test(stdError.message)){alert('Nhân viên đã chuyển nhóm nhưng tiêu chuẩn OT chưa chuyển: '+stdError.message);return}
+ const {error:delError}=await client.from('employee_groups').delete().eq('name',oldName);
+ if(delError){alert('Đã chuyển nhân viên nhưng chưa xóa được tên nhóm cũ: '+delError.message);return}
+ const {error:addError}=await client.from('employee_groups').upsert({name:newName},{onConflict:'name'});
+ if(addError){alert('Đã chuyển nhân viên nhưng chưa lưu được danh mục nhóm mới: '+addError.message);return}
+ $('groupName').value='';await loadAll();alert('Đã đổi tên nhóm và cập nhật hồ sơ nhân viên.');
+};
+$('deleteGroup').onclick=async()=>{
+ const name=$('groupCurrent').value;if(!name)return;
+ const assigned=employees.filter(e=>e.team===name).length;
+ if(assigned){alert(`Không thể xóa nhóm "${name}" vì còn ${assigned} nhân viên. Hãy chuyển nhân viên sang nhóm khác trước.`);return}
+ if(!confirm(`Xóa nhóm "${name}" khỏi danh mục?`))return;
+ if(!teamMasterAvailable){alert('Chưa có bảng employee_groups. Hãy chạy migration v16 trước.');return}
+ const {error}=await client.from('employee_groups').delete().eq('name',name);
+ if(error){alert('Không xóa được nhóm: '+error.message);return}
+ await loadAll();alert('Đã xóa nhóm.');
+};
+
 $('employeeForm').onsubmit=async ev=>{
  ev.preventDefault();const id=$('editId').value;
  const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),team:$('empTeam').value,classification:$('empClassification').value};
@@ -687,8 +751,8 @@ function exportWorkbook(data,fileName){
 $('downloadTemplate').onclick=()=>exportWorkbook([
  {'Ngày Vào Cty':'2024-01-15','Mã Nhân Viên':'NV001','Họ Và tên':'Nguyễn Văn A','Nhóm':'Kitting','Phân Loại':'Chính Thức'},
  {'Ngày Vào Cty':'2024-02-01','Mã Nhân Viên':'NV002','Họ Và tên':'Trần Văn B','Nhóm':'Shipment','Phân Loại':'Thời Vụ'},
- {'Ngày Vào Cty':'2024-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','Nhóm':'Shift LD','Phân Loại':'Sinh Viên'},
- {'Ngày Vào Cty':'2024-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','Nhóm':'Item','Phân Loại':'Chính Thức'}
+ {'Ngày Vào Cty':'2024-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','Nhóm':'Rear','Phân Loại':'Sinh Viên'},
+ {'Ngày Vào Cty':'2024-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','Nhóm':'Office','Phân Loại':'Chính Thức'}
 ],'Mau_danh_sach_nhan_vien.xlsx');
 $('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':x.hire_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'Nhóm':x.team,'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
 
