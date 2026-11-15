@@ -842,9 +842,12 @@ $('employeeForm').onsubmit=async ev=>{
  alert(id?'Đã cập nhật thông tin nhân viên.':'Đã thêm nhân viên mới.');
 };
 window.editEmployee=id=>{
- const x=employees.find(e=>e.id===id);if(!x)return;
- $('editId').value=x.id;$('empHireDate').value=x.hire_date||'';$('empCode').value=x.employee_code;$('empName').value=x.full_name;$('empTeam').value=x.team;$('empClassification').value=x.classification||'Chính Thức';
- $('saveEmpBtn').textContent='Cập nhật';$('cancelEdit').classList.remove('hidden');
+ const x=employees.find(e=>String(e.id)===String(id));
+ if(!x)return;
+ inlineEditingEmployeeId=String(id);
+ renderEmployees();
+ const firstField=$(`inlineHire_${id}`);
+ if(firstField) firstField.focus();
 };
 $('cancelEdit').onclick=()=>{$('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden')};
 window.deleteEmployee=async id=>{if(!confirm('Ngừng hoạt động nhân viên này? Dữ liệu điểm danh và OT các ngày cũ sẽ được giữ nguyên.'))return;const today=new Date().toLocaleDateString('en-CA');const {error}=await client.from('employees').update({is_active:false,deactivated_at:today}).eq('id',id);if(error)alert('Không thể ngừng hoạt động nhân viên: '+error.message+'\\nHãy chạy migration cập nhật trước.');else await loadAll()};
