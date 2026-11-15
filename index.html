@@ -135,11 +135,11 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 </div></section>
 <p id="appMsg" class="note"></p>
 <section id="overtime" class="view">
- <div class="panel"><h3>Nhân lực đi làm & đăng ký OT</h3><p class="note">Tự động hiển thị nhân viên được điểm danh “Đi Làm”. Khi lọc nhóm, danh sách nhân viên đăng ký OT cũng chỉ hiển thị người thuộc nhóm đó. Ghi chú gồm KHSX hoặc Vượt OT.</p>
+ <div class="panel"><h3>Nhân lực đi làm & đăng ký OT</h3><p class="note">Chọn nhóm trong danh sách nhóm đã khai báo ở tab Nhân viên. Mục Nhân viên sẽ chỉ liệt kê người thuộc nhóm đó và có trạng thái điểm danh “Đi Làm” trong ngày OT.</p>
  <form id="overtimeForm"><div class="grid" style="grid-template-columns:repeat(5,minmax(0,1fr))">
  <div><label>Ngày OT</label><input type="date" id="otDate" required></div>
  <div><label>Nhân viên (chỉ người Đi Làm)</label><select id="otEmployee" required><option value="">-- Chọn nhân viên --</option></select></div>
- <div><label>Nhóm (tự động)</label><input id="otTeam" readonly placeholder="Tự lấy theo nhân viên"></div>
+ <div><label>Nhóm</label><select id="otTeam"><option value="">-- Chọn nhóm --</option></select></div>
  <div><label>Số giờ OT</label><select id="otHours" required><option value="">-- Chọn số giờ --</option><option>1h</option><option>1.4h</option><option>1.5h</option><option>2h</option><option>2.5h</option><option>3h</option><option>4h</option><option>5h</option></select></div>
  <div><label>Ghi chú</label><select id="otNote"><option value="">-- Chọn ghi chú --</option><option value="KHSX">KHSX</option><option value="Vượt OT">Vượt OT</option></select></div></div>
  <div class="actions" style="margin-top:12px"><button type="submit" id="otSave">Lưu OT</button><button type="button" class="gray hidden" id="otCancelEdit">Hủy sửa</button></div></form></div>
@@ -628,15 +628,15 @@ function workingEmployeesOn(date){
  return employees.filter(e=>ids.has(e.id));
 }
 function refreshOtEmployeeOptions(){
- const date=$('otDate').value, selectedTeam=$('otFilterTeam').value;
+ const date=$('otDate').value, selectedTeam=$('otTeam').value;
  const list=workingEmployeesOn(date).filter(x=>!selectedTeam||x.team===selectedTeam);
  const selected=$('otEmployee').value;
  $('otEmployee').innerHTML='<option value="">-- Chọn nhân viên Đi Làm --</option>'+list.map(x=>`<option value="${x.id}">${safe(x.employee_code)} - ${safe(x.full_name)}</option>`).join('');
  if(list.some(x=>String(x.id)===String(selected))) $('otEmployee').value=selected;
- else $('otTeam').value='';
+ else $('otEmployee').value='';
 }
 $('otDate').onchange=refreshOtEmployeeOptions;
-$('otEmployee').onchange=()=>{const e=employees.find(x=>String(x.id)===String($('otEmployee').value));$('otTeam').value=e?(e.team||'Chưa cập nhật nhóm'):''};
+$('otTeam').onchange=refreshOtEmployeeOptions;
 function renderOvertime(){
  const d=$('otFilterDate').value,team=$('otFilterTeam').value,q=$('otSearch').value.toLowerCase();
  const working=attendanceRecords.filter(x=>x.date===d&&x.status==='Đi Làm');
@@ -650,9 +650,13 @@ function renderOvertime(){
  }).join('')||'<tr><td colspan="8">Không có nhân viên Đi Làm trong ngày/nhóm đã chọn</td></tr>';
 }
 function fillOtTeamFilter(){
- const current=$('otFilterTeam').value, teams=[...new Set(employees.map(e=>e.team).filter(Boolean))].sort();
- $('otFilterTeam').innerHTML='<option value="">Tất cả nhóm</option>'+teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
+ const current=$('otFilterTeam').value, formCurrent=$('otTeam').value;
+ const teams=[...new Set(employees.map(e=>e.team).filter(Boolean))].sort();
+ const options=teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
+ $('otFilterTeam').innerHTML='<option value="">Tất cả nhóm</option>'+options;
+ $('otTeam').innerHTML='<option value="">-- Chọn nhóm --</option>'+options;
  if(teams.includes(current)) $('otFilterTeam').value=current;
+ if(teams.includes(formCurrent)) $('otTeam').value=formCurrent;
 }
 $('otFilterDate').onchange=()=>{renderOvertime();refreshOtEmployeeOptions()};$('otFilterTeam').onchange=()=>{renderOvertime();refreshOtEmployeeOptions()};$('otSearch').oninput=renderOvertime;
 $('overtimeForm').onsubmit=async ev=>{
@@ -665,9 +669,9 @@ $('overtimeForm').onsubmit=async ev=>{
  if(result.error){alert('Không lưu được OT: '+result.error.message);return}
  editingOtId=null;$('overtimeForm').reset();$('otDate').value=date;$('otTeam').value='';$('otSave').textContent='Lưu OT';$('otCancelEdit').classList.add('hidden');await loadAll();alert('Đã lưu OT.');
 };
-window.editOt=id=>{const x=overtimeRecords.find(v=>v.id===id);if(!x)return;editingOtId=id;$('otDate').value=x.date;refreshOtEmployeeOptions();$('otEmployee').value=x.employee_id;$('otTeam').value=x.team;$('otHours').value=x.hours;$('otNote').value=x.note;$('otSave').textContent='Cập nhật OT';$('otCancelEdit').classList.remove('hidden');document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.view==='overtime'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='overtime'))};
+window.editOt=id=>{const x=overtimeRecords.find(v=>v.id===id);if(!x)return;editingOtId=id;$('otDate').value=x.date;$('otTeam').value=x.team||'';refreshOtEmployeeOptions();$('otEmployee').value=x.employee_id;$('otHours').value=x.hours;$('otNote').value=x.note;$('otSave').textContent='Cập nhật OT';$('otCancelEdit').classList.remove('hidden');document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.view==='overtime'));document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='overtime'))};
 window.deleteOt=async id=>{if(!confirm('Xóa bản ghi OT này?'))return;const {error}=await client.from('employee_overtime').delete().eq('id',id);if(error){alert(error.message);return}await loadAll()};
-$('otCancelEdit').onclick=()=>{editingOtId=null;$('overtimeForm').reset();$('otDate').value=$('otFilterDate').value||new Date().toLocaleDateString('en-CA');refreshOtEmployeeOptions();$('otTeam').value='';$('otSave').textContent='Lưu OT';$('otCancelEdit').classList.add('hidden')};
+$('otCancelEdit').onclick=()=>{editingOtId=null;$('overtimeForm').reset();$('otDate').value=$('otFilterDate').value||new Date().toLocaleDateString('en-CA');$('otTeam').value='';refreshOtEmployeeOptions();$('otSave').textContent='Lưu OT';$('otCancelEdit').classList.add('hidden')};
 
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
  const target=$(b.dataset.view);
