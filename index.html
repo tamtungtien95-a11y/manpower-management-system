@@ -46,6 +46,12 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 #dashboard #exportTeamSummary{display:inline-flex;white-space:nowrap;background:#64748b;color:#fff;align-self:flex-end}
 .view:not(.active) #exportTeamSummary{display:none!important}
 
+
+.attendance-metrics{grid-template-columns:repeat(3,minmax(145px,205px));gap:8px;margin-bottom:10px}
+.attendance-metrics .metric{padding:8px 11px;min-height:68px}
+.attendance-metrics .metric span{font-size:11px}
+.attendance-metrics .metric strong{font-size:20px;margin-top:2px}
+@media(max-width:520px){.attendance-metrics{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.attendance-metrics .metric{padding:7px;min-height:62px}.attendance-metrics .metric strong{font-size:18px}}
 </style>
 </head>
 <body>
@@ -137,12 +143,21 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  <div><label>Lọc theo nhóm</label><select id="attendanceTeamFilter"><option value="">Tất cả nhóm</option></select></div>
  <div style="display:flex;align-items:end"><button type="button" id="saveAttendance">Lưu điểm danh</button></div>
 </div>
-<div class="cards" style="margin-top:14px">
+<div class="cards attendance-metrics" style="margin-top:10px">
  <div class="card metric"><span>Đi Làm</span><strong id="attWorkCount">0</strong></div>
  <div class="card metric"><span>Các trạng thái nghỉ</span><strong id="attLeaveCount">0</strong></div>
  <div class="card metric"><span>Chưa cập nhật</span><strong id="attPendingCount">0</strong></div>
 </div>
-<div class="toolbar" style="flex-wrap:wrap;gap:10px"><b>Danh sách điểm danh</b><input id="attendanceSearch" placeholder="Tìm mã hoặc họ tên"></div>
+<div class="toolbar" style="flex-wrap:wrap;gap:8px">
+ <b>Danh sách điểm danh</b>
+ <div class="actions" style="margin-left:auto;gap:6px;flex-wrap:wrap">
+  <select id="attendanceQuickStatus" aria-label="Chọn nhanh trạng thái" style="width:auto;min-width:170px;max-width:210px">
+   <option value="">-- Chọn nhanh trạng thái --</option>
+  </select>
+ </div>
+ <input id="attendanceSearch" placeholder="Tìm mã hoặc họ tên">
+</div>
+<div id="attendanceQuickMessage" class="note hidden" style="margin:4px 0 8px"></div>
 
 <div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" title="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
 <div id="attendanceExcelPreview" class="hidden panel" style="margin-top:18px">
@@ -616,6 +631,8 @@ function setAttendanceDraftForDate(date){
 }
 
 const ATTENDANCE_STATUSES=['Đi Làm','Nghỉ Tự Do','Nghỉ Không Lương','Nghỉ 1/2 Ngày','Nghỉ Phép','Nghỉ KHSX'];
+$('attendanceQuickStatus').innerHTML='<option value="">-- Chọn nhanh trạng thái --</option>'+ATTENDANCE_STATUSES.map(s=>`<option value="${safe(s)}">${safe(s)}</option>`).join('');
+
 function fillAttendanceTeamFilter(){
  const el=$('attendanceTeamFilter'), current=el.value;
  el.innerHTML='<option value="">Tất cả nhóm</option>'+TEAMS.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
@@ -653,6 +670,21 @@ function renderAttendance(){
  $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
  updateAttendanceHeaderSelectAll();
 }
+$('attendanceQuickStatus').onchange=()=>{
+ syncVisibleAttendanceDraft();
+ const status=$('attendanceQuickStatus').value;
+ if(!status)return;
+ const selected=[...selectedAttendanceEmployees].filter(id=>employees.some(e=>String(e.id)===String(id)));
+ if(!selected.length){
+  alert('Vui lòng tích chọn nhân viên trước.');
+  $('attendanceQuickStatus').value='';
+  return;
+ }
+ selected.forEach(id=>attendanceDraft.set(String(id),status));
+ $('attendanceQuickMessage').textContent=`Đã tự động áp dụng "${status}" cho ${selected.length} nhân viên đã tích. Nhấn "Lưu điểm danh" để lưu dữ liệu.`;
+ $('attendanceQuickMessage').classList.remove('hidden');
+ renderAttendance();
+};
 $('attendanceHeaderSelectAll').onchange=ev=>{
  const checked=ev.target.checked;
  document.querySelectorAll('#attendanceBody .attendance-select').forEach(box=>{
@@ -693,7 +725,7 @@ $('saveAttendance').onclick=async()=>{
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
  await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
-$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
+$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);renderAttendance()};
 $('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 $('attendanceSearch').oninput=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 
