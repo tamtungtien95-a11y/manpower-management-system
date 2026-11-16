@@ -269,6 +269,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 <button data-view="overtime">OT</button>
 </div>
 <button type="button" id="downloadOtImageReport" class="ot-image-nav-button" style="display:none;margin-left:auto">Tải ảnh báo cáo</button>
+<button type="button" id="sendOtReportToZalo" class="ot-image-nav-button" style="display:none;background:#087b48;margin-left:8px">Zalo</button>
 <div id="employeeNavActions" class="employee-nav-actions">
 <button type="button" class="import-btn" id="importEmployeeBtn">Nhập data</button>
 <button type="button" class="gray" id="templateEmployeeBtn">Tải file mẫu</button>
@@ -1652,6 +1653,17 @@ $('downloadOtImageReport').onclick=async()=>{
   button.disabled=false;button.textContent=oldText;
  }
 };
+// Zalo cá nhân: không dùng API OA/GMF. Mở đúng nhóm hiện có và tạo ảnh OT mới nhất để người dùng tự xác nhận gửi.
+const EXISTING_ZALO_GROUP_URL='https://zalo.me/g/vicjwm513';
+$('sendOtReportToZalo').onclick=()=>{
+ const groupWindow=window.open(EXISTING_ZALO_GROUP_URL,'_blank','noopener');
+ if(!groupWindow){
+  alert('Trình duyệt đã chặn cửa sổ Zalo. Hãy cho phép pop-up cho website rồi bấm Zalo lại.');
+  return;
+ }
+ // Reuse the existing handler, which refreshes OT, attendance, employees and standards before building the PNG preview.
+ $('downloadOtImageReport').click();
+};
 const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
 $('closeOtExcelPreview').onclick=closeOtExcelPreview;
 $('closeOtExcelPreview2').onclick=closeOtExcelPreview;
@@ -2144,6 +2156,7 @@ function activateView(viewName, remember=true){
  $('employeeNavActions').style.display=viewName==='employees'?'flex':'none';
  $('attendanceNavActions').style.display=viewName==='attendance'?'flex':'none';
  $('downloadOtImageReport').style.display=viewName==='overtime'?'inline-flex':'none';
+  $('sendOtReportToZalo').style.display=viewName==='overtime'?'inline-flex':'none';
  if(viewName==='overtime'){
   refreshOvertimeData().then(ok=>{if(ok){renderOvertime();renderOtHistory()}});
  }
