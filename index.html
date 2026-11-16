@@ -428,7 +428,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
    <img id="otExcelImagePreview" alt="Ảnh xem trước báo cáo OT" style="max-width:100%;height:auto;border:1px solid #cbd5e1;border-radius:6px;background:#fff">
   </div>
   <div class="scroll" id="otExcelPreviewTableArea" style="margin-top:14px">
-   <table style="min-width:1100px;border-collapse:collapse;text-align:center;font-family:'Times New Roman',serif">
+   <table id="otExcelPreviewTable" style="min-width:1100px;border-collapse:collapse;text-align:center;font-family:'Times New Roman',serif">
     <thead>
      <tr><th rowspan="2" style="background:#e2efda">Nhóm</th><th colspan="6" style="background:#e2efda">Tiêu Chuẩn</th><th rowspan="2" style="background:#e2efda">Tổng giờ OT</th><th colspan="6" style="background:#f8cbad">Thực Tế</th><th rowspan="2" style="background:#f8cbad">Tổng giờ OT</th><th rowspan="2" style="background:#fff200">GAP</th></tr>
      <tr><th style="background:#e2efda">1</th><th style="background:#e2efda">1.4</th><th style="background:#e2efda">1.5</th><th style="background:#e2efda">2</th><th style="background:#e2efda">2.5</th><th style="background:#e2efda">3</th><th style="background:#f8cbad">1</th><th style="background:#f8cbad">1.4</th><th style="background:#f8cbad">1.5</th><th style="background:#f8cbad">2</th><th style="background:#f8cbad">2.5</th><th style="background:#f8cbad">3</th></tr>
@@ -1307,8 +1307,9 @@ $('saveOtStandards').onclick=async()=>{
 };
 
 
+let otImageReportDate=null;
 function renderOtExcelPreview(){
- const from=$('otExportFromDate').value,to=$('otExportToDate').value;
+ const from=otImageReportDate||$('otExportFromDate').value,to=otImageReportDate||$('otExportToDate').value;
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  const inRange=d=>d>=from&&d<=to, hrs=['1','1.4','1.5','2','2.5','3'];
@@ -1337,12 +1338,13 @@ function renderOtExcelPreview(){
  $('otExcelPreviewModal').classList.remove('hidden');
 }
 $('downloadOtImageReport').onclick=()=>{
- const from=$('otExportFromDate').value,to=$('otExportToDate').value;
- if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
- if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ const selectedDate=$('otDate').value;
+ if(!selectedDate){alert('Vui lòng chọn Ngày OT trước khi tạo ảnh báo cáo.');return}
+ // Ảnh báo cáo chỉ lấy dữ liệu của đúng ngày đang chọn trong mục Ngày OT.
+ otImageReportDate=selectedDate;
  renderOtExcelPreview();
- // Tạo ảnh từ đúng bảng dữ liệu tổng hợp Excel rồi hiển thị để kiểm tra trước khi tải.
  buildOtImagePreview();
+ otImageReportDate=null;
 };
 const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
 $('closeOtExcelPreview').onclick=closeOtExcelPreview;
