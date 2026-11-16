@@ -1620,11 +1620,12 @@ function initOtDraftForDate(date){
 function updateOtSelectedCount(){
  const date=$('otDate').value;
  const count=[...otDraft.values()].filter(v=>v.date===date&&v.selected).length;
- $('otSelectedCount').textContent=`Đã chọn: ${count} nhân viên (bao gồm các nhóm đang ẩn)`;
+ const countEl=$('otSelectedCount');
+ if(countEl)countEl.textContent=`Đã chọn: ${count} nhân viên (bao gồm các nhóm đang ẩn)`;
 }
 function renderOvertime(){
  renderOtStandards();
- const d=$('otDate').value,team=$('otTeam').value,q=$('otSearch').value.toLowerCase();
+ const d=$('otDate')?.value||'',team=$('otTeam')?.value||'',q=($('otSearch')?.value||'').toLowerCase();
  initOtDraftForDate(d);
  const rows=workingEmployeesOn(d).filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team].join(' ').toLowerCase().includes(q)));
  $('otBody').innerHTML=rows.map((x,i)=>{
@@ -1654,13 +1655,18 @@ function setOtField(id,field,value){
  if(v){v[field]=value;otDraft.set(key,v)}
 }
 function fillOtTeamFilter(){
- const current=$('otTeam').value,historyTeam=$('otFilterTeam').value;
+ const teamSelect=$('otTeam'),historySelect=$('otFilterTeam');
+ const current=teamSelect?.value||'',historyTeam=historySelect?.value||'';
  const teams=[...new Set(employees.map(e=>e.team).filter(Boolean))].sort();
  const options=teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
- $('otTeam').innerHTML='<option value="">Tất cả nhóm</option>'+options;
- $('otFilterTeam').innerHTML='<option value="">Tất cả nhóm</option>'+options;
- if(teams.includes(current))$('otTeam').value=current;
- if(teams.includes(historyTeam))$('otFilterTeam').value=historyTeam;
+ if(teamSelect){
+  teamSelect.innerHTML='<option value="">Tất cả nhóm</option>'+options;
+  if(teams.includes(current))teamSelect.value=current;
+ }
+ if(historySelect){
+  historySelect.innerHTML='<option value="">Tất cả nhóm</option>'+options;
+  if(teams.includes(historyTeam))historySelect.value=historyTeam;
+ }
 }
 async function refreshOvertimeData(){
  const {data,error}=await client
@@ -1685,15 +1691,15 @@ function renderOtHistory(){
  const rows=overtimeRecords.filter(v=>v.date===d&&(!team||v.team===team)&&([v.code,v.name,v.team].join(' ').toLowerCase().includes(q)));
  $('otHistoryBody').innerHTML=rows.map((v,i)=>`<tr><td>${i+1}</td><td>${safe(v.date)}</td><td>${safe(v.code)}</td><td>${safe(v.name)}</td><td>${teamTag(v.team)}</td><td>${safe(v.hours)}</td><td>${safe(v.note||'—')}</td><td><button class="red" onclick="removeSavedOt('${v.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="8">Chưa có OT đã lưu</td></tr>';
 }
-$('otDate').onchange=async()=>{if(await refreshOvertimeData()){renderOvertime();renderOtHistory()}};
-$('otTeam').onchange=renderOvertime;
-$('otSearch').oninput=renderOvertime;
-$('otSelectAll').onclick=()=>{const d=$('otDate').value;initOtDraftForDate(d);workingEmployeesOn(d).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=true});renderOvertime()};
-$('otClearAll').onclick=()=>{const d=$('otDate').value;for(const v of otDraft.values())if(v.date===d)v.selected=false;renderOvertime()};
+if($('otDate'))$('otDate').onchange=async()=>{if(await refreshOvertimeData()){renderOvertime();renderOtHistory()}};
+if($('otTeam'))$('otTeam').onchange=renderOvertime;
+if($('otSearch'))$('otSearch').oninput=renderOvertime;
+if($('otSelectAll'))$('otSelectAll').onclick=()=>{const d=$('otDate')?.value||'';initOtDraftForDate(d);workingEmployeesOn(d).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=true});renderOvertime()};
+if($('otClearAll'))$('otClearAll').onclick=()=>{const d=$('otDate')?.value||'';for(const v of otDraft.values())if(v.date===d)v.selected=false;renderOvertime()};
 $('otSelectVisible').onchange=()=>{const d=$('otDate').value,team=$('otTeam').value,q=$('otSearch').value.toLowerCase();workingEmployeesOn(d).filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team].join(' ').toLowerCase().includes(q))).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=$('otSelectVisible').checked});renderOvertime()};
-$('otFilterDate').onchange=async()=>{if(await refreshOvertimeData()){renderOtHistory();renderOtStandards()}};
-$('otFilterTeam').onchange=renderOtHistory;
-$('otHistorySearch').oninput=renderOtHistory;
+if($('otFilterDate'))$('otFilterDate').onchange=async()=>{if(await refreshOvertimeData()){renderOtHistory();renderOtStandards()}};
+if($('otFilterTeam'))$('otFilterTeam').onchange=renderOtHistory;
+if($('otHistorySearch'))$('otHistorySearch').oninput=renderOtHistory;
 $('otSaveAll').onclick=async()=>{
  const d=$('otDate').value,selected=[...otDraft.values()].filter(v=>v.date===d&&v.selected);
  if(!selected.length){alert('Bạn chưa chọn nhân viên nào để đăng ký OT.');return}
