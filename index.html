@@ -1206,6 +1206,24 @@ $('attendanceExport').onclick=()=>{
   'Trạng Thái Nghỉ':x.status||'',
   'Ca':x.shift==='night'?'Ca đêm':'Ca ngày'
  }));
+ // Sắp xếp nhóm A-Z; trong mỗi nhóm, Đi Làm trước, các trường hợp nghỉ sau.
+ const groupOrder=['Office','Kitting','Rear','Shipment','SEVT'];
+ const compareText=(a,b)=>String(a||'').localeCompare(String(b||''),'en',{sensitivity:'base',numeric:true});
+ rows.sort((a,b)=>{
+  const aGroup=groupOrder.indexOf(String(a['Nhóm']||'').trim());
+  const bGroup=groupOrder.indexOf(String(b['Nhóm']||'').trim());
+  const aRank=aGroup<0?groupOrder.length:aGroup;
+  const bRank=bGroup<0?groupOrder.length:bGroup;
+  if(aRank!==bRank)return aRank-bRank;
+  const byGroup=compareText(a['Nhóm'],b['Nhóm']);
+  if(byGroup!==0)return byGroup;
+  const aStatus=a['Trạng Thái Nghỉ']==='Đi Làm'?0:1;
+  const bStatus=b['Trạng Thái Nghỉ']==='Đi Làm'?0:1;
+  if(aStatus!==bStatus)return aStatus-bStatus;
+  const byName=compareText(a['Nhân Viên'],b['Nhân Viên']);
+  if(byName!==0)return byName;
+  return compareText(a['Mã Nhân Viên'],b['Mã Nhân Viên']);
+ });
  if(!rows.length){alert(`Ngày ${d} chưa có nhân viên đang hoạt động nào được điểm danh.`);return}
  exportAttendanceWorkbook(rows,`Diem_danh_${d}.xlsx`);
 };
