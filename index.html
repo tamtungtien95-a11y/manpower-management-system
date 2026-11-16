@@ -80,11 +80,11 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 }
 #otStandardTable th{font-size:11px;line-height:1.15}
 #otStandardTable th:nth-child(1),#otStandardTable td:nth-child(1){width:9%;text-align:left}
-#otStandardTable th:nth-child(n+2):nth-child(-n+7),
-#otStandardTable td:nth-child(n+2):nth-child(-n+7){width:5.8%}
+#otStandardTable th:nth-child(n+2):nth-child(-n+9),
+#otStandardTable td:nth-child(n+2):nth-child(-n+9){width:5.8%}
 #otStandardTable th:nth-child(8),#otStandardTable td:nth-child(8){width:8%}
-#otStandardTable th:nth-child(n+9):nth-child(-n+14),
-#otStandardTable td:nth-child(n+9):nth-child(-n+14){width:5.8%}
+#otStandardTable th:nth-child(n+11):nth-child(-n+18),
+#otStandardTable td:nth-child(n+11):nth-child(-n+18){width:5.8%}
 #otStandardTable th:nth-child(15),#otStandardTable td:nth-child(15){width:8%}
 #otStandardTable th:nth-child(16),#otStandardTable td:nth-child(16){width:5.2%}
 #otStandardTable .ot-standard-input{
@@ -121,13 +121,13 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  padding-left:6px !important;
 }
 /* Nhóm Tiêu Chuẩn rộng hơn; nhóm Thực Tế hẹp hơn để cân đối theo tiêu đề giờ */
-#otStandardTable th:nth-child(n+2):nth-child(-n+7),
-#otStandardTable td:nth-child(n+2):nth-child(-n+7){
+#otStandardTable th:nth-child(n+2):nth-child(-n+9),
+#otStandardTable td:nth-child(n+2):nth-child(-n+9){
  width:6.5% !important;
  text-align:center;
 }
-#otStandardTable th:nth-child(n+9):nth-child(-n+14),
-#otStandardTable td:nth-child(n+9):nth-child(-n+14){
+#otStandardTable th:nth-child(n+11):nth-child(-n+18),
+#otStandardTable td:nth-child(n+11):nth-child(-n+18){
  width:4.5% !important;
  text-align:center;
 }
@@ -155,10 +155,10 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  width:4% !important;
  padding-left:4px !important;
 }
-#otStandardTable th:nth-child(n+2):nth-child(-n+7),
-#otStandardTable td:nth-child(n+2):nth-child(-n+7),
-#otStandardTable th:nth-child(n+9):nth-child(-n+14),
-#otStandardTable td:nth-child(n+9):nth-child(-n+14){
+#otStandardTable th:nth-child(n+2):nth-child(-n+9),
+#otStandardTable td:nth-child(n+2):nth-child(-n+9),
+#otStandardTable th:nth-child(n+11):nth-child(-n+18),
+#otStandardTable td:nth-child(n+11):nth-child(-n+18){
  width:6.75% !important;
  text-align:center;
 }
@@ -190,10 +190,10 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 #otStandardTable th:nth-child(1),#otStandardTable td:nth-child(1){
  width:4% !important;
 }
-#otStandardTable th:nth-child(n+2):nth-child(-n+7),
-#otStandardTable td:nth-child(n+2):nth-child(-n+7),
-#otStandardTable th:nth-child(n+9):nth-child(-n+14),
-#otStandardTable td:nth-child(n+9):nth-child(-n+14){
+#otStandardTable th:nth-child(n+2):nth-child(-n+9),
+#otStandardTable td:nth-child(n+2):nth-child(-n+9),
+#otStandardTable th:nth-child(n+11):nth-child(-n+18),
+#otStandardTable td:nth-child(n+11):nth-child(-n+18){
  width:7.125% !important;
 }
 #otStandardTable th:nth-child(8),#otStandardTable td:nth-child(8),
@@ -408,13 +408,11 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
       <th rowspan="2" style="background:#fff200">GAP</th>
      </tr>
      <tr>
-      <th style="background:#e2efda">1</th><th style="background:#e2efda">1.4</th><th style="background:#e2efda">1.5</th><th style="background:#e2efda">2</th><th style="background:#e2efda">2.5</th><th style="background:#e2efda">3</th>
-      <th style="background:#f8cbad">1</th><th style="background:#f8cbad">1.4</th><th style="background:#f8cbad">1.5</th><th style="background:#f8cbad">2</th><th style="background:#f8cbad">2.5</th><th style="background:#f8cbad">3</th>
-     </tr>
+<th style="background:#e2efda">1</th><th style="background:#e2efda">1.4</th><th style="background:#e2efda">1.5</th><th style="background:#e2efda">2</th><th style="background:#e2efda">2.5</th><th style="background:#e2efda">3</th> <th style="background:#f8cbad">1</th><th style="background:#f8cbad">1.4</th><th style="background:#f8cbad">1.5</th><th style="background:#f8cbad">2</th><th style="background:#f8cbad">2.5</th><th style="background:#f8cbad">3</th></tr>
     </thead><tbody id="otStandardBody"></tbody>
    </table>
   </div>
-  <p class="note">GAP = Tổng giờ OT thực tế − Tổng giờ OT tiêu chuẩn. Các mức OT 4h và 5h (nếu có) được tính vào tổng giờ thực tế.</p>
+  <p class="note">GAP = Tổng giờ OT thực tế − Tổng giờ OT tiêu chuẩn. Các mức 1h, 1.4h, 1.5h, 2h, 2.5h, 3h, 4h và 5h được thống kê riêng theo từng nhóm.</p>
  </div>
  <div class="panel">
   <div class="toolbar" style="display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
@@ -443,7 +441,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
    <img id="otExcelImagePreview" alt="Ảnh xem trước báo cáo OT" style="max-width:100%;height:auto;border:1px solid #cbd5e1;border-radius:6px;background:#fff">
   </div>
   <div class="scroll" id="otExcelPreviewTableArea" style="margin-top:14px">
-   <table id="otExcelPreviewTable" style="min-width:1100px;border-collapse:collapse;text-align:center;font-family:'Times New Roman',serif">
+   <table id="otExcelPreviewTable" style="min-width:1100px;width:1500px;table-layout:fixed;border-collapse:collapse;text-align:center;font-family:'Times New Roman',serif">
     <thead>
      <tr><th rowspan="2" style="background:#e2efda">Nhóm</th><th colspan="6" style="background:#e2efda">Tiêu Chuẩn</th><th rowspan="2" style="background:#e2efda">Tổng giờ OT</th><th colspan="6" style="background:#f8cbad">Thực Tế</th><th rowspan="2" style="background:#f8cbad">Tổng giờ OT</th><th rowspan="2" style="background:#fff200">GAP</th></tr>
      <tr><th style="background:#e2efda">1</th><th style="background:#e2efda">1.4</th><th style="background:#e2efda">1.5</th><th style="background:#e2efda">2</th><th style="background:#e2efda">2.5</th><th style="background:#e2efda">3</th><th style="background:#f8cbad">1</th><th style="background:#f8cbad">1.4</th><th style="background:#f8cbad">1.5</th><th style="background:#f8cbad">2</th><th style="background:#f8cbad">2.5</th><th style="background:#f8cbad">3</th></tr>
@@ -1414,7 +1412,7 @@ function otStandardTeams(){
  });
 }
 function standardValue(team,hour){
- const row=otStandards.find(x=>x.standard_date===$('otDate').value&&x.team===team&&String(x.hour_code)===String(hour));
+ const row=otStandards.find(x=>x.standard_date===$('otDate').value&&x.team===team&&sameOtHour(x.hour_code,hour));
  return row?Number(row.standard_count)||0:0;
 }
 function renderOtStandards(){
@@ -1463,12 +1461,12 @@ function renderOtExcelPreview(){
  const from=otImageReportDate||$('otExportFromDate').value,to=otImageReportDate||$('otExportToDate').value;
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
- const inRange=d=>d>=from&&d<=to, hrs=['1','1.4','1.5','2','2.5','3'];
+ const inRange=d=>d>=from&&d<=to, hrs=OT_REPORT_HOURS;
  const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
  const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
  const teams=[...new Set([...otStandardTeams(),...otRows.map(x=>x.team).filter(Boolean),...standardRows.map(x=>x.team).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
  const rows=teams.map(team=>{
-  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&String(parseFloat(x.hour_code))===h).reduce((s,x)=>s+(Number(x.standard_count)||0),0));
+  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&sameOtHour(x.hour_code,h)).reduce((s,x)=>s+(Number(x.standard_count)||0),0));
   const teamActual=otRows.filter(x=>x.team===team);
   const actual=hrs.map(h=>teamActual.filter(x=>sameOtHour(x.hours,h)).length);
   const standardHours=standard.reduce((s,n,i)=>s+n*Number(hrs[i]),0);
@@ -1507,7 +1505,7 @@ function buildOtImagePreview(){
  const from=$('otExportFromDate').value,to=$('otExportToDate').value;
  const source=$('otExcelPreviewTable');
  if(!source||!source.querySelector('tbody tr')){alert('Chưa có dữ liệu xem trước để tạo ảnh.');return}
- const widths=[130,78,78,78,78,78,78,95,78,78,78,78,78,78,95,75];
+ const widths=[130,...Array(6).fill(78),95,...Array(6).fill(78),95,75];
  const rowH=34,headH1=42,headH2=34,margin=24,titleH=62;
  const totalW=widths.reduce((a,b)=>a+b,0),rows=[...source.tBodies[0].rows];
  const canvas=document.createElement('canvas');
@@ -1527,12 +1525,11 @@ function buildOtImagePreview(){
  let x=x0;
  drawCell(x,y0,widths[0],headH1+headH2,'Nhóm',green,true);x+=widths[0];
  drawCell(x,y0,widths.slice(1,7).reduce((a,b)=>a+b,0),headH1,'Tiêu Chuẩn',green,true);
- drawCell(x,y0+headH1,widths[1],headH2,'1',green,true);
- for(let i=1;i<6;i++)drawCell(x+widths.slice(1,1+i).reduce((a,b)=>a+b,0),y0+headH1,widths[i+1],headH2,['1.4','1.5','2','2.5','3'][i-1],green,true);
+ OT_REPORT_HOURS.forEach((h,i)=>drawCell(x+widths.slice(1,1+i).reduce((a,b)=>a+b,0),y0+headH1,widths[i+1],headH2,h,green,true));
  x+=widths.slice(1,7).reduce((a,b)=>a+b,0);
  drawCell(x,y0,widths[7],headH1+headH2,'Tổng giờ\nOT',green,true);x+=widths[7];
  drawCell(x,y0,widths.slice(8,14).reduce((a,b)=>a+b,0),headH1,'Thực Tế',orange,true);
- for(let i=0;i<6;i++)drawCell(x+widths.slice(8,8+i).reduce((a,b)=>a+b,0),y0+headH1,widths[8+i],headH2,['1','1.4','1.5','2','2.5','3'][i],orange,true);
+ OT_REPORT_HOURS.forEach((h,i)=>drawCell(x+widths.slice(8,8+i).reduce((a,b)=>a+b,0),y0+headH1,widths[8+i],headH2,h,orange,true));
  x+=widths.slice(8,14).reduce((a,b)=>a+b,0);
  drawCell(x,y0,widths[14],headH1+headH2,'Tổng giờ\nOT',orange,true);x+=widths[14];
  drawCell(x,y0,widths[15],headH1+headH2,'GAP',yellow,true);
@@ -1570,7 +1567,7 @@ function exportOtStandardsExcel(){
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  const inRange=d=>d>=from&&d<=to;
- const hrs=['1','1.4','1.5','2','2.5','3'];
+ const hrs=OT_REPORT_HOURS;
  const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
  const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
  const teams=[...new Set([
@@ -1579,7 +1576,7 @@ function exportOtStandardsExcel(){
   ...standardRows.map(x=>x.team).filter(Boolean)
  ])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
  const rows=teams.map(team=>{
-  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&String(parseFloat(x.hour_code))===h).reduce((sum,x)=>sum+(Number(x.standard_count)||0),0));
+  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&sameOtHour(x.hour_code,h)).reduce((sum,x)=>sum+(Number(x.standard_count)||0),0));
   const teamActual=otRows.filter(x=>x.team===team);
   const actual=hrs.map(h=>teamActual.filter(x=>sameOtHour(x.hours,h)).length);
   const standardHours=standard.reduce((sum,n,i)=>sum+n*Number(hrs[i]),0);
@@ -1605,7 +1602,7 @@ function exportOtStandardsExcel(){
  ws.mergeCells('A3:A4');ws.getCell('A3').value='Nhóm';
  ws.mergeCells('B3:G3');ws.getCell('B3').value='Tiêu Chuẩn';
  ws.mergeCells('H3:H4');ws.getCell('H3').value='Tổng giờ OT';
- ws.mergeCells('I3:N3');ws.getCell('I3').value='Thực Tế';
+ ws.mergeCells('I3:N3');ws.getCell('K3').value='Thực Tế';
  ws.mergeCells('O3:O4');ws.getCell('O3').value='Tổng giờ OT';
  ws.mergeCells('P3:P4');ws.getCell('P3').value='GAP';
  hrs.forEach((h,i)=>{ws.getCell(4,2+i).value=Number(h);ws.getCell(4,9+i).value=Number(h);});
