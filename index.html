@@ -1536,14 +1536,28 @@ function renderOtExcelPreview(){
  $('downloadOtImageFromPreview').textContent='Tải ảnh PNG';
  $('otExcelPreviewModal').classList.remove('hidden');
 }
-$('downloadOtImageReport').onclick=()=>{
+$('downloadOtImageReport').onclick=async()=>{
  const selectedDate=$('otDate').value;
  if(!selectedDate){alert('Vui lòng chọn Ngày OT trước khi tạo ảnh báo cáo.');return}
- // Ảnh báo cáo chỉ lấy dữ liệu của đúng ngày đang chọn trong mục Ngày OT.
- otImageReportDate=selectedDate;
- renderOtExcelPreview();
- buildOtImagePreview();
- otImageReportDate=null;
+ try{
+  const [otFresh,stdFresh]=await Promise.all([
+   client.from('employee_overtime').select('*, employees(employee_code,full_name,team)')
+    .eq('overtime_date',selectedDate).order('updated_at',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false,nullsFirst:false}),
+   client.from('employee_ot_standards').select('*').eq('standard_date',selectedDate)
+  ]);
+  if(otFresh.error)throw otFresh.error;
+  if(stdFresh.error)throw stdFresh.error;
+  overtimeRecords=(otFresh.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees?.employee_code||'',name:x.employees?.full_name||'',team:x.employees?.team||'',created_at:x.created_at||'',updated_at:x.updated_at||''}));
+  otStandards=stdFresh.data||[];
+  // Ảnh báo cáo chỉ lấy dữ liệu của đúng ngày đang chọn trong mục Ngày OT.
+  otImageReportDate=selectedDate;
+  renderOtExcelPreview();
+  buildOtImagePreview();
+  otImageReportDate=null;
+ }catch(err){
+  otImageReportDate=null;
+  alert('Không thể cập nhật dữ liệu mới nhất để tạo ảnh: '+(err.message||err));
+ }
 };
 const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
 $('closeOtExcelPreview').onclick=closeOtExcelPreview;
@@ -1563,7 +1577,7 @@ function buildOtImagePreview(){
  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle='#111827';ctx.font='bold 25px "Times New Roman"';ctx.textAlign='left';
  ctx.fillText('BÁO CÁO TIÊU CHUẨN OT CA C',margin,margin+27);
- ctx.font='16px "Times New Roman"';ctx.fillText(`Thời gian: ${from} đến ${to}`,margin,margin+51);
+ ctx.font='16px "Times New Roman"';ctx.fillText(otImageReportDate?`Ngày OT: ${otImageReportDate}`:`Thời gian: ${from} đến ${to}`,margin,margin+51);
  const x0=margin,y0=margin+titleH;
  const green='#e2efda',orange='#f8cbad',yellow='#fff200',border='#000000';
  const drawCell=(x,y,w,h,text,fill='#ffffff',bold=false)=>{
@@ -1610,11 +1624,35 @@ function buildOtImagePreview(){
 $('downloadOtImageFromPreview').onclick=buildOtImagePreview;
 
 
-function exportOtStandardsExcel(){
+async function exportOtStandardsExcel(){
  if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện Excel. Hãy tải lại trang rồi thử lại.');return}
  const from=$('otExportFromDate').value,to=$('otExportToDate').value;
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ try{
+  const [otFresh,stdFresh]=await Promise.all([
+   client.from('employee_overtime')
+    .select('*, employees(employee_code,full_name,team)')
+    .gte('overtime_date',from).lte('overtime_date',to)
+    .order('overtime_date',{ascending:false})
+    .order('updated_at',{ascending:false,nullsFirst:false})
+    .order('created_at',{ascending:false,nullsFirst:false}),
+   client.from('employee_ot_standards')
+    .select('*')
+    .gte('standard_date',from).lte('standard_date',to)
+  ]);
+  if(otFresh.error)throw otFresh.error;
+  if(stdFresh.error)throw stdFresh.error;
+  overtimeRecords=(otFresh.data||[]).map(x=>({
+   id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,
+   note:x.note||'',code:x.employees?.employee_code||'',name:x.employees?.full_name||'',
+   team:x.employees?.team||'',created_at:x.created_at||'',updated_at:x.updated_at||''
+  }));
+  otStandards=stdFresh.data||[];
+ }catch(err){
+  alert('Không thể cập nhật dữ liệu OT mới nhất để xuất Excel: '+(err.message||err));
+  return;
+ }
  const inRange=d=>d>=from&&d<=to;
  const hrs=OT_REPORT_HOURS;
  const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
@@ -1646,8 +1684,12 @@ function exportOtStandardsExcel(){
  const center={horizontal:'center',vertical:'middle',wrapText:true};
  ws.mergeCells('A1:P1');
  const title=ws.getCell('A1');title.value='BÁO CÁO TIÊU CHUẨN OT CA C';
- title.font={name:'Times New Roman',size:14,color:{argb:'FF000000'}};title.alignment={horizontal:'left',vertical:'middle'};ws.getRow(1).height=24;
- ws.getRow(2).height=12;
+ title.font={name:'Times New Roman',size:14,color:{argb:'FF000000'},bold:true};title.alignment={horizontal:'left',vertical:'middle'};ws.getRow(1).height=26;
+ ws.mergeCells('A2:P2');
+ const reportDateText=from===to?`Ngày OT: ${from}`:`Thời gian báo cáo: ${from} đến ${to}`;
+ const dateCell=ws.getCell('A2');dateCell.value=reportDateText;
+ dateCell.font={name:'Times New Roman',size:12,italic:true,color:{argb:'FF334155'}};
+ dateCell.alignment={horizontal:'left',vertical:'middle'};ws.getRow(2).height=22;
  ws.mergeCells('A3:A4');ws.getCell('A3').value='Nhóm';
  ws.mergeCells('B3:G3');ws.getCell('B3').value='Tiêu Chuẩn';
  ws.mergeCells('H3:H4');ws.getCell('H3').value='Tổng giờ OT';
