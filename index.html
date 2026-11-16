@@ -384,7 +384,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
   <div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px">
    <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
    <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
-   <button type="button" id="previewOtExcel" class="gray">Xem trước Excel</button><button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
+   <button type="button" id="downloadOtImageReport" class="gray">Tải ảnh báo cáo</button><button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
   </div>
   <div class="scroll">
    <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
@@ -1327,7 +1327,16 @@ function renderOtExcelPreview(){
  $('otExcelPreviewRange').textContent=`Khoảng ngày: ${from} đến ${to} · ${rows.length} nhóm`;
  $('otExcelPreviewModal').classList.remove('hidden');
 }
-$('previewOtExcel').onclick=renderOtExcelPreview;
+$('downloadOtImageReport').onclick=()=>{
+ const from=$('otExportFromDate').value,to=$('otExportToDate').value;
+ if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
+ if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ renderOtExcelPreview();
+ const modal=$('otExcelPreviewModal');
+ if(modal)modal.classList.add('hidden');
+ // Tạo ảnh trực tiếp từ bảng tổng hợp vừa dựng theo khoảng ngày đã chọn.
+ $('downloadOtImageFromPreview').click();
+};
 const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
 $('closeOtExcelPreview').onclick=closeOtExcelPreview;
 $('closeOtExcelPreview2').onclick=closeOtExcelPreview;
