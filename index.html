@@ -1944,7 +1944,15 @@ function renderOtHistory(){
   .sort(compareOtEmployeeOrder);
  $('otHistoryBody').innerHTML=rows.map((v,i)=>`<tr><td>${i+1}</td><td>${safe(v.date)}</td><td>${safe(v.code)}</td><td>${safe(v.name)}</td><td>${teamTag(v.team)}</td><td>${safe(v.hours)}</td><td>${safe(v.note||'—')}</td><td><button class="red" onclick="removeSavedOt('${v.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="8">Chưa có OT đã lưu</td></tr>';
 }
-if($('otDate'))$('otDate').onchange=async()=>{if(await refreshOvertimeData()){renderOvertime();renderOtHistory()}};
+if($('otDate'))$('otDate').onchange=async()=>{
+ const selectedWorkDate=$('otDate').value;
+ // Đồng bộ khoảng ngày xuất báo cáo với ngày bắt đầu ca đang chọn.
+ if(selectedWorkDate){
+  $('otExportFromDate').value=selectedWorkDate;
+  $('otExportToDate').value=selectedWorkDate;
+ }
+ if(await refreshOvertimeData()){renderOvertime();renderOtHistory()}
+};
 if($('otTeam'))$('otTeam').onchange=renderOvertime;
 if($('otSearch'))$('otSearch').oninput=renderOvertime;
 if($('otSelectAll'))$('otSelectAll').onclick=()=>{const d=$('otDate')?.value||'';initOtDraftForDate(d);workingEmployeesOn(d).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=true});renderOvertime()};
@@ -1999,9 +2007,12 @@ function restoreActiveView(){
 const nowLocal=new Date();
 const calendarToday=nowLocal.toLocaleDateString('en-CA');
 const attendanceBusinessDate=nowLocal.getHours()<8?addDaysToDate(calendarToday,-1):calendarToday;
-$('summaryDate').value=calendarToday;
+// Ngày báo cáo được tính theo ngày bắt đầu ca: trước 08:00 vẫn thuộc ca bắt đầu từ ngày hôm trước.
+$('summaryDate').value=attendanceBusinessDate;
 $('attendanceDate').value=attendanceBusinessDate;
 if($('otDate'))$('otDate').value=attendanceBusinessDate;
+if($('otExportFromDate'))$('otExportFromDate').value=attendanceBusinessDate;
+if($('otExportToDate'))$('otExportToDate').value=attendanceBusinessDate;
 
 
 // Cho phép kéo rộng/thu hẹp riêng 12 cột giờ trong bảng tiêu chuẩn OT.
