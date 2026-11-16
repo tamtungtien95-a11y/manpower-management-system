@@ -1410,6 +1410,30 @@ function latestOtRowsPerEmployee(rows){
  }
  return [...latest.values()];
 }
+function actualOtRowsForDate(date){
+ const eligible=workingEmployeesOn(date);
+ const rows=[];
+ const used=new Set();
+ eligible.forEach(employee=>{
+  const code=String(employee.employee_code||'').trim().toUpperCase();
+  const matches=overtimeRecords.filter(row=>row.date===date&&(
+   String(row.employee_id)===String(employee.id) ||
+   (code&&String(row.code||'').trim().toUpperCase()===code)
+  ));
+  if(!matches.length)return;
+  matches.sort((a,b)=>{
+   const at=String(a.updated_at||a.created_at||'');
+   const bt=String(b.updated_at||b.created_at||'');
+   return bt.localeCompare(at);
+  });
+  const row=matches[0];
+  const unique=code||String(employee.id);
+  if(used.has(unique))return;
+  used.add(unique);
+  rows.push({...row,employee_id:employee.id,code:employee.employee_code,team:employee.team,name:employee.full_name});
+ });
+ return rows;
+}
 function latestOtRecordForEmployee(date,employeeId){
  return latestOtRowsPerEmployee(overtimeRecords.filter(x=>x.date===date&&String(x.employee_id)===String(employeeId)))[0]||null;
 }
@@ -1444,7 +1468,7 @@ function renderOtStandards(){
  const date=$('otDate').value;
  $('otStandardDateLabel').textContent=date;
  const teams=otStandardTeams();
- const actualRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>x.date===date));
+ const actualRows=actualOtRowsForDate(date);
  const rows=teams.map(team=>{
   const teamActual=actualRows.filter(x=>x.team===team);
   const standard=OT_REPORT_HOURS.map(h=>standardValue(team,h));
