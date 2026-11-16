@@ -1525,8 +1525,8 @@ function renderOtExcelPreview(){
  const totalStd=hrs.map((h,i)=>rows.reduce((s,r)=>s+r.standard[i],0));
  const totalAct=hrs.map((h,i)=>rows.reduce((s,r)=>s+r.actual[i],0));
  const totalStdHours=rows.reduce((s,r)=>s+r.standardHours,0),totalActHours=rows.reduce((s,r)=>s+r.actualHours,0);
- const fmt=n=>Number(n.toFixed(2)).toLocaleString('vi-VN');
- const cell=(v,bg='')=>`<td style="border:1px solid #000;padding:7px 5px;${bg?`background:${bg};`:''}">${v===0?'':v}</td>`;
+ const fmt=n=>{const value=Number(n.toFixed(2));const text=Math.abs(value).toLocaleString('vi-VN');return value<0?`(${text})`:text;};
+ const cell=(v,bg='')=>{const negative=typeof v==='number'?v<0:/^\(.*\)$/.test(String(v).trim());const shown=typeof v==='number'&&v<0?fmt(v):v;return `<td style="border:1px solid #000;padding:7px 5px;${bg?`background:${bg};`:''}${negative?'color:#dc2626;font-weight:bold;':''}">${v===0?'':shown}</td>`};
  const body=rows.map(r=>'<tr>'+cell(r.team)+r.standard.map(v=>cell(v,'#e2efda')).join('')+cell(fmt(r.standardHours),'#e2efda')+r.actual.map(v=>cell(v,'#f8cbad')).join('')+cell(fmt(r.actualHours),'#f8cbad')+cell(fmt(r.gap),'#fffbd1')+'</tr>').join('');
  const total='<tr style="font-weight:bold">'+cell('ToTal','#e2efda')+totalStd.map(v=>cell(v,'#e2efda')).join('')+cell(fmt(totalStdHours),'#e2efda')+totalAct.map(v=>cell(v,'#f8cbad')).join('')+cell(fmt(totalActHours),'#f8cbad')+cell(fmt(totalActHours-totalStdHours),'#fff200')+'</tr>';
  $('otExcelPreviewBody').innerHTML=body+total;
@@ -1568,7 +1568,7 @@ function buildOtImagePreview(){
  const green='#e2efda',orange='#f8cbad',yellow='#fff200',border='#000000';
  const drawCell=(x,y,w,h,text,fill='#ffffff',bold=false)=>{
   ctx.fillStyle=fill;ctx.fillRect(x,y,w,h);ctx.strokeStyle=border;ctx.lineWidth=1;ctx.strokeRect(x,y,w,h);
-  ctx.fillStyle='#000000';ctx.font=`${bold?'bold ':''}16px "Times New Roman"`;ctx.textAlign='center';ctx.textBaseline='middle';
+  const negative=/^\(.*\)$/.test(String(text??'').trim());ctx.fillStyle=negative?'#dc2626':'#000000';ctx.font=`${bold||negative?'bold ':''}16px "Times New Roman"`;ctx.textAlign='center';ctx.textBaseline='middle';
   const words=String(text??'').split('\n');words.forEach((line,i)=>ctx.fillText(line,x+w/2,y+h/2+(i-(words.length-1)/2)*18));
  };
  let x=x0;
@@ -1663,12 +1663,25 @@ function exportOtStandardsExcel(){
  ws.getCell('P3').fill={type:'pattern',pattern:'solid',fgColor:{argb:yellow}};
  ws.getRow(3).height=34;ws.getRow(4).height=30;
  const fmt=n=>Number(n.toFixed(2));
+ const displayNegativeCells=row=>{
+  row.eachCell(cell=>{
+   if(typeof cell.value==='number'&&cell.value<0){
+    const absolute=Math.abs(cell.value);
+    const text=absolute.toLocaleString('vi-VN',{maximumFractionDigits:2});
+    cell.value=`(${text})`;
+    cell.font={name:'Times New Roman',size:14,color:{argb:'FFDC2626'},bold:true};
+   }else{
+    cell.font={name:'Times New Roman',size:14};
+   }
+   cell.alignment=center;cell.border=border;
+  });
+ };
  rows.forEach(r=>{
   const row=ws.addRow([r.team,...r.standard,fmt(r.standardHours),...r.actual,fmt(r.actualHours),fmt(r.gap)]);row.height=24;
-  row.eachCell((cell,col)=>{cell.font={name:'Times New Roman',size:14};cell.alignment=center;cell.border=border;if(col===16&&r.gap<0)cell.font={name:'Times New Roman',size:14,color:{argb:'FFDC2626'}};});
+  displayNegativeCells(row);
  });
  const total=ws.addRow(['ToTal',...totalStd,fmt(totalStdHours),...totalAct,fmt(totalActHours),fmt(totalActHours-totalStdHours)]);total.height=25;
- total.eachCell((cell,col)=>{cell.font={name:'Times New Roman',size:14};cell.alignment=center;cell.border=border;});
+ displayNegativeCells(total);
  for(let c=1;c<=16;c++){
   const cell=ws.getCell(total.number,c);
   cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:c===16?yellow:(c>=9&&c<=15?orange:green)}};
