@@ -120,11 +120,15 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
  text-align:left;
  padding-left:6px !important;
 }
+/* Nhóm Tiêu Chuẩn rộng hơn; nhóm Thực Tế hẹp hơn để cân đối theo tiêu đề giờ */
 #otStandardTable th:nth-child(n+2):nth-child(-n+7),
-#otStandardTable td:nth-child(n+2):nth-child(-n+7),
+#otStandardTable td:nth-child(n+2):nth-child(-n+7){
+ width:6.5% !important;
+ text-align:center;
+}
 #otStandardTable th:nth-child(n+9):nth-child(-n+14),
 #otStandardTable td:nth-child(n+9):nth-child(-n+14){
- width:5.5% !important;
+ width:4.5% !important;
  text-align:center;
 }
 #otStandardTable th:nth-child(8),#otStandardTable td:nth-child(8),
@@ -393,7 +397,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
   </div>
   
   <div class="scroll">
-   <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
+   <table id="otStandardTable" style="min-width:1500px;width:1500px;table-layout:fixed;border-collapse:collapse;text-align:center"><colgroup><col style="width:130px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:95px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:78px"><col style="width:95px"><col style="width:75px"></colgroup>
     <thead>
      <tr>
       <th rowspan="2">Nhóm</th>
@@ -1374,11 +1378,40 @@ $('empSearch').oninput=renderEmployees;$('summaryDate').onchange=renderDashboard
 
 // ===== BAO CAO TIEU CHUAN OT CA C =====
 const OT_REPORT_HOURS=['1','1.4','1.5','2','2.5','3'];
+function normalizeOtHour(value){
+ // Chuẩn hóa chuỗi giờ, không dùng parseInt/parseFloat để tránh biến 1.4 thành 1.
+ let raw=String(value??'').trim().toLowerCase();
+ raw=raw.replace(/\s*(?:hours?|hrs?|h|giờ)\s*$/,'').trim();
+ raw=raw.replace(/,/g,'.');
+ if(!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw))return null;
+ const n=Number(raw);
+ return Number.isFinite(n)?Math.round(n*100)/100:null;
+}
+function sameOtHour(value,hour){
+ const n=normalizeOtHour(value);
+ return n!==null&&Math.abs(n-Number(hour))<0.0001;
+}
+function latestOtRowsPerEmployee(rows){
+ const latest=new Map();
+ for(const row of rows){
+  const key=String(row.employee_id);
+  const old=latest.get(key);
+  const stamp=String(row.updated_at||row.created_at||'');
+  const oldStamp=old?String(old.updated_at||old.created_at||''):'';
+  if(!old||stamp>=oldStamp)latest.set(key,row);
+ }
+ return [...latest.values()];
+}
 function otStandardTeams(){
  // Lấy nhóm trực tiếp từ danh mục nhóm được quản lý ở tab Nhân viên.
  const managed=Array.isArray(TEAMS)?TEAMS.filter(Boolean):[];
  const employeeTeams=employees.map(e=>e.team).filter(Boolean);
- return [...new Set([...(managed.length?managed:employeeTeams)])].sort((a,b)=>a.localeCompare(b,'vi'));
+ const order=['Office','Kitting','Rear','Shipment','SEVT'];
+ const all=[...new Set([...(managed.length?managed:employeeTeams)])];
+ return all.sort((a,b)=>{
+  const ai=order.indexOf(String(a).trim()),bi=order.indexOf(String(b).trim());
+  return (ai<0?order.length:ai)-(bi<0?order.length:bi)||String(a).localeCompare(String(b),'vi');
+ });
 }
 function standardValue(team,hour){
  const row=otStandards.find(x=>x.standard_date===$('otDate').value&&x.team===team&&String(x.hour_code)===String(hour));
@@ -1388,12 +1421,13 @@ function renderOtStandards(){
  const date=$('otDate').value;
  $('otStandardDateLabel').textContent=date;
  const teams=otStandardTeams();
- const actualRows=overtimeRecords.filter(x=>x.date===date);
+ const actualRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>x.date===date));
  const rows=teams.map(team=>{
+  const teamActual=actualRows.filter(x=>x.team===team);
   const standard=OT_REPORT_HOURS.map(h=>standardValue(team,h));
-  const actual=OT_REPORT_HOURS.map(h=>actualRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const actual=OT_REPORT_HOURS.map(h=>teamActual.filter(x=>sameOtHour(x.hours,h)).length);
   const standardHours=standard.reduce((sum,n,i)=>sum+n*Number(OT_REPORT_HOURS[i]),0);
-  const actualHours=actualRows.filter(x=>x.team===team).reduce((sum,x)=>sum+(parseFloat(x.hours)||0),0);
+  const actualHours=teamActual.reduce((sum,x)=>sum+(normalizeOtHour(x.hours)||0),0);
   return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
  });
  const totalStd=OT_REPORT_HOURS.map((h,i)=>rows.reduce((s,r)=>s+r.standard[i],0));
@@ -1430,14 +1464,15 @@ function renderOtExcelPreview(){
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  const inRange=d=>d>=from&&d<=to, hrs=['1','1.4','1.5','2','2.5','3'];
- const otRows=overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10)));
+ const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
  const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
  const teams=[...new Set([...otStandardTeams(),...otRows.map(x=>x.team).filter(Boolean),...standardRows.map(x=>x.team).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
  const rows=teams.map(team=>{
   const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&String(parseFloat(x.hour_code))===h).reduce((s,x)=>s+(Number(x.standard_count)||0),0));
-  const actual=hrs.map(h=>otRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const teamActual=otRows.filter(x=>x.team===team);
+  const actual=hrs.map(h=>teamActual.filter(x=>sameOtHour(x.hours,h)).length);
   const standardHours=standard.reduce((s,n,i)=>s+n*Number(hrs[i]),0);
-  const actualHours=otRows.filter(x=>x.team===team).reduce((s,x)=>s+(parseFloat(x.hours)||0),0);
+  const actualHours=teamActual.reduce((s,x)=>s+(normalizeOtHour(x.hours)||0),0);
   return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
  });
  const totalStd=hrs.map((h,i)=>rows.reduce((s,r)=>s+r.standard[i],0));
@@ -1472,7 +1507,7 @@ function buildOtImagePreview(){
  const from=$('otExportFromDate').value,to=$('otExportToDate').value;
  const source=$('otExcelPreviewTable');
  if(!source||!source.querySelector('tbody tr')){alert('Chưa có dữ liệu xem trước để tạo ảnh.');return}
- const widths=[130,70,70,70,70,70,70,95,70,70,70,70,70,70,95,85];
+ const widths=[130,78,78,78,78,78,78,95,78,78,78,78,78,78,95,75];
  const rowH=34,headH1=42,headH2=34,margin=24,titleH=62;
  const totalW=widths.reduce((a,b)=>a+b,0),rows=[...source.tBodies[0].rows];
  const canvas=document.createElement('canvas');
@@ -1536,7 +1571,7 @@ function exportOtStandardsExcel(){
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  const inRange=d=>d>=from&&d<=to;
  const hrs=['1','1.4','1.5','2','2.5','3'];
- const otRows=overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10)));
+ const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
  const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
  const teams=[...new Set([
   ...otStandardTeams(),
@@ -1545,10 +1580,11 @@ function exportOtStandardsExcel(){
  ])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
  const rows=teams.map(team=>{
   const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&String(parseFloat(x.hour_code))===h).reduce((sum,x)=>sum+(Number(x.standard_count)||0),0));
-  const actual=hrs.map(h=>otRows.filter(x=>x.team===team&&String(parseFloat(x.hours))===h).length);
+  const teamActual=otRows.filter(x=>x.team===team);
+  const actual=hrs.map(h=>teamActual.filter(x=>sameOtHour(x.hours,h)).length);
   const standardHours=standard.reduce((sum,n,i)=>sum+n*Number(hrs[i]),0);
   // Tổng giờ thực tế tính tất cả lượt OT trong khoảng ngày, kể cả mức 4h và 5h.
-  const actualHours=otRows.filter(x=>x.team===team).reduce((sum,x)=>sum+(parseFloat(x.hours)||0),0);
+  const actualHours=teamActual.reduce((sum,x)=>sum+(normalizeOtHour(x.hours)||0),0);
   return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
  });
  const totalStd=hrs.map((h,i)=>rows.reduce((sum,r)=>sum+r.standard[i],0));
