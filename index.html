@@ -1785,7 +1785,7 @@ function buildOtImagePreview(){
  const footerY=margin+titleH+headH1+headH2+rows.length*rowH+38;
  ctx.fillStyle='#1f2937';ctx.textAlign='left';ctx.font='16px "Times New Roman"';
  ctx.fillText('Dear Sir',margin,footerY);
- ctx.fillText(`E gửi data nhân lực OT Ca đêm ngày ${workingDateText}`,margin,footerY+24);
+ ctx.fillText(`E gửi data OT MM Ca C ngày ${workingDateText}`,margin,footerY+24);
  ctx.fillText('E xin cảm ơn !',margin,footerY+48);
  const imageUrl=canvas.toDataURL('image/png');
  $('otExcelImagePreview').src=imageUrl;
@@ -2025,6 +2025,14 @@ async function exportOtStandardsExcel(){
   const cell=ws.getCell(total.number,c);
   cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:c===16?yellow:(c>=9&&c<=15?orange:green)}};
  }
+ const footerDateText=from===to?from:`${from} đến ${to}`;
+ const footerStart=total.number+2;
+ [['Dear Sir',true], [`E gửi data OT MM Ca C ngày ${footerDateText}`,false], ['E xin cảm ơn !',false]].forEach((item,i)=>{
+  const row=footerStart+i;ws.mergeCells(row,1,row,16);
+  const cell=ws.getCell(row,1);cell.value=item[0];
+  cell.font={name:'Times New Roman',size:14,bold:item[1],color:{argb:'FF1F2937'}};
+  cell.alignment={horizontal:'left',vertical:'middle'};ws.getRow(row).height=22;
+ });
  wb.xlsx.writeBuffer().then(buf=>{
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;
