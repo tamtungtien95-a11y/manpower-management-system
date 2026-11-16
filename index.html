@@ -1636,7 +1636,7 @@ $('otExportFromDate').value=todayForOtExport;
 $('otExportToDate').value=todayForOtExport;
 $('exportOtStandardsExcel').onclick=exportOtStandardsExcel;
 // ===== QUAN LY OT: chon tung nguoi / chon tat ca, luu mot lan =====
-const OT_HOURS=['1h','1.4h','1.5h','2h','2.5h','3h','4h','5h'];
+const OT_HOURS=['1','1.4','1.5','2','2.5','3','4','5'];
 $('otQuickHours').innerHTML='<option value="">-- Chọn nhanh số giờ OT --</option>'+OT_HOURS.map(h=>`<option value="${h}">${h}</option>`).join('');
 $('otQuickHours').onchange=()=>{
  const hours=$('otQuickHours').value;
@@ -1698,7 +1698,7 @@ function renderOvertime(){
  $('otBody').innerHTML=rows.map((x,i)=>{
   const key=otDraftKey(d,x.id),v=otDraft.get(key)||{};
   const saved=overtimeRecords.find(o=>o.date===d&&String(o.employee_id)===String(x.id));
-  const hoursOptions=['','1h','1.4h','1.5h','2h','2.5h','3h','4h','5h'].map(h=>`<option value="${h}" ${v.hours===h?'selected':''}>${h||'-- Chọn giờ --'}</option>`).join('');
+  const hoursOptions=['','1','1.4','1.5','2','2.5','3','4','5'].map(h=>`<option value="${h}" ${sameOtHour(v.hours,h)&&h?'selected':(String(v.hours||'')===h?'selected':'')}>${h||'-- Chọn giờ --'}</option>`).join('');
   return `<tr>
    <td><input type="checkbox" ${v.selected?'checked':''} onchange="setOtSelected('${x.id}',this.checked)" aria-label="Chọn ${safe(x.full_name)}"></td>
    <td>${i+1}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td>
