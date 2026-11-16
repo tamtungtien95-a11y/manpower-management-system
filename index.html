@@ -1510,16 +1510,30 @@ function renderOtExcelPreview(){
  const from=otImageReportDate||$('otExportFromDate').value,to=otImageReportDate||$('otExportToDate').value;
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
- const inRange=d=>d>=from&&d<=to, hrs=OT_REPORT_HOURS;
- const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
- const standardRows=latestStandardRows(otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10))));
- const teams=[...new Set([...otStandardTeams(),...otRows.map(x=>x.team).filter(Boolean),...standardRows.map(x=>x.team).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
+ const hrs=OT_REPORT_HOURS;
+ const parseIsoDate=s=>new Date(`${s}T00:00:00`);
+ const reportDays=[];
+ for(let d=parseIsoDate(from);d<=parseIsoDate(to);d.setDate(d.getDate()+1)){
+  reportDays.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+ }
+ const teams=otStandardTeams();
  const rows=teams.map(team=>{
-  const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&sameOtHour(x.hour_code,h)).reduce((s,x)=>s+(Number(x.standard_count)||0),0));
-  const teamActual=otRows.filter(x=>x.team===team);
-  const actual=hrs.map(h=>teamActual.filter(x=>sameOtHour(x.hours,h)).length);
-  const standardHours=standard.reduce((s,n,i)=>s+n*Number(hrs[i]),0);
-  const actualHours=teamActual.reduce((s,x)=>s+(normalizeOtHour(x.hours)||0),0);
+  const standard=hrs.map(()=>0),actual=hrs.map(()=>0);
+  let standardHours=0,actualHours=0;
+  reportDays.forEach(day=>{
+   const dayStandards=latestStandardRows(otStandards.filter(x=>x.standard_date===day&&x.team===team));
+   const dayActual=actualOtRowsForDate(day).filter(x=>x.team===team);
+   hrs.forEach((h,i)=>{
+    const latest=dayStandards.filter(x=>sameOtHour(x.hour_code,h));
+    if(latest.length)standard[i]+=Number(latest[latest.length-1].standard_count)||0;
+    actual[i]+=dayActual.filter(x=>sameOtHour(x.hours,h)).length;
+   });
+   standardHours+=hrs.reduce((sum,h)=>{
+    const latest=dayStandards.filter(x=>sameOtHour(x.hour_code,h));
+    return sum+(latest.length?(Number(latest[latest.length-1].standard_count)||0):0)*Number(h);
+   },0);
+   actualHours+=dayActual.reduce((sum,x)=>sum+(normalizeOtHour(x.hours)||0),0);
+  });
   return {team,standard,actual,standardHours,actualHours,gap:actualHours-standardHours};
  });
  const totalStd=hrs.map((h,i)=>rows.reduce((s,r)=>s+r.standard[i],0));
@@ -1539,17 +1553,35 @@ function renderOtExcelPreview(){
 $('downloadOtImageReport').onclick=async()=>{
  const selectedDate=$('otDate').value;
  if(!selectedDate){alert('Vui lòng chọn Ngày OT trước khi tạo ảnh báo cáo.');return}
+ const button=$('downloadOtImageReport');
+ const oldText=button.textContent;
+ button.disabled=true;button.textContent='Đang cập nhật dữ liệu...';
  try{
-  const [otFresh,stdFresh]=await Promise.all([
+  const [otFresh,stdFresh,attendanceFresh,employeeFresh]=await Promise.all([
    client.from('employee_overtime').select('*, employees(employee_code,full_name,team)')
     .eq('overtime_date',selectedDate).order('updated_at',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false,nullsFirst:false}),
-   client.from('employee_ot_standards').select('*').eq('standard_date',selectedDate)
+   client.from('employee_ot_standards').select('*').eq('standard_date',selectedDate),
+   client.from('employee_attendance').select('*, employees(employee_code,full_name,team)').eq('attendance_date',selectedDate),
+   client.from('employees').select('*')
   ]);
   if(otFresh.error)throw otFresh.error;
   if(stdFresh.error)throw stdFresh.error;
-  overtimeRecords=(otFresh.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees?.employee_code||'',name:x.employees?.full_name||'',team:x.employees?.team||'',created_at:x.created_at||'',updated_at:x.updated_at||''}));
+  if(attendanceFresh.error)throw attendanceFresh.error;
+  if(employeeFresh.error)throw employeeFresh.error;
+  allEmployees=employeeFresh.data||[];
+  employees=allEmployees.filter(x=>x.is_active!==false);
+  attendanceRecords=(attendanceFresh.data||[]).map(x=>({
+   id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',
+   code:x.employees?.employee_code||'',name:x.employees?.full_name||'',team:x.employees?.team||'',
+   created_at:x.created_at||'',updated_at:x.updated_at||''
+  }));
+  overtimeRecords=(otFresh.data||[]).map(x=>({
+   id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',
+   code:x.employees?.employee_code||'',name:x.employees?.full_name||'',team:x.employees?.team||'',
+   created_at:x.created_at||'',updated_at:x.updated_at||''
+  }));
   otStandards=stdFresh.data||[];
-  // Ảnh báo cáo chỉ lấy dữ liệu của đúng ngày đang chọn trong mục Ngày OT.
+  // Chỉ tạo ảnh sau khi đã tải lại đầy đủ nguồn dữ liệu mới nhất.
   otImageReportDate=selectedDate;
   renderOtExcelPreview();
   buildOtImagePreview();
@@ -1557,6 +1589,8 @@ $('downloadOtImageReport').onclick=async()=>{
  }catch(err){
   otImageReportDate=null;
   alert('Không thể cập nhật dữ liệu mới nhất để tạo ảnh: '+(err.message||err));
+ }finally{
+  button.disabled=false;button.textContent=oldText;
  }
 };
 const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
@@ -1565,6 +1599,7 @@ $('closeOtExcelPreview2').onclick=closeOtExcelPreview;
 $('downloadOtExcelFromPreview').onclick=()=>{closeOtExcelPreview();exportOtStandardsExcel();};
 
 function buildOtImagePreview(){
+ const reportDate=otImageReportDate;
  const from=$('otExportFromDate').value,to=$('otExportToDate').value;
  const source=$('otExcelPreviewTable');
  if(!source||!source.querySelector('tbody tr')){alert('Chưa có dữ liệu xem trước để tạo ảnh.');return}
@@ -1615,7 +1650,7 @@ function buildOtImagePreview(){
  $('downloadOtImageFromPreview').onclick=()=>{
   const a=document.createElement('a');
   a.href=$('otExcelImagePreview').src;
-  a.download=`Bao_cao_OT_${from}_den_${to}.png`;
+  a.download=reportDate?`Bao_cao_OT_${reportDate}.png`:`Bao_cao_OT_${from}_den_${to}.png`;
   document.body.appendChild(a);a.click();a.remove();
  };
  $('otExcelPreviewModal').classList.remove('hidden');
