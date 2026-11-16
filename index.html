@@ -423,7 +423,11 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 <div id="otExcelPreviewModal" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;padding:20px;overflow:auto">
  <div style="background:#fff;max-width:1200px;margin:20px auto;border-radius:10px;padding:18px;box-shadow:0 10px 35px rgba(0,0,0,.25)">
   <div class="toolbar"><div><h3 style="margin:0">Xem trước file Excel báo cáo OT</h3><div id="otExcelPreviewRange" class="note"></div></div><button type="button" class="gray" id="closeOtExcelPreview">Đóng</button></div>
-  <div class="scroll" style="margin-top:14px">
+  <div id="otExcelImagePreviewArea" class="hidden" style="margin-top:14px;text-align:center">
+   <p style="margin:0 0 10px;color:#475569">Xem trước ảnh báo cáo được tạo từ dữ liệu tổng hợp Excel</p>
+   <img id="otExcelImagePreview" alt="Ảnh xem trước báo cáo OT" style="max-width:100%;height:auto;border:1px solid #cbd5e1;border-radius:6px;background:#fff">
+  </div>
+  <div class="scroll" id="otExcelPreviewTableArea" style="margin-top:14px">
    <table style="min-width:1100px;border-collapse:collapse;text-align:center;font-family:'Times New Roman',serif">
     <thead>
      <tr><th rowspan="2" style="background:#e2efda">Nhóm</th><th colspan="6" style="background:#e2efda">Tiêu Chuẩn</th><th rowspan="2" style="background:#e2efda">Tổng giờ OT</th><th colspan="6" style="background:#f8cbad">Thực Tế</th><th rowspan="2" style="background:#f8cbad">Tổng giờ OT</th><th rowspan="2" style="background:#fff200">GAP</th></tr>
@@ -1327,6 +1331,9 @@ function renderOtExcelPreview(){
  const total='<tr style="font-weight:bold">'+cell('ToTal','#e2efda')+totalStd.map(v=>cell(v,'#e2efda')).join('')+cell(fmt(totalStdHours),'#e2efda')+totalAct.map(v=>cell(v,'#f8cbad')).join('')+cell(fmt(totalActHours),'#f8cbad')+cell(fmt(totalActHours-totalStdHours),'#fff200')+'</tr>';
  $('otExcelPreviewBody').innerHTML=body+total;
  $('otExcelPreviewRange').textContent=`Khoảng ngày: ${from} đến ${to} · ${rows.length} nhóm`;
+ $('otExcelImagePreviewArea').classList.add('hidden');
+ $('otExcelPreviewTableArea').classList.remove('hidden');
+ $('downloadOtImageFromPreview').textContent='Tải ảnh PNG';
  $('otExcelPreviewModal').classList.remove('hidden');
 }
 $('downloadOtImageReport').onclick=()=>{
@@ -1334,17 +1341,15 @@ $('downloadOtImageReport').onclick=()=>{
  if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  renderOtExcelPreview();
- const modal=$('otExcelPreviewModal');
- if(modal)modal.classList.add('hidden');
- // Tạo ảnh trực tiếp từ bảng tổng hợp vừa dựng theo khoảng ngày đã chọn.
- $('downloadOtImageFromPreview').click();
+ // Tạo ảnh từ đúng bảng dữ liệu tổng hợp Excel rồi hiển thị để kiểm tra trước khi tải.
+ buildOtImagePreview();
 };
 const closeOtExcelPreview=()=> $('otExcelPreviewModal').classList.add('hidden');
 $('closeOtExcelPreview').onclick=closeOtExcelPreview;
 $('closeOtExcelPreview2').onclick=closeOtExcelPreview;
 $('downloadOtExcelFromPreview').onclick=()=>{closeOtExcelPreview();exportOtStandardsExcel();};
 
-$('downloadOtImageFromPreview').onclick=()=>{
+function buildOtImagePreview(){
  const from=$('otExportFromDate').value,to=$('otExportToDate').value;
  const source=$('otExcelPreviewTable');
  if(!source||!source.querySelector('tbody tr')){alert('Chưa có dữ liệu xem trước để tạo ảnh.');return}
@@ -1388,13 +1393,22 @@ $('downloadOtImageFromPreview').onclick=()=>{
    xx+=widths[ci];
   });
  });
- canvas.toBlob(blob=>{
-  if(!blob){alert('Không tạo được ảnh PNG.');return}
-  const url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download=`Bao_cao_OT_${from}_den_${to}.png`;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
- },'image/png');
+ const imageUrl=canvas.toDataURL('image/png');
+ $('otExcelImagePreview').src=imageUrl;
+ $('otExcelPreviewTableArea').classList.add('hidden');
+ $('otExcelImagePreviewArea').classList.remove('hidden');
+ $('downloadOtImageFromPreview').textContent='Tải ảnh PNG';
+ $('downloadOtImageFromPreview').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=$('otExcelImagePreview').src;
+  a.download=`Bao_cao_OT_${from}_den_${to}.png`;
+  document.body.appendChild(a);a.click();a.remove();
+ };
+ $('otExcelPreviewModal').classList.remove('hidden');
 };
+
+}
+$('downloadOtImageFromPreview').onclick=buildOtImagePreview;
 
 
 function exportOtStandardsExcel(){
