@@ -369,24 +369,16 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 </div></section>
 <p id="appMsg" class="note"></p>
 <section id="overtime" class="view">
- <div class="panel">
-  <div class="toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px">
-  <h3 style="margin:0">Nhân lực đi làm & đăng ký OT</h3>
+ <div class="panel" style="padding:10px 16px;margin-bottom:12px">
+  <div class="toolbar" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:0">
   <div class="actions" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap">
    <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
    <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
    <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
   </div>
  </div>
-  <p class="note">Chọn tất cả hoặc chọn từng nhân viên. Có thể lọc theo nhóm; các lựa chọn ở nhóm đang ẩn vẫn được giữ. Có thể chỉnh số giờ và ghi chú riêng cho từng nhân viên trước khi lưu một lần.</p>
-  <div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-   <div><label>Lọc nhóm</label><select id="otTeam"><option value="">Tất cả nhóm</option></select></div>
-   <div><label>Tìm nhân viên</label><input id="otSearch" placeholder="Mã nhân viên / họ tên"></div>
-   <div style="display:flex;align-items:end;gap:8px"><button type="button" id="otSelectAll" class="gray">Chọn tất cả</button><button type="button" id="otClearAll" class="gray">Bỏ chọn</button></div>
-  </div>
-  <div class="toolbar" style="margin-top:12px">
-   <span id="otSelectedCount" class="note">Đã chọn: 0 nhân viên</span>
-  </div>
+
+
  </div>
  <div class="panel">
   <h3>BÁO CÁO TIÊU CHUẨN OT CA C</h3>
