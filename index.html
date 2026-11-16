@@ -1170,8 +1170,12 @@ $('applyAttendanceExcel').onclick=async()=>{
 };
 $('cancelAttendanceExcel').onclick=()=>{$('attendanceExcelFile').value='';$('attendanceExcelPreview').classList.add('hidden');attendanceExcelRows=[]};
 function exportAttendanceWorkbook(data,fileName){
- const ws=XLSX.utils.json_to_sheet(data,{header:['Mã Nhân Viên','Nhân Viên','Trạng Thái Nghỉ','Ca']});
- ws['!cols']=[{wch:20},{wch:30},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'DiemDanh');XLSX.writeFile(wb,fileName);
+ const headers=['Mã Nhân Viên','Nhân Viên','Nhóm','Trạng Thái Nghỉ','Ca'];
+ const ws=XLSX.utils.json_to_sheet(data,{header:headers});
+ ws['!cols']=[{wch:20},{wch:30},{wch:20},{wch:24},{wch:14}];
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'DiemDanh');
+ XLSX.writeFile(wb,fileName);
 }
 $('attendanceTemplate').onclick=()=>{
  const rows=employees.slice(0,4).map(e=>({'Mã Nhân Viên':e.employee_code,'Nhân Viên':e.full_name,'Trạng Thái Nghỉ':'Đi Làm'}));
@@ -1179,8 +1183,19 @@ $('attendanceTemplate').onclick=()=>{
 };
 $('attendanceExport').onclick=()=>{
  const d=$('attendanceDate').value;
- const rows=attendanceRecords.filter(x=>x.date===d).map(x=>({'Mã Nhân Viên':x.code,'Nhân Viên':x.name,'Trạng Thái Nghỉ':x.status,'Ca':x.shift==='night'?'Ca đêm':'Ca ngày'}));
- exportAttendanceWorkbook(rows,`Diem_danh_${d||'ngay'}.xlsx`);
+ if(!d){alert('Vui lòng chọn ngày điểm danh trước khi xuất Excel.');return}
+ // Chỉ xuất nhân viên đã có bản ghi điểm danh trong đúng ngày đang chọn.
+ const rows=attendanceRecords
+  .filter(x=>x.date===d)
+  .map(x=>({
+   'Mã Nhân Viên':x.code||'',
+   'Nhân Viên':x.name||'',
+   'Nhóm':x.team||'',
+   'Trạng Thái Nghỉ':x.status||'',
+   'Ca':x.shift==='night'?'Ca đêm':'Ca ngày'
+  }));
+ if(!rows.length){alert(`Ngày ${d} chưa có nhân viên nào được điểm danh.`);return}
+ exportAttendanceWorkbook(rows,`Diem_danh_${d}.xlsx`);
 };
 
 // ===== NHAP / XUAT EXCEL =====
