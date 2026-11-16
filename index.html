@@ -30,6 +30,7 @@ label{display:block;font-size:13px;color:#475569;margin-bottom:6px}input,select{
 button{border:0;border-radius:7px;padding:10px 14px;background:#2563eb;color:white;font-weight:600;cursor:pointer}
 button.gray{background:#64748b}button.red{background:#dc2626}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0}.app-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}.employee-nav-actions{display:none;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin-left:auto}.employee-nav-actions button{white-space:nowrap;padding:9px 12px;font-size:13px}.employee-nav-actions .import-btn{background:#2563eb}.employee-nav-actions .group-btn{background:#64748b}#excelFile{display:none!important}@media(max-width:760px){.app-nav{align-items:flex-start}.employee-nav-actions{width:100%;margin-left:0;justify-content:flex-start}}
 .tabs button{background:#dce5f2;color:#17365d}.tabs button.active{background:#2563eb;color:white}
+.ot-image-nav-button{background:#15803d;color:#fff;white-space:nowrap;padding:9px 14px}.ot-image-nav-button:hover{background:#166534}
 .view{display:none}.view.active{display:block}.toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;margin-top:15px}
 .toolbar input{max-width:240px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px;margin-top:13px}
 th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14px}th{background:#f8fafc;color:#475569}
@@ -262,6 +263,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 <button data-view="attendance">Điểm danh</button>
 <button data-view="overtime">OT</button>
 </div>
+<button type="button" id="downloadOtImageReport" class="ot-image-nav-button" style="display:none;margin-left:auto">Tải ảnh báo cáo</button>
 <div id="employeeNavActions" class="employee-nav-actions">
 <button type="button" class="import-btn" id="importEmployeeBtn">Nhập data</button>
 <button type="button" class="gray" id="templateEmployeeBtn">Tải file mẫu</button>
@@ -384,7 +386,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
   <div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px">
    <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
    <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
-   <button type="button" id="downloadOtImageReport" class="gray">Tải ảnh báo cáo</button><button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
+   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
   </div>
   <div class="scroll">
    <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
@@ -1605,6 +1607,7 @@ function activateView(viewName, remember=true){
  button.classList.add('active');target.classList.add('active');
  $('employeeNavActions').style.display=viewName==='employees'?'flex':'none';
  $('attendanceNavActions').style.display=viewName==='attendance'?'flex':'none';
+ $('downloadOtImageReport').style.display=viewName==='overtime'?'inline-flex':'none';
  if(remember)localStorage.setItem('mmManpowerActiveTab',viewName);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>activateView(b.dataset.view));
