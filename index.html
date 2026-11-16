@@ -774,7 +774,19 @@ async function exportTeamSummaryExcel(){
  leaveRows.forEach(e=>ws.addRow([e.employee_code||'',e.full_name||'',e.team||'',e.classification||'',e.status||'']));
  if(!leaveRows.length)ws.addRow(['','','','','Không có nhân viên nghỉ trong ngày này']);
 
- const lastRow=leaveHeaderRow+Math.max(leaveRows.length,1);
+ let lastRow=leaveHeaderRow+Math.max(leaveRows.length,1);
+ const footerStart=lastRow+2;
+ [`Dear Sir`,`E gửi data nhân lực MM Ca C ngày ${dateText||''}`,`E xin cảm ơn !`].forEach((line,i)=>{
+  ws.mergeCells(`A${footerStart+i}:E${footerStart+i}`);
+  const cell=ws.getCell(`A${footerStart+i}`);
+  cell.value=line;
+  cell.font={name:'Times New Roman',size:14,bold:i===0,color:{argb:'FF1F2937'}};
+  cell.alignment={vertical:'middle',horizontal:'left'};
+  cell.border={top:{style:'none'},bottom:{style:'none'},left:{style:'none'},right:{style:'none'}};
+  cell.fill=whiteFill;
+  ws.getRow(footerStart+i).height=23;
+ });
+ lastRow=footerStart+2;
  for(let r=leaveHeaderRow;r<=lastRow;r++){
   ws.getRow(r).height=24;
   for(let c=1;c<=5;c++){
@@ -908,7 +920,8 @@ function makeWorkforceReportCanvas(report){
  const groupCols=[['Nhóm',250],['Tổng NV',230],['Đi Làm',230],['Thiếu',230],['Tỷ lệ đi làm',532]];
  const leaveCols=[['Mã NV',210],['Họ và tên',430],['Nhóm',220],['Phân loại',300],['Trạng thái',312]];
  const rowH=58, headH=66, titleH=115, metricH=132, gap=48;
- const h=pad*2+titleH+metricH+gap+headH+(groups.length+1)*rowH+gap+headH+Math.max(1,leaves.length)*rowH+80;
+ const footerH=118;
+ const h=pad*2+titleH+metricH+gap+headH+(groups.length+1)*rowH+gap+headH+Math.max(1,leaves.length)*rowH+footerH;
  canvas.width=width*scale;canvas.height=h*scale;ctx.scale(scale,scale);
  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,h);
  let y=pad;
@@ -934,7 +947,12 @@ function makeWorkforceReportCanvas(report){
  y+=gap-10;
  const leaveData=leaves.length?leaves.map(e=>[e.employee_code,e.full_name,e.team,e.classification,e.status]):[['','','','', 'Không có nhân viên nghỉ trong ngày này']];
  drawTable('BÁO CÁO NHÂN VIÊN NGHỈ',leaveCols,leaveData);
- ctx.fillStyle='#64748b';ctx.font='16px Arial';ctx.fillText('Hệ thống quản lý nhân lực MM',pad,h-28);
+ const workingDate=report.dateText||'';
+ ctx.fillStyle='#1f2937';ctx.textAlign='left';ctx.font='22px Arial';
+ const footerY=y+42;
+ ctx.fillText('Dear Sir',pad,footerY);
+ ctx.fillText(`E gửi data nhân lực MM Ca C ngày ${workingDate}`,pad,footerY+34);
+ ctx.fillText('E xin cảm ơn !',pad,footerY+68);
  return canvas;
 }
 async function createWorkforceReportImage(report){
@@ -1727,7 +1745,8 @@ function buildOtImagePreview(){
  const rowH=34,headH1=42,headH2=34,margin=24,titleH=62;
  const totalW=widths.reduce((a,b)=>a+b,0),rows=[...source.tBodies[0].rows];
  const canvas=document.createElement('canvas');
- canvas.width=totalW+margin*2;canvas.height=titleH+headH1+headH2+rows.length*rowH+margin*2;
+ const footerH=92;
+ canvas.width=totalW+margin*2;canvas.height=titleH+headH1+headH2+rows.length*rowH+margin*2+footerH;
  const ctx=canvas.getContext('2d');
  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);
  ctx.fillStyle='#111827';ctx.font='bold 25px "Times New Roman"';ctx.textAlign='left';
@@ -1762,6 +1781,12 @@ function buildOtImagePreview(){
    xx+=widths[ci];
   });
  });
+ const workingDateText=reportDate||to||from;
+ const footerY=margin+titleH+headH1+headH2+rows.length*rowH+38;
+ ctx.fillStyle='#1f2937';ctx.textAlign='left';ctx.font='16px "Times New Roman"';
+ ctx.fillText('Dear Sir',margin,footerY);
+ ctx.fillText(`E gửi data nhân lực OT Ca đêm ngày ${workingDateText}`,margin,footerY+24);
+ ctx.fillText('E xin cảm ơn !',margin,footerY+48);
  const imageUrl=canvas.toDataURL('image/png');
  $('otExcelImagePreview').src=imageUrl;
  $('otExcelPreviewTableArea').classList.add('hidden');
