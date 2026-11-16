@@ -481,7 +481,7 @@ async function loadAll(){
  const [e,a,o,s,g]=await Promise.all([
   client.from('employees').select('*').order('employee_code'),
   client.from('employee_attendance').select('*, employees(employee_code,full_name,team)').order('attendance_date',{ascending:false}),
-  client.from('employee_overtime').select('*, employees(employee_code,full_name,team)').order('overtime_date',{ascending:false}),
+  client.from('employee_overtime').select('*, employees(employee_code,full_name,team)').order('overtime_date',{ascending:false}).order('updated_at',{ascending:false,nullsFirst:false}).order('created_at',{ascending:false,nullsFirst:false}),
   client.from('employee_ot_standards').select('*'),
   client.from('employee_groups').select('name').order('name')
  ]);
@@ -1390,15 +1390,21 @@ function sameOtHour(value,hour){
  return n!==null&&Math.abs(n-Number(hour))<0.0001;
 }
 function latestOtRowsPerEmployee(rows){
+ const activeIds=new Set((employees||[]).filter(e=>e.is_active!==false).map(e=>String(e.id)));
  const latest=new Map();
  for(const row of rows){
-  const key=String(row.employee_id);
+  const employeeId=String(row.employee_id);
+  if(activeIds.size&&!activeIds.has(employeeId))continue;
+  const key=[String(row.date||''),employeeId].join('|');
   const old=latest.get(key);
   const stamp=String(row.updated_at||row.created_at||'');
   const oldStamp=old?String(old.updated_at||old.created_at||''):'';
-  if(!old||stamp>=oldStamp)latest.set(key,row);
+  if(!old||(!oldStamp&&stamp)||(stamp&&oldStamp&&stamp>oldStamp))latest.set(key,row);
  }
  return [...latest.values()];
+}
+function latestOtRecordForEmployee(date,employeeId){
+ return latestOtRowsPerEmployee(overtimeRecords.filter(x=>x.date===date&&String(x.employee_id)===String(employeeId)))[0]||null;
 }
 function otStandardTeams(){
  // Lấy nhóm trực tiếp từ danh mục nhóm được quản lý ở tab Nhân viên.
@@ -1684,7 +1690,7 @@ function initOtDraftForDate(date){
  }
  working.forEach(e=>{
   const key=otDraftKey(date,e.id);
-  const saved=overtimeRecords.find(v=>v.date===date&&String(v.employee_id)===String(e.id));
+  const saved=latestOtRecordForEmployee(date,e.id);
   if(!otDraft.has(key)){
    otDraft.set(key,{date,employee_id:e.id,selected:!!saved,hours:saved&&normalizeOtHour(saved.hours)!==null?String(normalizeOtHour(saved.hours)):(saved?.hours||''),note:saved?.note||'',existingId:saved?.id||null,team:e.team});
   }else{
@@ -1713,7 +1719,7 @@ function renderOvertime(){
   .sort(compareOtEmployeeOrder);
  $('otBody').innerHTML=rows.map((x,i)=>{
   const key=otDraftKey(d,x.id),v=otDraft.get(key)||{};
-  const saved=overtimeRecords.find(o=>o.date===d&&String(o.employee_id)===String(x.id));
+  const saved=latestOtRecordForEmployee(d,x.id);
   const hoursOptions=['','1','1.4','1.5','2','2.5','3','4','5'].map(h=>`<option value="${h}" ${h&&(sameOtHour(v.hours,h)||sameOtHour(saved?.hours,h))?'selected':''}>${h||'-- Chọn giờ --'}</option>`).join('');
   return `<tr>
    <td><input type="checkbox" ${v.selected?'checked':''} onchange="setOtSelected('${x.id}',this.checked)" aria-label="Chọn ${safe(x.full_name)}"></td>
@@ -1768,7 +1774,9 @@ async function refreshOvertimeData(){
  const {data,error}=await client
   .from('employee_overtime')
   .select('*, employees(employee_code,full_name,team)')
-  .order('overtime_date',{ascending:false});
+  .order('overtime_date',{ascending:false})
+  .order('updated_at',{ascending:false,nullsFirst:false})
+  .order('created_at',{ascending:false,nullsFirst:false});
  if(error){
   console.error('Không thể cập nhật dữ liệu OT mới nhất:',error.message);
   message('appMsg','Không thể tải dữ liệu OT mới nhất: '+error.message);
@@ -1816,7 +1824,7 @@ $('otSaveAll').onclick=async()=>{
   }));
   const failed=results.find(r=>r.error);
   if(failed){alert('Có lỗi khi lưu OT: '+failed.error.message+'。Vui lòng kiểm tra lịch sử trước khi lưu lại để tránh trùng.');}
-  else{await loadAll();renderOvertime();alert(`Đã lưu OT cho ${selected.length} nhân viên, bao gồm cả các nhóm đang ẩn.`);}
+  else{const refreshed=await refreshOvertimeData();if(refreshed){renderOvertime();renderOtHistory();alert(`Đã lưu OT cho ${selected.length} nhân viên. Bảng Thực Tế đã cập nhật theo dữ liệu mới nhất.`)}else{alert('Đã lưu OT nhưng chưa tải lại được dữ liệu mới nhất. Vui lòng tải lại tab OT.')}}
  }finally{$('otSaveAll').disabled=false;$('otSaveAll').textContent='Lưu tất cả OT đã chọn'}
 };
 window.removeSavedOt=async id=>{if(!confirm('Xóa đăng ký OT này?'))return;const {error}=await client.from('employee_overtime').delete().eq('id',id);if(error){alert(error.message);return}await loadAll();renderOvertime()};
