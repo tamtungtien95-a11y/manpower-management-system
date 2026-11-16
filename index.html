@@ -370,7 +370,14 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 <p id="appMsg" class="note"></p>
 <section id="overtime" class="view">
  <div class="panel">
-  <h3>Nhân lực đi làm & đăng ký OT</h3>
+  <div class="toolbar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 12px">
+  <h3 style="margin:0">Nhân lực đi làm & đăng ký OT</h3>
+  <div class="actions" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+   <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
+   <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
+   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
+  </div>
+ </div>
   <p class="note">Chọn tất cả hoặc chọn từng nhân viên. Có thể lọc theo nhóm; các lựa chọn ở nhóm đang ẩn vẫn được giữ. Có thể chỉnh số giờ và ghi chú riêng cho từng nhân viên trước khi lưu một lần.</p>
   <div class="grid" style="grid-template-columns:repeat(4,minmax(0,1fr))">
    <div><label>Ngày OT</label><input type="date" id="otDate" required></div>
@@ -386,11 +393,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
   <h3>BÁO CÁO TIÊU CHUẨN OT CA C</h3>
   <p class="note">Nhập tiêu chuẩn theo ngày cho từng nhóm. Thực tế được tính tự động từ các đăng ký OT đã lưu.</p>
   <div class="toolbar"><b>Ngày áp dụng: <span id="otStandardDateLabel"></span></b><div class="actions"><button type="button" id="saveOtStandards" class="gray">Lưu tiêu chuẩn ngày</button></div></div>
-  <div class="toolbar" style="justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:8px">
-   <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
-   <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
-   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
-  </div>
+  
   <div class="scroll">
    <table id="otStandardTable" style="min-width:1250px;border-collapse:collapse;text-align:center">
     <thead>
@@ -1000,9 +1003,8 @@ function setAttendanceDraftForDate(date){
  const shifts=[...new Set(attendanceRecords.filter(x=>x.date===date).map(x=>x.shift).filter(Boolean))];
  attendanceShift=shifts.includes('night')?'night':'day';
  updateAttendanceShiftButtons();
- const activeIds=new Set((employees||[]).filter(e=>e.is_active!==false).map(e=>String(e.id)));
  attendanceDraft=new Map(attendanceRecords
-  .filter(x=>x.date===date && activeIds.has(String(x.employee_id)))
+  .filter(x=>x.date===date)
   .map(x=>[String(x.employee_id),x.status]));
 }
 
@@ -1074,32 +1076,16 @@ function renderAttendance(){
  syncVisibleAttendanceDraft();
  fillAttendanceTeamFilter();
  const date=$('attendanceDate').value, team=$('attendanceTeamFilter').value, q=$('attendanceSearch').value.toLowerCase();
- const groupOrder=['Office','Kitting','Rear','Shipment','SEVT'];
- const filtered=employees
-  .filter(e=>(e.is_active!==false)&&(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)))
-  .sort((a,b)=>{
-   const ai=groupOrder.indexOf(String(a.team||'').trim());
-   const bi=groupOrder.indexOf(String(b.team||'').trim());
-   const ar=ai<0?groupOrder.length:ai,br=bi<0?groupOrder.length:bi;
-   if(ar!==br)return ar-br;
-   const groupCompare=String(a.team||'').localeCompare(String(b.team||''),'en',{sensitivity:'base'});
-   if(groupCompare!==0)return groupCompare;
-   return String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
-  });
+ const filtered=employees.filter(e=>(e.is_active!==false)&&(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)));
  $('attendanceBody').innerHTML=filtered.map((e,i)=>{
   const current=attendanceDraft.get(String(e.id))||'';
   const checked=selectedAttendanceEmployees.has(String(e.id))?'checked':'';
   return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`;
  }).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
- const activeIds=new Set(filtered.map(e=>String(e.id)));
- const values=[...attendanceDraft.entries()]
-  .filter(([employee_id,status])=>activeIds.has(String(employee_id))&&!!status)
-  .map(([employee_id,status])=>({employee_id,status}));
+ const values=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,status}));
  $('attWorkCount').textContent=values.filter(x=>x.status==='Đi Làm').length;
  $('attLeaveCount').textContent=values.filter(x=>x.status!=='Đi Làm').length;
- const activeCount=employees.filter(e=>e.is_active!==false).length;
- const activeMarkedCount=[...attendanceDraft.entries()].filter(([id,status])=>(employees.some(e=>e.is_active!==false&&String(e.id)===String(id)))&&!!status).length;
- $('attPendingCount').textContent=Math.max(0,activeCount-activeMarkedCount);
+ $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
  updateAttendanceHeaderSelectAll();
 }
 $('attendanceQuickStatus').onchange=()=>{
@@ -1149,11 +1135,10 @@ $('attendanceBody').addEventListener('change',ev=>{
  if(status) attendanceDraft.set(employeeId,status);
  else attendanceDraft.delete(employeeId);
  // Update the counters without rebuilding the table the user is editing.
- const activeIds=new Set(employees.filter(e=>e.is_active!==false).map(e=>String(e.id)));
- const values=[...attendanceDraft.entries()].filter(([id,status])=>activeIds.has(String(id))&&!!status).map(([,status])=>status);
+ const values=[...attendanceDraft.values()];
  $('attWorkCount').textContent=values.filter(x=>x==='Đi Làm').length;
  $('attLeaveCount').textContent=values.filter(x=>x!=='Đi Làm').length;
- $('attPendingCount').textContent=Math.max(0,activeIds.size-values.length);
+ $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
 });
 
 $('saveAttendance').onclick=async()=>{
@@ -1671,18 +1656,36 @@ function fillOtTeamFilter(){
  if(teams.includes(current))$('otTeam').value=current;
  if(teams.includes(historyTeam))$('otFilterTeam').value=historyTeam;
 }
+async function refreshOvertimeData(){
+ const {data,error}=await client
+  .from('employee_overtime')
+  .select('*, employees(employee_code,full_name,team)')
+  .order('overtime_date',{ascending:false});
+ if(error){
+  console.error('Không thể cập nhật dữ liệu OT mới nhất:',error.message);
+  message('appMsg','Không thể tải dữ liệu OT mới nhất: '+error.message);
+  return false;
+ }
+ overtimeRecords=(data||[]).map(x=>({
+  id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,
+  note:x.note||'',code:x.employees?.employee_code||'',
+  name:x.employees?.full_name||'',team:x.employees?.team||'',
+  created_at:x.created_at||'',updated_at:x.updated_at||''
+ }));
+ return true;
+}
 function renderOtHistory(){
  const d=$('otFilterDate').value,team=$('otFilterTeam').value,q=$('otHistorySearch').value.toLowerCase();
  const rows=overtimeRecords.filter(v=>v.date===d&&(!team||v.team===team)&&([v.code,v.name,v.team].join(' ').toLowerCase().includes(q)));
  $('otHistoryBody').innerHTML=rows.map((v,i)=>`<tr><td>${i+1}</td><td>${safe(v.date)}</td><td>${safe(v.code)}</td><td>${safe(v.name)}</td><td>${teamTag(v.team)}</td><td>${safe(v.hours)}</td><td>${safe(v.note||'—')}</td><td><button class="red" onclick="removeSavedOt('${v.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="8">Chưa có OT đã lưu</td></tr>';
 }
-$('otDate').onchange=()=>{renderOvertime()};
+$('otDate').onchange=async()=>{if(await refreshOvertimeData()){renderOvertime();renderOtHistory()}};
 $('otTeam').onchange=renderOvertime;
 $('otSearch').oninput=renderOvertime;
 $('otSelectAll').onclick=()=>{const d=$('otDate').value;initOtDraftForDate(d);workingEmployeesOn(d).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=true});renderOvertime()};
 $('otClearAll').onclick=()=>{const d=$('otDate').value;for(const v of otDraft.values())if(v.date===d)v.selected=false;renderOvertime()};
 $('otSelectVisible').onchange=()=>{const d=$('otDate').value,team=$('otTeam').value,q=$('otSearch').value.toLowerCase();workingEmployeesOn(d).filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team].join(' ').toLowerCase().includes(q))).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=$('otSelectVisible').checked});renderOvertime()};
-$('otFilterDate').onchange=renderOtHistory;
+$('otFilterDate').onchange=async()=>{if(await refreshOvertimeData()){renderOtHistory();renderOtStandards()}};
 $('otFilterTeam').onchange=renderOtHistory;
 $('otHistorySearch').oninput=renderOtHistory;
 $('otSaveAll').onclick=async()=>{
@@ -1717,6 +1720,9 @@ function activateView(viewName, remember=true){
  $('employeeNavActions').style.display=viewName==='employees'?'flex':'none';
  $('attendanceNavActions').style.display=viewName==='attendance'?'flex':'none';
  $('downloadOtImageReport').style.display=viewName==='overtime'?'inline-flex':'none';
+ if(viewName==='overtime'){
+  refreshOvertimeData().then(ok=>{if(ok){renderOvertime();renderOtHistory()}});
+ }
  if(remember)localStorage.setItem('mmManpowerActiveTab',viewName);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>activateView(b.dataset.view));
