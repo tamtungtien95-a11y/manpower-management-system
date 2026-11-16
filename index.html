@@ -1659,7 +1659,9 @@ function renderOvertime(){
  renderOtStandards();
  const d=$('otDate')?.value||'',team=$('otTeam')?.value||'',q=($('otSearch')?.value||'').toLowerCase();
  initOtDraftForDate(d);
- const rows=workingEmployeesOn(d).filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team].join(' ').toLowerCase().includes(q)));
+ const rows=workingEmployeesOn(d)
+  .filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team,x.classification].join(' ').toLowerCase().includes(q)))
+  .sort(compareOtEmployeeOrder);
  $('otBody').innerHTML=rows.map((x,i)=>{
   const key=otDraftKey(d,x.id),v=otDraft.get(key)||{};
   const saved=overtimeRecords.find(o=>o.date===d&&String(o.employee_id)===String(x.id));
@@ -1686,10 +1688,23 @@ function setOtField(id,field,value){
  const d=$('otDate').value,key=otDraftKey(d,id),v=otDraft.get(key);
  if(v){v[field]=value;otDraft.set(key,v)}
 }
+const OT_GROUP_ORDER=['Office','Kitting','Rear','Shipment','SEVT'];
+const OT_CLASS_ORDER=['Chính Thức','Thời Vụ','Sinh Viên'];
+function compareOtEmployeeOrder(a,b){
+ const ai=OT_GROUP_ORDER.indexOf(String(a.team||'').trim()),bi=OT_GROUP_ORDER.indexOf(String(b.team||'').trim());
+ const ag=ai<0?OT_GROUP_ORDER.length:ai,bg=bi<0?OT_GROUP_ORDER.length:bi;
+ if(ag!==bg)return ag-bg;
+ const ac=OT_CLASS_ORDER.indexOf(String(a.classification||'').trim()),bc=OT_CLASS_ORDER.indexOf(String(b.classification||'').trim());
+ const acr=ac<0?OT_CLASS_ORDER.length:ac,bcr=bc<0?OT_CLASS_ORDER.length:bc;
+ if(acr!==bcr)return acr-bcr;
+ const nameCompare=String(a.full_name||a.name||'').localeCompare(String(b.full_name||b.name||''),'vi',{sensitivity:'base'});
+ if(nameCompare!==0)return nameCompare;
+ return String(a.employee_code||a.code||'').localeCompare(String(b.employee_code||b.code||''),'en',{numeric:true,sensitivity:'base'});
+}
 function fillOtTeamFilter(){
  const teamSelect=$('otTeam'),historySelect=$('otFilterTeam');
  const current=teamSelect?.value||'',historyTeam=historySelect?.value||'';
- const teams=[...new Set(employees.map(e=>e.team).filter(Boolean))].sort();
+ const teams=[...new Set([...OT_GROUP_ORDER,...employees.map(e=>e.team).filter(Boolean)])];
  const options=teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
  if(teamSelect){
   teamSelect.innerHTML='<option value="">Tất cả nhóm</option>'+options;
@@ -1720,7 +1735,10 @@ async function refreshOvertimeData(){
 }
 function renderOtHistory(){
  const d=$('otFilterDate').value,team=$('otFilterTeam').value,q=$('otHistorySearch').value.toLowerCase();
- const rows=overtimeRecords.filter(v=>v.date===d&&(!team||v.team===team)&&([v.code,v.name,v.team].join(' ').toLowerCase().includes(q)));
+ const rows=overtimeRecords
+  .filter(v=>v.date===d&&(!team||v.team===team)&&([v.code,v.name,v.team,v.classification].join(' ').toLowerCase().includes(q)))
+  .map(v=>({...v,full_name:v.name,employee_code:v.code,classification:(allEmployees||employees).find(e=>String(e.id)===String(v.employee_id))?.classification||''}))
+  .sort(compareOtEmployeeOrder);
  $('otHistoryBody').innerHTML=rows.map((v,i)=>`<tr><td>${i+1}</td><td>${safe(v.date)}</td><td>${safe(v.code)}</td><td>${safe(v.name)}</td><td>${teamTag(v.team)}</td><td>${safe(v.hours)}</td><td>${safe(v.note||'—')}</td><td><button class="red" onclick="removeSavedOt('${v.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="8">Chưa có OT đã lưu</td></tr>';
 }
 if($('otDate'))$('otDate').onchange=async()=>{if(await refreshOvertimeData()){renderOvertime();renderOtHistory()}};
