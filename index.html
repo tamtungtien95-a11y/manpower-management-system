@@ -1390,12 +1390,19 @@ function sameOtHour(value,hour){
  return n!==null&&Math.abs(n-Number(hour))<0.0001;
 }
 function latestOtRowsPerEmployee(rows){
- const activeIds=new Set((employees||[]).filter(e=>e.is_active!==false).map(e=>String(e.id)));
+ const activeEmployees=(employees||[]).filter(e=>e.is_active!==false);
+ const activeIds=new Set(activeEmployees.map(e=>String(e.id)));
+ const activeCodes=new Set(activeEmployees.map(e=>String(e.employee_code||'').trim().toUpperCase()).filter(Boolean));
  const latest=new Map();
  for(const row of rows){
-  const employeeId=String(row.employee_id);
-  if(activeIds.size&&!activeIds.has(employeeId))continue;
-  const key=[String(row.date||''),employeeId].join('|');
+  const employeeId=String(row.employee_id||'');
+  const employeeCode=String(row.code||'').trim().toUpperCase();
+  // Bỏ nhân viên đã tắt; nếu mã nhân viên có trong danh mục thì mã phải còn hoạt động.
+  if(activeIds.size&&!activeIds.has(employeeId)&&(!employeeCode||!activeCodes.has(employeeCode)))continue;
+  if(employeeCode&&activeCodes.size&&!activeCodes.has(employeeCode))continue;
+  // Dùng mã nhân viên làm khóa chính để tránh đếm trùng khi dữ liệu cũ có nhiều ID hồ sơ cho cùng một người.
+  const personKey=employeeCode||employeeId;
+  const key=[String(row.date||''),personKey].join('|');
   const old=latest.get(key);
   const stamp=String(row.updated_at||row.created_at||'');
   const oldStamp=old?String(old.updated_at||old.created_at||''):'';
@@ -1824,7 +1831,7 @@ $('otSaveAll').onclick=async()=>{
   }));
   const failed=results.find(r=>r.error);
   if(failed){alert('Có lỗi khi lưu OT: '+failed.error.message+'。Vui lòng kiểm tra lịch sử trước khi lưu lại để tránh trùng.');}
-  else{const refreshed=await refreshOvertimeData();if(refreshed){renderOvertime();renderOtHistory();alert(`Đã lưu OT cho ${selected.length} nhân viên. Bảng Thực Tế đã cập nhật theo dữ liệu mới nhất.`)}else{alert('Đã lưu OT nhưng chưa tải lại được dữ liệu mới nhất. Vui lòng tải lại tab OT.')}}
+  else{const refreshed=await refreshOvertimeData();if(refreshed){renderOtStandards();renderOvertime();renderOtHistory();alert(`Đã lưu OT cho ${selected.length} nhân viên. Bảng Thực Tế đã tính lại theo mã nhân viên duy nhất và dữ liệu mới nhất.`)}else{alert('Đã lưu OT nhưng chưa tải lại được dữ liệu mới nhất. Vui lòng tải lại tab OT.')}}
  }finally{$('otSaveAll').disabled=false;$('otSaveAll').textContent='Lưu tất cả OT đã chọn'}
 };
 window.removeSavedOt=async id=>{if(!confirm('Xóa đăng ký OT này?'))return;const {error}=await client.from('employee_overtime').delete().eq('id',id);if(error){alert(error.message);return}await loadAll();renderOvertime()};
