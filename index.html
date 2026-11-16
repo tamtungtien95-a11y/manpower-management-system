@@ -1447,7 +1447,7 @@ function renderOtStandards(){
 $('saveOtStandards').onclick=async()=>{
  const date=$('otDate').value;
  const inputs=[...document.querySelectorAll('.ot-standard-input')];
- const payload=inputs.map(i=>({standard_date:date,team:i.dataset.team,hour_code:i.dataset.hour,standard_count:Math.max(0,Number(i.value)||0)}));
+ const payload=inputs.map(i=>({standard_date:date,team:i.dataset.team,hour_code:(normalizeOtHour(i.dataset.hour)===null?i.dataset.hour:(String(normalizeOtHour(i.dataset.hour))+'h')),standard_count:Math.max(0,Number(i.value)||0)}));
  const {error}=await client.from('employee_ot_standards').upsert(payload,{onConflict:'standard_date,team,hour_code'});
  if(error){alert('Không lưu được tiêu chuẩn OT. Hãy chạy SQL migration v14.3: '+error.message);return}
  const {data,error:readError}=await client.from('employee_ot_standards').select('*').eq('standard_date',date);
@@ -1698,7 +1698,7 @@ function renderOvertime(){
  $('otBody').innerHTML=rows.map((x,i)=>{
   const key=otDraftKey(d,x.id),v=otDraft.get(key)||{};
   const saved=overtimeRecords.find(o=>o.date===d&&String(o.employee_id)===String(x.id));
-  const hoursOptions=['','1','1.4','1.5','2','2.5','3','4','5'].map(h=>`<option value="${h}" ${sameOtHour(v.hours,h)&&h?'selected':(String(v.hours||'')===h?'selected':'')}>${h||'-- Chọn giờ --'}</option>`).join('');
+  const hoursOptions=['','1','1.4','1.5','2','2.5','3','4','5'].map(h=>`<option value="${h}" ${h&&(sameOtHour(v.hours,h)||sameOtHour(saved?.hours,h))?'selected':''}>${h||'-- Chọn giờ --'}</option>`).join('');
   return `<tr>
    <td><input type="checkbox" ${v.selected?'checked':''} onchange="setOtSelected('${x.id}',this.checked)" aria-label="Chọn ${safe(x.full_name)}"></td>
    <td>${i+1}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td>
@@ -1793,7 +1793,7 @@ $('otSaveAll').onclick=async()=>{
  $('otSaveAll').disabled=true;$('otSaveAll').textContent='Đang lưu...';
  try{
   const results=await Promise.all(selected.map(v=>{
-   const data={employee_id:v.employee_id,overtime_date:d,hours:v.hours,note:v.note||null};
+   const data={employee_id:v.employee_id,overtime_date:d,hours:(normalizeOtHour(v.hours)===null?v.hours:(String(normalizeOtHour(v.hours))+'h')),note:v.note||null};
    return v.existingId
     ?client.from('employee_overtime').update(data).eq('id',v.existingId)
     :client.from('employee_overtime').insert(data);
