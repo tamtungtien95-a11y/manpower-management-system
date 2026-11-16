@@ -575,6 +575,18 @@ function showDashboardDetails(kind,value,team=''){
 window.showDashboardDetails=showDashboardDetails;
 async function exportTeamSummaryExcel(){
  if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện tạo bảng Excel. Vui lòng tải lại trang và thử lại.');return}
+ try{
+  const btn=$('exportTeamSummary');
+  if(btn){btn.disabled=true;btn.textContent='Đang cập nhật dữ liệu...'}
+  await refreshDashboardReportData();
+  renderDashboard();
+ }catch(err){
+  alert('Không thể cập nhật dữ liệu mới nhất trước khi xuất Excel: '+(err.message||err));
+  return;
+ }finally{
+  const btn=$('exportTeamSummary');
+  if(btn){btn.disabled=false;btn.textContent='Tải Excel tổng hợp theo nhóm'}
+ }
  const rows=dashboardRows();
  const date=$('summaryDate').value;
  const dateText=date?date.split('-').reverse().join('/') : '';
@@ -641,8 +653,8 @@ async function exportTeamSummaryExcel(){
   }
  }
  for(let r=4;r<=totalRow;r++){
-  ws.getCell(`D${r}`).numFmt='#,##0;[Red](#,##0);;';
-  ws.getCell(`E${r}`).numFmt='0.0%';
+  ['B','C','D'].forEach(col=>{ws.getCell(`${col}${r}`).numFmt='#,##0;[Red](#,##0);;';});
+  ws.getCell(`E${r}`).numFmt='0.0%;[Red](0.0%);;';
  }
 
  // Bảng nhân viên nghỉ: sắp xếp theo nhóm, sau đó Chính Thức -> Thời Vụ -> Sinh Viên.
@@ -764,6 +776,47 @@ async function exportTeamSummaryExcel(){
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');a.href=url;a.download=`Bao_cao_nhan_luc_MM_C_${date||'khong_ngay'}.xlsx`;a.style.display='none';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
+async function refreshDashboardReportData(){
+ const reportDate=$('summaryDate').value;
+ if(!reportDate)throw new Error('Vui lòng chọn ngày báo cáo.');
+ const [employeeResult,attendanceResult,groupResult]=await Promise.all([
+  client.from('employees').select('*').order('employee_code'),
+  client.from('employee_attendance').select('*').eq('attendance_date',reportDate),
+  client.from('employee_groups').select('name').order('name')
+ ]);
+ if(employeeResult.error)throw employeeResult.error;
+ if(attendanceResult.error)throw attendanceResult.error;
+ if(groupResult.error && groupResult.error.code!=='42P01')throw groupResult.error;
+ allEmployees=employeeResult.data||[];
+ employees=allEmployees.filter(e=>e.is_active!==false);
+ if(!groupResult.error){
+  teamMasterAvailable=true;
+  TEAMS=[...new Set([...(groupResult.data||[]).map(x=>x.name),...allEmployees.map(e=>e.team).filter(Boolean)])];
+ }else{
+  teamMasterAvailable=false;
+  TEAMS=[...new Set(['Office','Kitting','Rear','Shipment','SEVT',...allEmployees.map(e=>e.team).filter(Boolean)])];
+ }
+ // Thay dữ liệu điểm danh đúng ngày báo cáo bằng dữ liệu vừa tải; giữ nguyên các ngày khác.
+ const otherDates=attendanceRecords.filter(x=>x.date!==reportDate);
+ const newestByEmployee=new Map();
+ const employeeById=new Map(allEmployees.map(e=>[String(e.id),e]));
+ const freshRows=(attendanceResult.data||[]).slice().sort((a,b)=>{
+  const ta=Date.parse(a.updated_at||a.created_at||0)||0;
+  const tb=Date.parse(b.updated_at||b.created_at||0)||0;
+  return tb-ta;
+ });
+ freshRows.forEach(x=>{
+  const key=String(x.employee_id);
+  if(newestByEmployee.has(key))return;
+  const employee=employeeById.get(key)||{};
+  newestByEmployee.set(key,{
+   id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',
+   code:employee.employee_code||'',name:employee.full_name||'',team:employee.team||'',
+   created_at:x.created_at||'',updated_at:x.updated_at||''
+  });
+ });
+ attendanceRecords=[...otherDates,...newestByEmployee.values()];
+}
 function buildWorkforceReportImageData(){
  const date=$('summaryDate').value, rows=dashboardRows(), teamOrder=[...TEAMS];
  const dateText=date?date.split('-').reverse().join('/'):'(chưa chọn ngày)';
@@ -778,7 +831,7 @@ function buildWorkforceReportImageData(){
   `Sinh Viên: ${rows.filter(e=>(e.classification||'').trim()==='Sinh Viên').length}`,
   `Đi Làm: ${work}`,`Nghỉ: ${leaveRows.length}`,`Chưa điểm danh: ${pending}`,'',
   'TỔNG HỢP THEO NHÓM','Nhóm | Tổng NV | Đi Làm | Thiếu | Tỷ lệ đi làm'];
- const groupRows=teamOrder.map(team=>{const g=rows.filter(e=>e.team===team), total=g.length, w=count(g,'Đi Làm');return {team,total,work:w,shortage:w-total,rate:total?(w/total*100).toFixed(1)+'%':'0.0%'};});
+ const groupRows=teamOrder.map(team=>{const g=rows.filter(e=>e.team===team), total=g.length, w=count(g,'Đi Làm');return {team,total,work:w,shortage:w-total,rate:total?(w/total*100).toFixed(1)+'%':''};});
  groupRows.forEach(x=>lines.push(`${x.team} | ${x.total} | ${x.work} | ${x.shortage} | ${x.rate}`));
  lines.push(`Tổng cộng | ${rows.length} | ${work} | ${work-rows.length} | ${rows.length?(work/rows.length*100).toFixed(1):'0.0'}%`,'','BÁO CÁO NHÂN VIÊN NGHỈ','Mã NV | Họ và tên | Nhóm | Phân loại | Trạng thái');
  if(leaveRows.length) leaveRows.forEach(e=>lines.push(`${e.employee_code||''} | ${e.full_name||''} | ${e.team||''} | ${e.classification||''} | ${e.status||''}`));
@@ -804,17 +857,17 @@ function makeWorkforceReportCanvas(report){
  y+=titleH;
  const metrics=[['TỔNG NHÂN LỰC',report.total],['ĐI LÀM',report.work],['NGHỈ',report.leaveCount],['CHƯA ĐIỂM DANH',report.pending]];
  const mw=(inner-18*3)/4;
- metrics.forEach((m,i)=>{const x=pad+i*(mw+18);ctx.fillStyle='#f1f5f9';ctx.fillRect(x,y,mw,metricH-20);ctx.strokeStyle='#cbd5e1';ctx.strokeRect(x,y,mw,metricH-20);ctx.fillStyle='#475569';ctx.font='bold 18px Arial';ctx.fillText(m[0],x+18,y+36);ctx.fillStyle='#17365d';ctx.font='bold 42px Arial';ctx.fillText(String(m[1]??0),x+18,y+91)});
+ metrics.forEach((m,i)=>{const x=pad+i*(mw+18);ctx.fillStyle='#f1f5f9';ctx.fillRect(x,y,mw,metricH-20);ctx.strokeStyle='#cbd5e1';ctx.strokeRect(x,y,mw,metricH-20);ctx.fillStyle='#475569';ctx.font='bold 18px Arial';ctx.fillText(m[0],x+18,y+36);const n=Number(m[1]??0);ctx.fillStyle=n<0?'#dc2626':'#17365d';ctx.font='bold 42px Arial';const display=n===0?'':n<0?`(${Math.abs(n)})`:String(n);ctx.fillText(display,x+18,y+91)});
  y+=metricH+gap-20;
  function drawTable(title,cols,rows){
   ctx.fillStyle='#17365d';ctx.font='bold 27px Arial';ctx.fillText(title,pad,y+28);y+=48;
   let x=pad;ctx.fillStyle='#d9ead3';ctx.fillRect(pad,y,inner,headH);
   cols.forEach(([label,w])=>{ctx.fillStyle='#17365d';ctx.font='bold 19px Arial';ctx.fillText(label,x+12,y+40);x+=w});
   ctx.strokeStyle='#94a3b8';ctx.strokeRect(pad,y,inner,headH);y+=headH;
-  rows.forEach((row,ri)=>{x=pad;const isTotal=!!row.__total;ctx.fillStyle=isTotal?'#d9ead3':(ri%2?'#f8fafc':'#ffffff');ctx.fillRect(pad,y,inner,rowH);cols.forEach(([label,w],ci)=>{let val=row[ci]??'';ctx.fillStyle='#1e293b';ctx.font=(isTotal?'bold ':'')+'18px Arial';const txt=String(val);ctx.save();ctx.beginPath();ctx.rect(x+10,y+5,w-18,rowH-10);ctx.clip();ctx.fillText(txt,x+12,y+36);ctx.restore();ctx.strokeStyle='#cbd5e1';ctx.strokeRect(x,y,w,rowH);x+=w});ctx.strokeStyle='#cbd5e1';ctx.strokeRect(pad,y,inner,rowH);y+=rowH});
+  rows.forEach((row,ri)=>{x=pad;const isTotal=!!row.__total;ctx.fillStyle=isTotal?'#d9ead3':(ri%2?'#f8fafc':'#ffffff');ctx.fillRect(pad,y,inner,rowH);cols.forEach(([label,w],ci)=>{let val=row[ci]??'';let numeric=typeof val==='number'||(typeof val==='string'&&val.trim()!==''&&Number.isFinite(Number(val)));if(numeric){const n=Number(val);val=n===0?'':n<0?`(${Math.abs(n)})`:String(val)}ctx.fillStyle=numeric&&Number(row[ci])<0?'#dc2626':'#1e293b';ctx.font=(isTotal?'bold ':'')+'18px Arial';const txt=String(val);ctx.save();ctx.beginPath();ctx.rect(x+10,y+5,w-18,rowH-10);ctx.clip();ctx.fillText(txt,x+12,y+36);ctx.restore();ctx.strokeStyle='#cbd5e1';ctx.strokeRect(x,y,w,rowH);x+=w});ctx.strokeStyle='#cbd5e1';ctx.strokeRect(pad,y,inner,rowH);y+=rowH});
  }
  const groupData=groups.map(g=>[g.team,g.total,g.work,g.shortage,g.rate]);
- groupData.push(['Tổng cộng',report.total,report.work,report.work-report.total,report.total?(report.work/report.total*100).toFixed(1)+'%':'0.0%']);
+ groupData.push(['Tổng cộng',report.total,report.work,report.work-report.total,report.total?(report.work/report.total*100).toFixed(1)+'%':'']);
  groupData[groupData.length-1].__total=true;
  drawTable('TỔNG HỢP THEO NHÓM',groupCols,groupData);
  y+=gap-10;
@@ -831,11 +884,17 @@ async function createWorkforceReportImage(report){
  return {blob,dataUrl,base64:String(dataUrl).split(',')[1]};
 }
 async function openReportImagePreview(){
- const report=buildWorkforceReportImageData();
- $('reportImagePreviewContent').innerHTML='<div class="note">Đang tạo ảnh báo cáo...</div>';
- $('reportImageStatus').textContent='';$('downloadReportImage').disabled=true;$('downloadReportImage').textContent='Đang tạo ảnh...';
+ $('reportImagePreviewContent').innerHTML='<div class="note">Đang cập nhật dữ liệu mới nhất...</div>';
+ $('reportImageStatus').textContent='';
+ $('downloadReportImage').disabled=true;
+ $('downloadReportImage').textContent='Đang cập nhật...';
  $('reportImagePreviewModal').classList.remove('hidden');
  try{
+  await refreshDashboardReportData();
+  renderDashboard();
+  const report=buildWorkforceReportImageData();
+ $('reportImagePreviewContent').innerHTML='<div class="note">Đang tạo ảnh báo cáo...</div>';
+ $('reportImageStatus').textContent='';$('downloadReportImage').disabled=true;$('downloadReportImage').textContent='Đang tạo ảnh...';
   const img=await createWorkforceReportImage(report);reportImageBase64=img.base64;reportImageDataUrl=img.dataUrl;
   const image=document.createElement('img');image.alt='Ảnh báo cáo nhân lực MM';image.src=img.dataUrl;
   $('reportImagePreviewContent').replaceChildren(image);
