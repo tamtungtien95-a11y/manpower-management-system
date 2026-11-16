@@ -479,7 +479,7 @@ async function loadAll(){
  employees=allEmployees.filter(x=>x.is_active!==false);
  if(!g.error){teamMasterAvailable=true;TEAMS=[...new Set([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)])];}else{teamMasterAvailable=false;TEAMS=[...new Set(['SEVT','Shipment','Rear','Kitting','Office',...employees.map(e=>e.team).filter(Boolean)])];}
  renderGroupControls();
- attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
+ attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
  setAttendanceDraftForDate($('attendanceDate').value);
  renderEmployees();fillOtTeamFilter();renderDashboard();renderAttendance();renderOvertime();
@@ -1184,17 +1184,29 @@ $('attendanceTemplate').onclick=()=>{
 $('attendanceExport').onclick=()=>{
  const d=$('attendanceDate').value;
  if(!d){alert('Vui lòng chọn ngày điểm danh trước khi xuất Excel.');return}
- // Chỉ xuất nhân viên đã có bản ghi điểm danh trong đúng ngày đang chọn.
- const rows=attendanceRecords
-  .filter(x=>x.date===d)
-  .map(x=>({
-   'Mã Nhân Viên':x.code||'',
-   'Nhân Viên':x.name||'',
-   'Nhóm':x.team||'',
-   'Trạng Thái Nghỉ':x.status||'',
-   'Ca':x.shift==='night'?'Ca đêm':'Ca ngày'
-  }));
- if(!rows.length){alert(`Ngày ${d} chưa có nhân viên nào được điểm danh.`);return}
+ // Chỉ lấy nhân viên đang hoạt động và có dữ liệu điểm danh trong ngày đã chọn.
+ // Nếu dữ liệu cũ có nhiều bản ghi cho cùng nhân viên/ngày, giữ bản cập nhật mới nhất.
+ const activeEmployeeIds=new Set((allEmployees||[])
+  .filter(e=>e.is_active!==false)
+  .map(e=>String(e.id)));
+ const latestByEmployee=new Map();
+ attendanceRecords
+  .filter(x=>x.date===d && activeEmployeeIds.has(String(x.employee_id)))
+  .forEach(x=>{
+   const key=String(x.employee_id);
+   const current=latestByEmployee.get(key);
+   const stamp=String(x.updated_at||x.created_at||'');
+   const currentStamp=current?String(current.updated_at||current.created_at||''):'';
+   if(!current || stamp>=currentStamp) latestByEmployee.set(key,x);
+  });
+ const rows=[...latestByEmployee.values()].map(x=>({
+  'Mã Nhân Viên':x.code||'',
+  'Nhân Viên':x.name||'',
+  'Nhóm':x.team||'',
+  'Trạng Thái Nghỉ':x.status||'',
+  'Ca':x.shift==='night'?'Ca đêm':'Ca ngày'
+ }));
+ if(!rows.length){alert(`Ngày ${d} chưa có nhân viên đang hoạt động nào được điểm danh.`);return}
  exportAttendanceWorkbook(rows,`Diem_danh_${d}.xlsx`);
 };
 
