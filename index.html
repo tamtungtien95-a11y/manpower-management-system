@@ -1000,8 +1000,9 @@ function setAttendanceDraftForDate(date){
  const shifts=[...new Set(attendanceRecords.filter(x=>x.date===date).map(x=>x.shift).filter(Boolean))];
  attendanceShift=shifts.includes('night')?'night':'day';
  updateAttendanceShiftButtons();
+ const activeIds=new Set((employees||[]).filter(e=>e.is_active!==false).map(e=>String(e.id)));
  attendanceDraft=new Map(attendanceRecords
-  .filter(x=>x.date===date)
+  .filter(x=>x.date===date && activeIds.has(String(x.employee_id)))
   .map(x=>[String(x.employee_id),x.status]));
 }
 
@@ -1073,16 +1074,32 @@ function renderAttendance(){
  syncVisibleAttendanceDraft();
  fillAttendanceTeamFilter();
  const date=$('attendanceDate').value, team=$('attendanceTeamFilter').value, q=$('attendanceSearch').value.toLowerCase();
- const filtered=employees.filter(e=>(e.is_active!==false)&&(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)));
+ const groupOrder=['Office','Kitting','Rear','Shipment','SEVT'];
+ const filtered=employees
+  .filter(e=>(e.is_active!==false)&&(!team||e.team===team)&&([e.employee_code,e.full_name,e.team].join(' ').toLowerCase().includes(q)))
+  .sort((a,b)=>{
+   const ai=groupOrder.indexOf(String(a.team||'').trim());
+   const bi=groupOrder.indexOf(String(b.team||'').trim());
+   const ar=ai<0?groupOrder.length:ai,br=bi<0?groupOrder.length:bi;
+   if(ar!==br)return ar-br;
+   const groupCompare=String(a.team||'').localeCompare(String(b.team||''),'en',{sensitivity:'base'});
+   if(groupCompare!==0)return groupCompare;
+   return String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
+  });
  $('attendanceBody').innerHTML=filtered.map((e,i)=>{
   const current=attendanceDraft.get(String(e.id))||'';
   const checked=selectedAttendanceEmployees.has(String(e.id))?'checked':'';
   return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`;
  }).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
- const values=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,status}));
+ const activeIds=new Set(filtered.map(e=>String(e.id)));
+ const values=[...attendanceDraft.entries()]
+  .filter(([employee_id,status])=>activeIds.has(String(employee_id))&&!!status)
+  .map(([employee_id,status])=>({employee_id,status}));
  $('attWorkCount').textContent=values.filter(x=>x.status==='Đi Làm').length;
  $('attLeaveCount').textContent=values.filter(x=>x.status!=='Đi Làm').length;
- $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
+ const activeCount=employees.filter(e=>e.is_active!==false).length;
+ const activeMarkedCount=[...attendanceDraft.entries()].filter(([id,status])=>(employees.some(e=>e.is_active!==false&&String(e.id)===String(id)))&&!!status).length;
+ $('attPendingCount').textContent=Math.max(0,activeCount-activeMarkedCount);
  updateAttendanceHeaderSelectAll();
 }
 $('attendanceQuickStatus').onchange=()=>{
@@ -1132,10 +1149,11 @@ $('attendanceBody').addEventListener('change',ev=>{
  if(status) attendanceDraft.set(employeeId,status);
  else attendanceDraft.delete(employeeId);
  // Update the counters without rebuilding the table the user is editing.
- const values=[...attendanceDraft.values()];
+ const activeIds=new Set(employees.filter(e=>e.is_active!==false).map(e=>String(e.id)));
+ const values=[...attendanceDraft.entries()].filter(([id,status])=>activeIds.has(String(id))&&!!status).map(([,status])=>status);
  $('attWorkCount').textContent=values.filter(x=>x==='Đi Làm').length;
  $('attLeaveCount').textContent=values.filter(x=>x!=='Đi Làm').length;
- $('attPendingCount').textContent=Math.max(0,employees.length-values.length);
+ $('attPendingCount').textContent=Math.max(0,activeIds.size-values.length);
 });
 
 $('saveAttendance').onclick=async()=>{
