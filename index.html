@@ -379,7 +379,7 @@ body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
   <div class="actions" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap">
    <label style="margin:0">Từ ngày <input type="date" id="otExportFromDate" style="width:155px"></label>
    <label style="margin:0">Đến ngày <input type="date" id="otExportToDate" style="width:155px"></label>
-   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button>
+   <button type="button" id="exportOtStandardsExcel">Tải Excel toàn bộ dữ liệu OT</button><button type="button" id="exportOtEmployeeListExcel" class="gray">Tải Excel danh sách nhân viên OT</button>
   </div>
  </div>
 
@@ -1717,6 +1717,98 @@ function buildOtImagePreview(){
 
 $('downloadOtImageFromPreview').onclick=buildOtImagePreview;
 
+
+async function exportOtEmployeeListExcel(){
+ const button=$('exportOtEmployeeListExcel');
+ const oldText=button?.textContent||'Tải Excel danh sách nhân viên OT';
+ const from=$('otExportFromDate').value,to=$('otExportToDate').value;
+ if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
+ if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện Excel. Hãy tải lại trang rồi thử lại.');return}
+ try{
+  if(button){button.disabled=true;button.textContent='Đang cập nhật dữ liệu...'}
+  const [otFresh,attendanceFresh,employeeFresh]=await Promise.all([
+   client.from('employee_overtime').select('*, employees(employee_code,full_name,team)')
+    .gte('overtime_date',from).lte('overtime_date',to)
+    .order('overtime_date',{ascending:false})
+    .order('updated_at',{ascending:false,nullsFirst:false})
+    .order('created_at',{ascending:false,nullsFirst:false}),
+   client.from('employee_attendance').select('*, employees(employee_code,full_name,team)')
+    .gte('attendance_date',from).lte('attendance_date',to),
+   client.from('employees').select('*')
+  ]);
+  if(otFresh.error)throw otFresh.error;
+  if(attendanceFresh.error)throw attendanceFresh.error;
+  if(employeeFresh.error)throw employeeFresh.error;
+  allEmployees=employeeFresh.data||[];
+  employees=allEmployees.filter(e=>e.is_active!==false);
+  const employeeById=new Map(allEmployees.map(e=>[String(e.id),e]));
+  attendanceRecords=(attendanceFresh.data||[]).map(x=>{
+   const e=employeeById.get(String(x.employee_id))||{};
+   return {id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',
+    code:e.employee_code||x.employees?.employee_code||'',name:e.full_name||x.employees?.full_name||'',
+    team:e.team||x.employees?.team||'',created_at:x.created_at||'',updated_at:x.updated_at||''};
+  });
+  overtimeRecords=(otFresh.data||[]).map(x=>{
+   const e=employeeById.get(String(x.employee_id))||{};
+   return {id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',
+    code:e.employee_code||x.employees?.employee_code||'',name:e.full_name||x.employees?.full_name||'',
+    team:e.team||x.employees?.team||'',created_at:x.created_at||'',updated_at:x.updated_at||''};
+  });
+  const days=[];
+  for(let d=new Date(from+'T00:00:00');d<=new Date(to+'T00:00:00');d.setDate(d.getDate()+1)){
+   days.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+  }
+  let rows=[];
+  days.forEach(day=>actualOtRowsForDate(day).forEach(record=>{
+   const emp=employeeById.get(String(record.employee_id))||{};
+   rows.push({date:day,code:record.code||emp.employee_code||'',name:record.name||emp.full_name||'',
+    team:record.team||emp.team||'',classification:emp.classification||'',hours:normalizeOtHour(record.hours),
+    note:record.note||'',status:'Đã lưu'});
+  }));
+  const groupOrder=['Office','Kitting','Rear','Shipment','SEVT'];
+  const classOrder={'Chính Thức':0,'Thời Vụ':1,'Sinh Viên':2};
+  rows.sort((a,b)=>a.date.localeCompare(b.date)||
+   (groupOrder.indexOf(a.team)<0?groupOrder.length:groupOrder.indexOf(a.team))-(groupOrder.indexOf(b.team)<0?groupOrder.length:groupOrder.indexOf(b.team))||
+   (classOrder[a.classification]??99)-(classOrder[b.classification]??99)||
+   a.name.localeCompare(b.name,'vi',{sensitivity:'base'})||a.code.localeCompare(b.code,'en',{numeric:true}));
+  const wb=new ExcelJS.Workbook();wb.creator='Hệ thống quản lý nhân lực MM';wb.created=new Date();
+  const ws=wb.addWorksheet('Danh sach nhan vien OT');
+  ws.columns=[
+   {header:'Ngày OT',key:'date',width:15},{header:'Mã nhân viên',key:'code',width:18},
+   {header:'Họ và tên',key:'name',width:28},{header:'Nhóm',key:'team',width:16},
+   {header:'Phân loại',key:'classification',width:18},{header:'Số giờ OT',key:'hours',width:14},
+   {header:'Ghi chú',key:'note',width:18},{header:'Trạng thái',key:'status',width:16}
+  ];
+  ws.mergeCells('A1:H1');ws.getCell('A1').value='DANH SÁCH NHÂN VIÊN ĐĂNG KÝ OT';
+  ws.getCell('A1').font={name:'Times New Roman',size:15,bold:true,color:{argb:'FF17365D'}};
+  ws.mergeCells('A2:H2');ws.getCell('A2').value=`Thời gian báo cáo: ${from.split('-').reverse().join('/')} đến ${to.split('-').reverse().join('/')}`;
+  ws.getCell('A2').font={name:'Times New Roman',size:12,bold:true};
+  ws.addRow([]);
+  const header=ws.addRow(['Ngày OT','Mã nhân viên','Họ và tên','Nhóm','Phân loại','Số giờ OT','Ghi chú','Trạng thái']);
+  header.height=28;
+  header.eachCell(c=>{c.font={bold:true,color:{argb:'FFFFFFFF'}};c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF17365D'}};c.alignment={vertical:'middle',horizontal:'center'};c.border={bottom:{style:'thin',color:{argb:'FF9EADBC'}}}});
+  rows.forEach(row=>{
+   const r=ws.addRow([row.date,row.code,row.name,row.team,row.classification,row.hours??'',row.note,row.status]);
+   r.eachCell(c=>{c.font={name:'Times New Roman',size:11};c.alignment={vertical:'middle',horizontal:'left'};c.border={bottom:{style:'thin',color:{argb:'FFD7E0EA'}}}});
+   r.getCell(6).numFmt='0.##';
+  });
+  if(!rows.length){const r=ws.addRow(['','','','Không có nhân viên OT đã lưu trong khoảng ngày này']);r.getCell(4).font={italic:true,color:{argb:'FF64748B'}}}
+  ws.autoFilter={from:{row:4,column:1},to:{row:4+Math.max(rows.length,1),column:8}};
+  ws.views=[{state:'frozen',ySplit:4}];
+  const buffer=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download=`Danh_sach_nhan_vien_OT_${from}_den_${to}.xlsx`;
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);
+ }catch(err){
+  console.error('Lỗi xuất danh sách nhân viên OT:',err);
+  alert('Không thể cập nhật dữ liệu mới nhất hoặc xuất danh sách OT: '+(err.message||err));
+ }finally{
+  if(button){button.disabled=false;button.textContent=oldText}
+ }
+}
+$('exportOtEmployeeListExcel').addEventListener('click',exportOtEmployeeListExcel);
 
 async function exportOtStandardsExcel(){
  if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện Excel. Hãy tải lại trang rồi thử lại.');return}
