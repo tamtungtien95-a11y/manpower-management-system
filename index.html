@@ -493,7 +493,7 @@ async function loadAll(){
  if(!g.error){teamMasterAvailable=true;TEAMS=[...new Set([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)])];}else{teamMasterAvailable=false;TEAMS=[...new Set(['SEVT','Shipment','Rear','Kitting','Office',...employees.map(e=>e.team).filter(Boolean)])];}
  renderGroupControls();
  attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
- overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team}));
+ overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
  setAttendanceDraftForDate($('attendanceDate').value);
  renderEmployees();fillOtTeamFilter();renderDashboard();renderAttendance();renderOvertime();
 }
@@ -1411,8 +1411,20 @@ function otStandardTeams(){
   return (ai<0?order.length:ai)-(bi<0?order.length:bi)||String(a).localeCompare(String(b),'vi');
  });
 }
+function latestStandardRows(rows){
+ const latest=new Map();
+ rows.forEach((row,index)=>{
+  const key=[row.standard_date,row.team,normalizeOtHour(row.hour_code)].join('|');
+  const old=latest.get(key);
+  const stamp=String(row.updated_at||row.created_at||'');
+  const oldStamp=old?String(old.updated_at||old.created_at||''):'';
+  if(!old||stamp>oldStamp||(stamp===oldStamp&&index>=old.index))latest.set(key,{...row,_latestIndex:index});
+ });
+ return [...latest.values()].map(({_latestIndex,...row})=>row);
+}
 function standardValue(team,hour){
- const row=otStandards.find(x=>x.standard_date===$('otDate').value&&x.team===team&&sameOtHour(x.hour_code,hour));
+ const rows=latestStandardRows(otStandards.filter(x=>x.standard_date===$('otDate').value&&x.team===team&&sameOtHour(x.hour_code,hour)));
+ const row=rows[rows.length-1];
  return row?Number(row.standard_count)||0:0;
 }
 function renderOtStandards(){
@@ -1463,7 +1475,7 @@ function renderOtExcelPreview(){
  if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
  const inRange=d=>d>=from&&d<=to, hrs=OT_REPORT_HOURS;
  const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
- const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
+ const standardRows=latestStandardRows(otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10))));
  const teams=[...new Set([...otStandardTeams(),...otRows.map(x=>x.team).filter(Boolean),...standardRows.map(x=>x.team).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'vi'));
  const rows=teams.map(team=>{
   const standard=hrs.map(h=>standardRows.filter(x=>x.team===team&&sameOtHour(x.hour_code,h)).reduce((s,x)=>s+(Number(x.standard_count)||0),0));
@@ -1569,7 +1581,7 @@ function exportOtStandardsExcel(){
  const inRange=d=>d>=from&&d<=to;
  const hrs=OT_REPORT_HOURS;
  const otRows=latestOtRowsPerEmployee(overtimeRecords.filter(x=>inRange(String(x.date||'').slice(0,10))));
- const standardRows=otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10)));
+ const standardRows=latestStandardRows(otStandards.filter(x=>inRange(String(x.standard_date||'').slice(0,10))));
  const teams=[...new Set([
   ...otStandardTeams(),
   ...otRows.map(x=>x.team).filter(Boolean),
@@ -1674,10 +1686,14 @@ function initOtDraftForDate(date){
   const key=otDraftKey(date,e.id);
   const saved=overtimeRecords.find(v=>v.date===date&&String(v.employee_id)===String(e.id));
   if(!otDraft.has(key)){
-   otDraft.set(key,{date,employee_id:e.id,selected:!!saved,hours:saved?.hours||'',note:saved?.note||'',existingId:saved?.id||null,team:e.team});
+   otDraft.set(key,{date,employee_id:e.id,selected:!!saved,hours:saved&&normalizeOtHour(saved.hours)!==null?String(normalizeOtHour(saved.hours)):(saved?.hours||''),note:saved?.note||'',existingId:saved?.id||null,team:e.team});
   }else{
    const draft=otDraft.get(key);
-   if(saved){draft.existingId=saved.id;draft.selected=true;if(!draft.hours)draft.hours=saved.hours||'';if(!draft.note)draft.note=saved.note||'';}
+   if(saved){
+    draft.existingId=saved.id;
+    if(!draft.hours)draft.hours=normalizeOtHour(saved.hours)!==null?String(normalizeOtHour(saved.hours)):(saved.hours||'');
+    if(!draft.note)draft.note=saved.note||'';
+   }
    otDraft.set(key,draft);
   }
  });
@@ -1719,7 +1735,7 @@ function setOtSelected(id,checked){
 }
 function setOtField(id,field,value){
  const d=$('otDate').value,key=otDraftKey(d,id),v=otDraft.get(key);
- if(v){v[field]=value;otDraft.set(key,v)}
+ if(v){v[field]=field==='hours'&&normalizeOtHour(value)!==null?String(normalizeOtHour(value)):value;otDraft.set(key,v)}
 }
 const OT_GROUP_ORDER=['Office','Kitting','Rear','Shipment','SEVT'];
 const OT_CLASS_ORDER=['Chính Thức','Thời Vụ','Sinh Viên'];
@@ -1786,14 +1802,14 @@ if($('otHistorySearch'))$('otHistorySearch').oninput=renderOtHistory;
 $('otSaveAll').onclick=async()=>{
  const d=$('otDate').value,selected=[...otDraft.values()].filter(v=>v.date===d&&v.selected);
  if(!selected.length){alert('Bạn chưa chọn nhân viên nào để đăng ký OT.');return}
- const invalid=selected.find(v=>!OT_HOURS.includes(v.hours));
+ const invalid=selected.find(v=>!OT_HOURS.includes(String(normalizeOtHour(v.hours))));
  if(invalid){const e=employees.find(x=>String(x.id)===String(invalid.employee_id));alert(`Vui lòng chọn số giờ OT cho ${e?.full_name||'nhân viên'} trước khi lưu.`);return}
  const notWorking=selected.filter(v=>!attendanceRecords.some(a=>String(a.employee_id)===String(v.employee_id)&&a.date===d&&(a.status==='Đi Làm'||a.status==='Nghỉ Nửa Ngày Đầu')));
  if(notWorking.length){alert('Có nhân viên không còn trạng thái Đi Làm trong ngày đã chọn. Vui lòng tải lại danh sách.');return}
  $('otSaveAll').disabled=true;$('otSaveAll').textContent='Đang lưu...';
  try{
   const results=await Promise.all(selected.map(v=>{
-   const data={employee_id:v.employee_id,overtime_date:d,hours:(normalizeOtHour(v.hours)===null?v.hours:(String(normalizeOtHour(v.hours))+'h')),note:v.note||null};
+   const numericHours=String(normalizeOtHour(v.hours));const data={employee_id:v.employee_id,overtime_date:d,hours:numericHours+'h',note:v.note||null};
    return v.existingId
     ?client.from('employee_overtime').update(data).eq('id',v.existingId)
     :client.from('employee_overtime').insert(data);
@@ -1826,7 +1842,12 @@ function restoreActiveView(){
  const allowed=['dashboard','employees','attendance','overtime'];
  activateView(allowed.includes(saved)?saved:'dashboard',false);
 }
-const today=new Date().toLocaleDateString('en-CA');$('summaryDate').value=today;$('attendanceDate').value=today;
+const nowLocal=new Date();
+const calendarToday=nowLocal.toLocaleDateString('en-CA');
+const attendanceBusinessDate=nowLocal.getHours()<8?addDaysToDate(calendarToday,-1):calendarToday;
+$('summaryDate').value=calendarToday;
+$('attendanceDate').value=attendanceBusinessDate;
+if($('otDate'))$('otDate').value=attendanceBusinessDate;
 
 
 // Cho phép kéo rộng/thu hẹp riêng 12 cột giờ trong bảng tiêu chuẩn OT.
