@@ -363,7 +363,7 @@ img, svg, canvas { max-width: 100%; }
 <section id="loginView" class="card login">
 <h2>Đăng nhập hệ thống</h2>
 <p class="note">Tài khoản được tạo trong Supabase Authentication.</p>
-<label>Email</label><input id="email" type="email" placeholder="email@congty.com">
+<label>Mã nhân viên / Tên đăng nhập</label><input id="email" type="text" inputmode="text" autocomplete="username" placeholder="Ví dụ: 23040082 hoặc email Admin">
 <label style="margin-top:12px">Mật khẩu</label><input id="password" type="password" placeholder="Mật khẩu">
 <div class="actions" style="margin-top:14px"><button id="loginBtn">Đăng nhập</button></div>
 <div id="loginMsg" class="message hidden"></div>
@@ -419,7 +419,7 @@ img, svg, canvas { max-width: 100%; }
   </table>
  </div>
 
- <p class="note" style="margin:12px 0 0">Tạo tài khoản mới: vào Supabase → Authentication → Users → Add user. Sau đó nhập email tại đây để cấp quyền.</p>
+ <p class="note" style="margin:12px 0 0">Tạo tài khoản trước trong Supabase Authentication. Với mã nhân viên 23040082, dùng email đăng nhập nội bộ 23040082@mm.local; sau đó nhập mã tại đây để cấp quyền.</p>
 </section>
 
 <section id="dashboard" class="view active">
@@ -1135,7 +1135,19 @@ function renderDashboard(){
 }
 $('closeDashboardDetail').onclick=()=>$('dashboardDetail').classList.add('hidden');
 $('dashboardDetail').addEventListener('click',ev=>{if(ev.target.id==='dashboardDetail')$('dashboardDetail').classList.add('hidden')});
-$('loginBtn').onclick=async()=>{const b=$('loginBtn');setBusy(b,true,'Đăng nhập');const {error}=await client.auth.signInWithPassword({email:$('email').value,password:$('password').value});setBusy(b,false,'Đăng nhập');if(error)message('loginMsg',friendlyAuthError(error))};
+function loginIdentityToEmail(value){
+ const v=String(value||'').trim().toLowerCase();
+ if(!v)return '';
+ return v.includes('@')?v:(/^\\d{4,20}$/.test(v)?`${v}@mm.local`:v);
+}
+$('loginBtn').onclick=async()=>{
+ const b=$('loginBtn'), identity=loginIdentityToEmail($('email').value);
+ if(!identity){message('loginMsg','Nhập mã nhân viên hoặc email đăng nhập.');return}
+ setBusy(b,true,'Đăng nhập');
+ const {error}=await client.auth.signInWithPassword({email:identity,password:$('password').value});
+ setBusy(b,false,'Đăng nhập');
+ if(error)message('loginMsg',friendlyAuthError(error));
+};
 
 let loadedSessionUserId=null, currentUserRole='viewer';
 async function loadCurrentUserRole(){
@@ -1185,10 +1197,10 @@ async function loadAccountList(){
   const active=u.is_active!==false;
   const isSelf=u.user_id===loadedSessionUserId;
   return `<tr>
-   <td>${safe(u.email||'')}</td>
+   <td>${safe(String(u.email||'').replace(/@mm\\.local$/i,''))}</td>
    <td><span class="role-pill">${u.role==='admin'?'ADMIN':u.role==='manager'?'QUẢN LÝ':'CHỈ XEM'}</span></td>
    <td>${active?'<span style="color:#15803d;font-weight:700">Đang hoạt động</span>':'<span style="color:#b91c1c;font-weight:700">Đã vô hiệu hóa</span>'}</td>
-   <td><button type="button" class="${active?'gray':''} account-active-toggle" data-email="${safe(u.email||'')}" data-active="${active?'1':'0'}" ${isSelf?'disabled title="Không thể tự vô hiệu hóa tài khoản đang đăng nhập"':''}>${active?'Vô hiệu hóa':'Kích hoạt lại'}</button></td>
+   <td><button type="button" class="${active?'gray':''} account-active-toggle" data-email="${safe(String(u.email||'').replace(/@mm\\.local$/i,''))}" data-active="${active?'1':'0'}" ${isSelf?'disabled title="Không thể tự vô hiệu hóa tài khoản đang đăng nhập"':''}>${active?'Vô hiệu hóa':'Kích hoạt lại'}</button></td>
   </tr>`;
  }).join('')||'<tr><td colspan="4">Chưa có tài khoản.</td></tr>';
 }
@@ -1768,9 +1780,9 @@ function renderOtStandards(){
 $('saveOtStandards').onclick=async()=>{
  const date=$('otDate').value;
  const inputs=[...document.querySelectorAll('.ot-standard-input')];
- const payload=inputs.map(i=>({standard_date:date,team:i.dataset.team,hour_code:(normalizeOtHour(i.dataset.hour)===null?i.dataset.hour:(String(normalizeOtHour(i.dataset.hour))+'h')),standard_count:Math.max(0,Number(i.value)||0)}));
+ const payload=inputs.map(i=>({standard_date:date,team:i.dataset.team,hour_code:(normalizeOtHour(i.dataset.hour)===null?String(i.dataset.hour).replace(/h$/i,''):String(normalizeOtHour(i.dataset.hour))),standard_count:Math.max(0,Number(i.value)||0)}));
  const {error}=await client.from('employee_ot_standards').upsert(payload,{onConflict:'standard_date,team,hour_code'});
- if(error){alert('Không lưu được tiêu chuẩn OT. Hãy chạy SQL migration v14.3: '+error.message);return}
+ if(error){alert('Không lưu được tiêu chuẩn OT: '+error.message);return}
  const {data,error:readError}=await client.from('employee_ot_standards').select('*').eq('standard_date',date);
  if(!readError)otStandards=[...otStandards.filter(x=>x.standard_date!==date),...(data||[])];
  renderOtStandards();alert('Đã lưu tiêu chuẩn OT ngày '+date);
