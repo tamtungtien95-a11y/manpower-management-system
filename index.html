@@ -408,6 +408,17 @@ img, svg, canvas { max-width: 100%; }
   <button type="button" id="saveUserRole">Cấp / cập nhật quyền</button>
  </div>
  <div id="roleAdminMsg" class="message hidden" style="margin-top:12px"></div>
+ <div class="toolbar" style="margin-top:18px">
+  <b>Danh sách tài khoản hiện có</b>
+  <button type="button" class="gray" id="refreshAccountList">Làm mới danh sách</button>
+ </div>
+ <div class="scroll" style="margin-top:8px">
+  <table style="min-width:620px;width:100%">
+   <thead><tr><th>Email</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+   <tbody id="accountListBody"><tr><td colspan="4">Nhấn Làm mới danh sách để tải tài khoản.</td></tr></tbody>
+  </table>
+ </div>
+
  <p class="note" style="margin:12px 0 0">Tạo tài khoản mới: vào Supabase → Authentication → Users → Add user. Sau đó nhập email tại đây để cấp quyền.</p>
 </section>
 
@@ -1136,7 +1147,7 @@ async function loadCurrentUserRole(){
 function renderRoleControls(email){
  $('userArea').innerHTML=`<span>${safe(email||'')}</span> <span class="role-pill">${currentUserRole==='admin'?'ADMIN':currentUserRole==='manager'?'QUẢN LÝ':'CHỈ XEM'}</span> ${currentUserRole==='admin'?'<button class="gray" id="openAccountAdmin">Quản lý tài khoản</button>':''} <button class="gray" id="logoutBtn">Đăng xuất</button>`;
  if($('logoutBtn'))$('logoutBtn').onclick=()=>client.auth.signOut();
- if($('openAccountAdmin'))$('openAccountAdmin').onclick=()=>{$('accountAdminPanel').classList.toggle('hidden');$('roleAdminMsg').classList.add('hidden')};
+ if($('openAccountAdmin'))$('openAccountAdmin').onclick=()=>{$('accountAdminPanel').classList.toggle('hidden');$('roleAdminMsg').classList.add('hidden');if(!$('accountAdminPanel').classList.contains('hidden'))loadAccountList()};
 }
 async function showSession(session){
  $('loginView').classList.toggle('hidden',!!session);
@@ -1146,6 +1157,11 @@ async function showSession(session){
  if(loadedSessionUserId===userId)return;
  loadedSessionUserId=userId;
  await loadCurrentUserRole();
+ if(currentUserRole==='disabled'){
+  $('loginView').classList.remove('hidden');$('app').classList.add('hidden');
+  message('loginMsg','Tài khoản đã bị Admin vô hiệu hóa. Vui lòng liên hệ quản trị viên.');
+  await client.auth.signOut();loadedSessionUserId=null;return;
+ }
  renderRoleControls(session.user.email);
  await loadAll();
  restoreActiveView();
@@ -1160,6 +1176,35 @@ $('saveUserRole').onclick=async()=>{
  if(error){message('roleAdminMsg','Không cập nhật được quyền: '+error.message);return}
  message('roleAdminMsg',data||('Đã cấp quyền '+role+' cho '+email));
 };
+
+async function loadAccountList(){
+ const body=$('accountListBody');body.innerHTML='<tr><td colspan="4">Đang tải...</td></tr>';
+ const {data,error}=await client.rpc('admin_list_user_roles');
+ if(error){body.innerHTML=`<tr><td colspan="4">Lỗi: ${safe(error.message)}</td></tr>`;return}
+ body.innerHTML=(data||[]).map(u=>{
+  const active=u.is_active!==false;
+  const isSelf=u.user_id===loadedSessionUserId;
+  return `<tr>
+   <td>${safe(u.email||'')}</td>
+   <td><span class="role-pill">${u.role==='admin'?'ADMIN':u.role==='manager'?'QUẢN LÝ':'CHỈ XEM'}</span></td>
+   <td>${active?'<span style="color:#15803d;font-weight:700">Đang hoạt động</span>':'<span style="color:#b91c1c;font-weight:700">Đã vô hiệu hóa</span>'}</td>
+   <td><button type="button" class="${active?'gray':''} account-active-toggle" data-email="${safe(u.email||'')}" data-active="${active?'1':'0'}" ${isSelf?'disabled title="Không thể tự vô hiệu hóa tài khoản đang đăng nhập"':''}>${active?'Vô hiệu hóa':'Kích hoạt lại'}</button></td>
+  </tr>`;
+ }).join('')||'<tr><td colspan="4">Chưa có tài khoản.</td></tr>';
+}
+$('refreshAccountList').onclick=loadAccountList;
+$('accountListBody').addEventListener('click',async ev=>{
+ const btn=ev.target.closest('.account-active-toggle');if(!btn)return;
+ const email=btn.dataset.email, next=btn.dataset.active!=='1';
+ const action=next?'kích hoạt lại':'vô hiệu hóa';
+ if(!confirm(`Bạn chắc chắn muốn ${action} tài khoản ${email}?`))return;
+ btn.disabled=true;
+ const {data,error}=await client.rpc('admin_set_user_active',{p_email:email,p_is_active:next});
+ btn.disabled=false;
+ if(error){message('roleAdminMsg','Không cập nhật được trạng thái: '+error.message);return}
+ message('roleAdminMsg',data||'Đã cập nhật trạng thái tài khoản.');
+ await loadAccountList();
+});
 client.auth.onAuthStateChange((_event,session)=>{showSession(session)});
 client.auth.getSession().then(({data})=>showSession(data.session));
 // ===== QUAN LY NHOM NHAN VIEN =====
