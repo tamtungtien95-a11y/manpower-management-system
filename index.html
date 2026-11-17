@@ -314,6 +314,47 @@ img, svg, canvas { max-width: 100%; }
 .role-pill{display:inline-block;padding:4px 9px;border-radius:20px;background:#e0f2fe;color:#075985;font-size:12px;font-weight:700}
 @media(max-width:650px){.account-admin-grid{grid-template-columns:1fr}}
 
+
+/* Mobile attendance: compact controls and employee cards */
+@media (max-width: 760px) {
+ #attendance .panel{padding:10px!important}
+ #attendance h3{font-size:17px;margin:2px 0 6px}
+ #attendance > .panel > p.note{font-size:12px;line-height:1.4;margin:4px 0 10px}
+ #attendance .grid[style*="repeat(3"]{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important}
+ #attendance .grid[style*="repeat(3"]>div:first-child{grid-column:1/-1}
+ #attendance .grid label{font-size:12px;margin-bottom:3px}
+ #attendance input,#attendance select{min-width:0;max-width:100%;font-size:13px;padding:8px 9px}
+ #attendance .grid>div:last-child{grid-column:1/-1;display:grid!important;grid-template-columns:1fr 1fr;gap:6px!important}
+ #attendance .grid>div:last-child button{font-size:12px;padding:8px 6px;min-height:38px;white-space:normal}
+ #attendance #saveAttendance{grid-column:1/-1;font-weight:700}
+ #attendanceShiftInfo{font-size:11px;line-height:1.35;padding:7px!important}
+ #attendance .attendance-metrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important;margin-top:8px!important}
+ #attendance .attendance-metrics .card{margin:0!important;padding:8px 5px!important;min-width:0;text-align:center}
+ #attendance .attendance-metrics .metric span{display:block;font-size:10px;line-height:1.2;min-height:24px}
+ #attendance .attendance-metrics .metric strong{font-size:20px}
+ #attendance .toolbar{display:grid!important;grid-template-columns:1fr!important;gap:7px!important;align-items:stretch!important;margin:10px 0 6px!important}
+ #attendance .toolbar>b{font-size:14px}
+ #attendance .toolbar .actions{margin:0!important;width:100%}
+ #attendance #attendanceQuickStatus{width:100%!important;max-width:none!important}
+ #attendance #attendanceSearch{width:100%;box-sizing:border-box}
+ #attendance .scroll{overflow:visible!important}
+ #attendance .scroll>table{min-width:0!important;width:100%!important;border-collapse:separate;border-spacing:0 7px}
+ #attendance .scroll>table thead{display:none}
+ #attendance .scroll>table tbody{display:block;width:100%}
+ #attendance .scroll>table tbody tr{display:grid;grid-template-columns:30px 1fr 1fr;gap:5px 7px;padding:9px;margin-bottom:7px;border:1px solid #d7e0ea;border-radius:9px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.05)}
+ #attendance .scroll>table tbody td{display:block;min-width:0;padding:0!important;border:0!important;font-size:12px;overflow-wrap:anywhere}
+ #attendance .scroll>table tbody td:nth-child(1){grid-column:1;grid-row:1/span 2;align-self:center}
+ #attendance .scroll>table tbody td:nth-child(2){display:none}
+ #attendance .scroll>table tbody td:nth-child(3){grid-column:2;grid-row:1;font-size:11px;color:#64748b}
+ #attendance .scroll>table tbody td:nth-child(4){grid-column:2/4;grid-row:2;font-size:14px;font-weight:700;color:#172554}
+ #attendance .scroll>table tbody td:nth-child(5){grid-column:3;grid-row:1;text-align:right}
+ #attendance .scroll>table tbody td:nth-child(6){grid-column:2/4;grid-row:3}
+ #attendance .scroll>table tbody td:nth-child(6) select{width:100%;min-height:40px;font-size:13px;font-weight:600}
+ #attendance .scroll>table tbody td[colspan]{grid-column:1/-1;text-align:center;padding:12px!important}
+ #attendance .scroll>table input[type=checkbox]{width:18px!important;height:18px}
+ #attendanceExcelPreview .scroll{overflow-x:auto!important}
+}
+
 </style>
 </head>
 <body>
