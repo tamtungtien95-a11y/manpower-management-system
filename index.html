@@ -355,6 +355,18 @@ img, svg, canvas { max-width: 100%; }
  #attendanceExcelPreview .scroll{overflow-x:auto!important}
 }
 
+
+@media(max-width:760px){
+ #otMultiDayPanel{padding:10px!important}
+ #otMultiDayPanel .toolbar{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
+ #otMultiDayPanel .toolbar>b{grid-column:1/-1}
+ #otMultiDayPanel label{font-size:12px}
+ #otMultiDayPanel input{width:100%!important;box-sizing:border-box}
+ #otMultiDayPanel button{font-size:12px;padding:8px 6px;min-height:38px}
+ #otMultiDayPanel .scroll{overflow-x:auto!important}
+ #otMultiTable{min-width:720px}
+}
+
 </style>
 </head>
 <body>
@@ -570,7 +582,21 @@ img, svg, canvas { max-width: 100%; }
   </div>
   <div class="scroll"><table><thead><tr><th><input type="checkbox" id="otSelectVisible" aria-label="Chọn tất cả nhân viên đang hiển thị"></th><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="otBody"></tbody></table></div>
  </div>
- <div class="panel" style="display:none"><div class="toolbar"><b>Lịch sử OT đã lưu</b><div class="actions"><input type="date" id="otFilterDate" aria-label="Lọc ngày OT"><select id="otFilterTeam" aria-label="Lọc nhóm lịch sử"><option value="">Tất cả nhóm</option></select><input id="otHistorySearch" placeholder="Tìm mã hoặc họ tên"></div></div>
+ 
+<div class="panel" id="otMultiDayPanel">
+ <div class="toolbar" style="display:flex;align-items:end;gap:10px;flex-wrap:wrap">
+  <b style="font-size:16px">TẢI DỮ LIỆU NHÂN VIÊN OT NHIỀU NGÀY</b>
+  <label style="margin:0">Từ ngày <input type="date" id="otMultiFrom" style="width:155px"></label>
+  <label style="margin:0">Đến ngày <input type="date" id="otMultiTo" style="width:155px"></label>
+  <button type="button" id="loadOtMultiDay">Tải dữ liệu nhiều ngày</button>
+  <button type="button" id="exportOtMultiDay" class="gray" disabled>Xuất Excel danh sách</button>
+ </div>
+ <p class="note" style="margin:8px 0">Hiển thị các lượt OT đã lưu trong khoảng ngày đã chọn, mỗi dòng là một nhân viên trong một ngày.</p>
+ <div id="otMultiSummary" class="note" style="margin:8px 0">Chưa tải dữ liệu.</div>
+ <div class="scroll"><table id="otMultiTable"><thead><tr><th>STT</th><th>Ngày OT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th></tr></thead><tbody id="otMultiBody"><tr><td colspan="7">Chọn khoảng ngày rồi nhấn Tải dữ liệu nhiều ngày.</td></tr></tbody></table></div>
+</div>
+
+<div class="panel" style="display:none"><div class="toolbar"><b>Lịch sử OT đã lưu</b><div class="actions"><input type="date" id="otFilterDate" aria-label="Lọc ngày OT"><select id="otFilterTeam" aria-label="Lọc nhóm lịch sử"><option value="">Tất cả nhóm</option></select><input id="otHistorySearch" placeholder="Tìm mã hoặc họ tên"></div></div>
   <div class="scroll"><table><thead><tr><th>STT</th><th>Ngày</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Thao tác</th></tr></thead><tbody id="otHistoryBody"></tbody></table></div>
  </div>
 <div id="otExcelPreviewModal" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;padding:20px;overflow:auto">
@@ -2373,6 +2399,56 @@ $('otSaveAll').onclick=async()=>{
  }finally{$('otSaveAll').disabled=false;$('otSaveAll').textContent='Lưu tất cả OT đã chọn'}
 };
 window.removeSavedOt=async id=>{if(!confirm('Xóa đăng ký OT này?'))return;const {error}=await client.from('employee_overtime').delete().eq('id',id);if(error){alert(error.message);return}await loadAll();renderOvertime()};
+
+
+let otMultiDayRows=[];
+function renderOtMultiDayRows(rows){
+ otMultiDayRows=rows||[];
+ $('otMultiBody').innerHTML=otMultiDayRows.map((r,i)=>`<tr>
+  <td>${i+1}</td><td>${safe(r.overtime_date||'')}</td><td>${safe(r.employees?.employee_code||'')}</td>
+  <td>${safe(r.employees?.full_name||'')}</td><td>${safe(r.employees?.team||'')}</td>
+  <td>${safe(r.hours||'')}</td><td>${safe(r.note||'—')}</td>
+ </tr>`).join('')||'<tr><td colspan="7">Không có dữ liệu OT trong khoảng ngày đã chọn.</td></tr>';
+ const people=new Set(otMultiDayRows.map(r=>String(r.employee_id)));
+ $('otMultiSummary').textContent=`Tổng ${otMultiDayRows.length} lượt OT | ${people.size} nhân viên | ${$('otMultiFrom').value} đến ${$('otMultiTo').value}`;
+ $('exportOtMultiDay').disabled=!otMultiDayRows.length;
+}
+$('loadOtMultiDay').onclick=async()=>{
+ const from=$('otMultiFrom').value,to=$('otMultiTo').value;
+ if(!from||!to){alert('Vui lòng chọn Từ ngày và Đến ngày.');return}
+ if(from>to){alert('Từ ngày không được lớn hơn Đến ngày.');return}
+ const btn=$('loadOtMultiDay');btn.disabled=true;btn.textContent='Đang tải...';
+ try{
+  const {data,error}=await client.from('employee_overtime')
+   .select('id,employee_id,overtime_date,hours,note,updated_at,created_at,employees(employee_code,full_name,team)')
+   .gte('overtime_date',from).lte('overtime_date',to)
+   .order('overtime_date',{ascending:false})
+   .order('updated_at',{ascending:false,nullsFirst:false})
+   .order('created_at',{ascending:false,nullsFirst:false});
+  if(error)throw error;
+  const rows=(data||[]).sort((a,b)=>{
+   const d=String(b.overtime_date||'').localeCompare(String(a.overtime_date||''));if(d)return d;
+   return compareOtEmployeeOrder(
+    {team:a.employees?.team,classification:'',full_name:a.employees?.full_name,employee_code:a.employees?.employee_code},
+    {team:b.employees?.team,classification:'',full_name:b.employees?.full_name,employee_code:b.employees?.employee_code}
+   );
+  });
+  renderOtMultiDayRows(rows);
+ }catch(e){alert('Không tải được dữ liệu OT nhiều ngày: '+(e.message||e));}
+ finally{btn.disabled=false;btn.textContent='Tải dữ liệu nhiều ngày'}
+};
+$('exportOtMultiDay').onclick=()=>{
+ if(!otMultiDayRows.length){alert('Chưa có dữ liệu để xuất.');return}
+ const rows=otMultiDayRows.map((r,i)=>({
+  'STT':i+1,'Ngày OT':r.overtime_date,'Mã nhân viên':r.employees?.employee_code||'',
+  'Họ và tên':r.employees?.full_name||'','Nhóm':r.employees?.team||'',
+  'Số giờ OT':r.hours||'','Ghi chú':r.note||''
+ }));
+ if(typeof XLSX==='undefined'){alert('Không tìm thấy thư viện xuất Excel trên trang.');return}
+ const ws=XLSX.utils.json_to_sheet(rows),wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Danh sach OT nhieu ngay');
+ XLSX.writeFile(wb,`Danh_sach_nhan_vien_OT_${$('otMultiFrom').value}_${$('otMultiTo').value}.xlsx`);
+};
 
 function activateView(viewName, remember=true){
  const button=document.querySelector(`.tabs button[data-view="${viewName}"]`);
