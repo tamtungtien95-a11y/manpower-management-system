@@ -2329,7 +2329,13 @@ function setOtSelected(id,checked){
 }
 function setOtField(id,field,value){
  const d=$('otDate').value,key=otDraftKey(d,id),v=otDraft.get(key);
- if(v){v[field]=field==='hours'&&normalizeOtHour(value)!==null?String(normalizeOtHour(value)):value;otDraft.set(key,v)}
+ if(v){
+  v[field]=field==='hours'&&normalizeOtHour(value)!==null?String(normalizeOtHour(value)):value;
+  // Chọn số giờ OT đồng nghĩa với chọn nhân viên để đăng ký.
+  if(field==='hours') v.selected=String(value||'').trim()!=='';
+  otDraft.set(key,v);
+  if(field==='hours') renderOvertime(); else updateOtSelectedCount();
+ }
 }
 const OT_GROUP_ORDER=['Office','Kitting','Rear','Shipment','SEVT'];
 const OT_CLASS_ORDER=['Chính Thức','Thời Vụ','Sinh Viên'];
