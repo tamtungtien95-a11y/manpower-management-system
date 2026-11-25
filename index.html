@@ -1333,7 +1333,19 @@ async function loadCurrentUserRole(){
  currentUserRole=data||'viewer';
  return true;
 }
+function applyMboRoleAccess(){
+ const mboTab=document.querySelector('.tabs button[data-view="mbo"]');
+ if(mboTab)mboTab.style.display=currentUserRole==='admin'?'':'none';
+ const mboView=$('mbo');
+ if(currentUserRole!=='admin'&&mboView)mboView.classList.remove('active');
+}
+function requireMboAdmin(){
+ if(currentUserRole==='admin')return true;
+ alert('Chỉ tài khoản ADMIN mới được xem hoặc chỉnh sửa tab MBO.');
+ return false;
+}
 function renderRoleControls(email){
+ applyMboRoleAccess();
  $('userArea').innerHTML=`<span>${safe(email||'')}</span> <span class="role-pill">${currentUserRole==='admin'?'ADMIN':currentUserRole==='manager'?'QUẢN LÝ':'CHỈ XEM'}</span> ${currentUserRole==='admin'?'<button class="gray" id="openAccountAdmin">Quản lý tài khoản</button>':''} <button class="gray" id="logoutBtn">Đăng xuất</button>`;
  if($('logoutBtn'))$('logoutBtn').onclick=()=>client.auth.signOut();
  if($('openAccountAdmin'))$('openAccountAdmin').onclick=()=>{$('accountAdminPanel').classList.toggle('hidden');$('roleAdminMsg').classList.add('hidden');if(!$('accountAdminPanel').classList.contains('hidden'))loadAccountList()};
@@ -2753,11 +2765,13 @@ let mboRows=[],mboGrades=new Map();
 function mboYear(){return Number($('mboYear').value)||new Date().getFullYear()}
 function mboKey(employeeId,month){return `${employeeId}|${mboYear()}|${month}`}
 async function loadMboGrades(){
+ if(currentUserRole!=='admin'){mboGrades=new Map();return false}
  const {data,error}=await client.from('mbo_evaluations').select('employee_id,evaluation_year,evaluation_month,grade').eq('evaluation_year',mboYear());
  if(error){$('mboBody').innerHTML=`<tr><td colspan="17">Không tải được dữ liệu MBO: ${safe(error.message)}. Kiểm tra đã chạy SQL tạo bảng MBO.</td></tr>`;return false}
  mboGrades=new Map((data||[]).map(r=>[`${r.employee_id}|${r.evaluation_year}|${r.evaluation_month}`,r.grade]));return true;
 }
 function renderMbo(){
+ if(currentUserRole!=='admin'){if($('mboBody'))$('mboBody').innerHTML='<tr><td colspan="17">Chỉ ADMIN được xem dữ liệu MBO.</td></tr>';return}
  const q=($('mboSearch').value||'').trim().toLocaleLowerCase('vi');
  const teamFilter=$('mboTeamFilter').value||'';
  const eligible=(allEmployees||[]).filter(e=>e.is_active!==false&&String(e.classification||'').trim().toLocaleLowerCase('vi')==='chính thức'&&String(e.shift||'A').toUpperCase()==='C');
@@ -2775,6 +2789,7 @@ function renderMbo(){
  $('mboBody').innerHTML=mboRows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code||'')}</td><td>${safe(e.full_name||'')}</td><td>${teamTag(e.team||'')}</td><td><b>${safe(e.shift||'C')}</b></td>${Array.from({length:12},(_,idx)=>{const m=idx+1,key=mboKey(e.id,m),v=mboGrades.get(key)||'';return `<td><select aria-label="${safe(e.full_name)} tháng ${m}" data-mbo-employee="${safe(e.id)}" data-mbo-month="${m}"><option value=""></option>${MBO_GRADES.map(g=>`<option value="${g.value}" ${v===g.value?'selected':''}>${g.value}</option>`).join('')}</select><small id="mboStatus_${safe(e.id)}_${m}" class="note"></small></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="17">Không có nhân viên chính thức Ca C đang làm.</td></tr>';
 }
 async function saveMboGrade(select){
+ if(!requireMboAdmin()){select.value='';return}
  const employee_id=select.dataset.mboEmployee,evaluation_month=Number(select.dataset.mboMonth),evaluation_year=mboYear(),grade=select.value;
  const status=$(`mboStatus_${employee_id}_${evaluation_month}`);if(!grade){
   const {error}=await client.from('mbo_evaluations').delete().eq('employee_id',employee_id).eq('evaluation_year',evaluation_year).eq('evaluation_month',evaluation_month);
@@ -2789,9 +2804,10 @@ $('mboYear').innerHTML=Array.from({length:5},(_,i)=>{const y=new Date().getFullY
 $('mboYear').onchange=async()=>{await loadMboGrades();renderMbo()};
 $('mboSearch').oninput=renderMbo;
 $('mboTeamFilter').onchange=renderMbo;
-$('mboRefresh').onclick=async()=>{await loadAll();await loadMboGrades();renderMbo()};
+$('mboRefresh').onclick=async()=>{if(!requireMboAdmin())return;await loadAll();await loadMboGrades();renderMbo()};
 $('mboBody').addEventListener('change',e=>{if(e.target.matches('select[data-mbo-employee]'))saveMboGrade(e.target)});
 function exportMboExcel(){
+ if(!requireMboAdmin())return;
  const year=mboYear(), rows=mboRows.map((e,i)=>({
   'STT':i+1,'ID':e.employee_code||'','Họ Tên':e.full_name||'','Nhóm':e.team||'','Ca':e.shift||'C',
   ...Object.fromEntries(Array.from({length:12},(_,idx)=>[`T${idx+1}`,mboGrades.get(`${e.id}|${year}|${idx+1}`)||'']))
@@ -2808,6 +2824,7 @@ function exportMboExcel(){
 $('mboExport').onclick=exportMboExcel;
 
 function activateView(viewName, remember=true){
+ if(viewName==='mbo'&&!requireMboAdmin())viewName='dashboard';
  const button=document.querySelector(`.tabs button[data-view="${viewName}"]`);
  const target=$(viewName);
  if(!button||!target)return;
