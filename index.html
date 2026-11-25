@@ -246,7 +246,8 @@ body.ot-column-resizing{cursor:col-resize !important;user-select:none !important
 #otStandardTable .ot-col-resizer:hover,#otStandardTable .ot-col-resizer.dragging{background:rgba(31,78,121,.35)}
 body.ot-column-resizing{cursor:col-resize!important;user-select:none!important}
 
-.employee-inactive-row{background:#dcfce7!important;color:#166534!important}\n.employee-inactive-row td{background:#dcfce7!important;color:#166534!important}
+.employee-inactive-row{background:#dcfce7!important;color:#166534!important}
+.employee-inactive-row td{background:#dcfce7!important;color:#166534!important}
 .badge-inactive{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:10px;background:#bbf7d0;color:#166534;font-size:11px;font-weight:600}
 
 /* MM MOBILE RESPONSIVE PATCH - Samsung Galaxy S24 Ultra and mobile browsers */
@@ -387,6 +388,66 @@ img, svg, canvas { max-width: 100%; }
  #employees table th,#employees table td{padding:8px;font-size:13px;white-space:nowrap}
  #employees .scroll{border-radius:8px}
 }
+
+/* MM MOBILE UX refinement – Galaxy S24 Ultra (portrait/landscape) */
+@media (max-width: 760px) {
+  body { overflow-x:hidden; padding-bottom:env(safe-area-inset-bottom); }
+  header { gap:10px; }
+  header > div { min-width:0; width:100%; }
+  #userArea { display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  #userArea button { flex:0 1 auto; }
+  main { padding-left:8px; padding-right:8px; }
+  .view > .panel, .view > .card { margin-left:0; margin-right:0; }
+  .tabs { position:sticky; top:0; z-index:30; background:#f3f6fb; padding:5px 0; }
+  .tabs button { min-height:44px; border-radius:9px; }
+  .scroll { overscroll-behavior-x:contain; scrollbar-width:thin; }
+  .scroll table { min-width:760px; }
+  th, td { padding:9px 8px; }
+  button, input[type=checkbox], input[type=radio] { -webkit-tap-highlight-color:transparent; }
+  input[type=checkbox] { width:20px; height:20px; vertical-align:middle; }
+  .detail-overlay { padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom)); }
+  .detail-box { max-height:calc(100dvh - 24px); overflow:auto; }
+
+  /* OT registration controls become a clear, thumb-friendly stack */
+  #overtime .toolbar { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px !important; }
+  #overtime .toolbar > div { width:auto !important; min-width:0 !important; max-width:none !important; }
+  #overtime #otSelectedCount { grid-column:1/-1; display:block; padding:3px 0; }
+  #overtime #otQuickHours { width:100% !important; min-width:0 !important; }
+  #overtime #otSaveAll { width:100%; min-height:46px; grid-column:1/-1; }
+  #overtime .toolbar .actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  #overtime .toolbar .actions button { min-height:44px; }
+  #overtime .scroll { border:1px solid #e2e8f0; border-radius:9px; }
+  #overtime .scroll table { min-width:850px; }
+  #overtime #otStandardTable { min-width:1250px !important; }
+  #overtime #otStandardTable th, #overtime #otStandardTable td { white-space:normal; }
+  #overtime #otStandardTable .ot-standard-input { min-height:38px; font-size:16px !important; }
+  #otMultiDayPanel .toolbar { display:grid !important; grid-template-columns:1fr 1fr !important; }
+  #otMultiDayPanel .toolbar > * { min-width:0 !important; }
+  #otMultiDayPanel .toolbar button { width:100%; }
+
+  /* Employee form and attendance inputs */
+  #employees input, #employees select, #attendance input, #attendance select,
+  #overtime input, #overtime select { min-height:44px; }
+  #employees .scroll table { min-width:900px; }
+  #attendance .scroll table { min-width:650px; }
+  #attendance .scroll { border:1px solid #e2e8f0; border-radius:9px; }
+  #dashboard .scroll table { min-width:700px; }
+}
+@media (max-width: 420px) {
+  header h1 { font-size:15px; }
+  #overtime .toolbar { grid-template-columns:1fr !important; }
+  #overtime #otSelectedCount, #overtime #otSaveAll { grid-column:1; }
+  #overtime .toolbar .actions { grid-template-columns:1fr; }
+  .cards, .dashboard-summary-cards { gap:6px; }
+  .metric { padding:8px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  header { padding-top:8px; padding-bottom:8px; }
+  main { margin-top:8px; }
+  .tabs { position:static; }
+  .detail-box { max-height:88vh; }
+}
+
 </style>
 </head>
 <body>
