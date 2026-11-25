@@ -1746,7 +1746,7 @@ function parseExcelDate(v){
 function previewExcel(rows){
  excelRows=rows;const bad=rows.filter(x=>x.error).length;
  $('excelPreview').classList.remove('hidden');$('excelInfo').textContent=`Đọc được ${rows.length} dòng; ${bad} dòng lỗi. ${bad?'Hãy sửa file trước khi cập nhật.':'Dữ liệu hợp lệ.'}`;
- $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>`<tr><td>${safe(x.birth_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.phone||'')}</td><td>${safe(x.team)}</td><td>${safe(x.shift||'A')}</td><td>${safe(x.classification)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
+ $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>{const action=x.error|| (x.existingId?`Sẽ cập nhật đè hồ sơ: ${x.existingName}${x.existingInactive?' (đang nghỉ việc)':''}`:'Sẽ thêm nhân viên mới');return `<tr><td>${safe(x.birth_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.phone||'')}</td><td>${safe(x.team)}</td><td>${safe(x.shift||'A')}</td><td>${safe(x.classification)}</td><td>${safe(action)}</td></tr>`}).join('');
  $('applyExcel').disabled=bad>0||!rows.length;
 }
 $('excelFile').addEventListener('change',async ev=>{
@@ -1778,8 +1778,10 @@ $('excelFile').addEventListener('change',async ev=>{
    else if(!['Chính Thức','Thời Vụ','Sinh Viên'].includes(classification))error='Phân loại không hợp lệ';
    else if(rawDate&&!hire)error='Ngày Sinh không đúng định dạng';
    const key=code.toLocaleUpperCase('vi');if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
-   const existing=code?findEmployeeByCode(code):null;if(!error&&existing)error=duplicateEmployeeCodeMessage(existing,code);
-   return {birth_date:hire||null,employee_code:code,full_name:name,phone:hasPhoneColumn?(phone||null):undefined,team,shift,classification,error,rowNumber:i+2};
+   const existing=code?findEmployeeByCode(code):null;
+   // Mã đã có trong hệ thống là hồ sơ cần cập nhật đè, không phải lỗi trùng.
+   // Nếu mã thuộc nhân viên đã nghỉ, vẫn cập nhật đúng hồ sơ cũ và giữ nguyên is_active.
+   return {birth_date:hire||null,employee_code:code,full_name:name,phone:hasPhoneColumn?(phone||null):undefined,hasPhoneColumn,team,shift,classification,error,existingId:existing?existing.id:null,existingName:existing?existing.full_name:'',existingInactive:existing?existing.is_active===false:false,rowNumber:i+2};
   }).filter(x=>x.employee_code||x.full_name||x.phone||x.team||x.birth_date||x.classification||x.shift);
   if(!rows.length)throw new Error('Không tìm thấy dữ liệu. Kiểm tra tiêu đề cột.');
   previewExcel(rows);
@@ -1788,11 +1790,21 @@ $('excelFile').addEventListener('change',async ev=>{
 $('applyExcel').onclick=async()=>{
  if(!excelRows.length||excelRows.some(x=>x.error))return;
  const b=$('applyExcel');b.disabled=true;b.textContent='Đang cập nhật...';
- const payload=excelRows.map(({birth_date,employee_code,full_name,phone,team,shift,classification})=>({birth_date,employee_code,full_name,phone,team,shift:shift||'A',classification}));
- const {error}=await client.from('employees').upsert(payload,{onConflict:'employee_code'});
+ let inserted=0,updated=0,failed=[];
+ for(const row of excelRows){
+  const data={birth_date:row.birth_date,employee_code:row.employee_code,full_name:row.full_name,team:row.team,shift:row.shift||'A',classification:row.classification};
+  // Chỉ ghi đè SĐT khi file Excel có cột SĐT; nếu không có thì giữ nguyên số hiện tại.
+  if(row.hasPhoneColumn)data.phone=row.phone||null;
+  const result=row.existingId
+   ?await client.from('employees').update(data).eq('id',row.existingId)
+   :await client.from('employees').insert(data);
+  if(result.error)failed.push(`Dòng ${row.rowNumber} (${row.employee_code}): ${result.error.message}`);
+  else if(row.existingId)updated++;
+  else inserted++;
+ }
  b.disabled=false;b.textContent='Cập nhật lên Supabase';
- if(error){alert('Cập nhật thất bại: '+error.message);return}
- alert(`Đã cập nhật ${payload.length} nhân viên. Nhân viên không có trong file được giữ nguyên.`);
+ if(failed.length){alert(`Đã thêm ${inserted}, cập nhật ${updated}; có ${failed.length} dòng lỗi:\n${failed.slice(0,8).join('\n')}`);await loadAll();return}
+ alert(`Hoàn tất: đã cập nhật đè ${updated} hồ sơ cũ và thêm ${inserted} nhân viên mới. Nhân viên không có trong file được giữ nguyên.`);
  $('excelFile').value='';$('excelPreview').classList.add('hidden');excelRows=[];await loadAll();
 };
 $('cancelExcel').onclick=()=>{$('excelFile').value='';$('excelPreview').classList.add('hidden');excelRows=[]};
