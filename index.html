@@ -51,6 +51,8 @@ th,td{text-align:left;padding:10px;border-bottom:1px solid #e2e8f0;font-size:14p
 
 
 .attendance-metrics{grid-template-columns:repeat(3,minmax(145px,205px));gap:8px;margin-bottom:10px}
+.attendance-saved-label{display:inline-flex;align-items:center;margin-top:5px;padding:3px 8px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700}
+.attendance-unsaved-label{display:inline-flex;align-items:center;margin-top:5px;padding:3px 8px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:700}
 .attendance-metrics .metric{padding:8px 11px;min-height:68px}
 .attendance-metrics .metric span{font-size:11px}
 .attendance-metrics .metric strong{font-size:20px;margin-top:2px}
@@ -1455,8 +1457,10 @@ function renderAttendance(){
   });
  $('attendanceBody').innerHTML=filtered.map((e,i)=>{
   const current=attendanceDraft.get(String(e.id))||'';
+  const saved=attendanceRecords.find(x=>x.date===date&&String(x.employee_id)===String(e.id));
+  const markLabel=saved?(saved.status===current?'<span class="attendance-saved-label">✓ Đã điểm danh</span>':'<span class="attendance-unsaved-label">Chưa lưu thay đổi</span>'):(current?'<span class="attendance-unsaved-label">Chưa lưu</span>':'');
   const checked=selectedAttendanceEmployees.has(String(e.id))?'checked':'';
-  return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select></td></tr>`;
+  return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select>${markLabel}</td></tr>`;
  }).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
  const values=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,status}));
  $('attWorkCount').textContent=values.filter(x=>x.status==='Đi Làm').length;
