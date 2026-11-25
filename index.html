@@ -659,7 +659,22 @@ function friendlyAuthError(error){
  if(msg.includes('password should be')) return 'Mật khẩu chưa đáp ứng yêu cầu của Supabase.';
  return error?.message||'Đã xảy ra lỗi. Vui lòng kiểm tra kết nối Supabase.';
 }
-function teamTag(t){return `<span class="tag ${t==='Shipment'?'ship':''}">${safe(t)}</span>`}
+function teamTag(t){
+ const name=String(t||'').trim();
+ const palette={
+  'Office':{bg:'#dbeafe',fg:'#1d4ed8'},
+  'Kitting':{bg:'#ffedd5',fg:'#c2410c'},
+  'Kititing':{bg:'#ffedd5',fg:'#c2410c'},
+  'Rear':{bg:'#f3e8ff',fg:'#7e22ce'},
+  'SEVT':{bg:'#ccfbf1',fg:'#0f766e'},
+  'Shipment':{bg:'#dcfce7',fg:'#166534'},
+  'Shift LD':{bg:'#fce7f3',fg:'#be185d'},
+  'Item':{bg:'#fef3c7',fg:'#92400e'}
+ };
+ let c=palette[name];
+ if(!c){let h=0;for(let i=0;i<name.length;i++)h=(h*31+name.charCodeAt(i))>>>0;const colors=[['#e0e7ff','#3730a3'],['#fee2e2','#b91c1c'],['#e0f2fe','#0369a1'],['#ecfccb','#3f6212'],['#fce7f3','#9d174d']];c={bg:colors[h%colors.length][0],fg:colors[h%colors.length][1]};}
+ return `<span class="tag" style="background:${c.bg};color:${c.fg}">${safe(name)}</span>`;
+}
 function safe(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function formatDate(v){return v?String(v).slice(0,10):''}
 function setBusy(btn,busy,text){btn.disabled=busy;btn.textContent=busy?'Đang xử lý...':text}
