@@ -713,10 +713,10 @@ img, svg, canvas { max-width: 100%; }
 <section id="mbo" class="view">
  <div class="panel">
   <div class="toolbar" style="align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-   <div><h3 id="mboTitle" style="margin:0 0 5px;text-align:center">ĐÁNH GIÁ MBO MM CA C NĂM 2026</h3><p class="note" style="margin:0">Danh sách nhân viên đang làm · Chính Thức · Ca C. Dữ liệu lấy trực tiếp từ tab Nhân viên.</p></div>
+   <div><h3 id="mboTitle" style="margin:0 0 5px;text-align:center">ĐÁNH GIÁ MBO MM CA C NĂM 2026</h3></div>
    <div class="actions"><label style="margin:0">Năm đánh giá <select id="mboYear" style="min-width:105px"></select></label><button type="button" class="gray" id="mboRefresh">Làm mới</button></div>
   </div>
-  <div class="toolbar" style="margin:12px 0"><b id="mboCount">0 nhân viên</b><input id="mboSearch" placeholder="Tìm ID hoặc họ tên" style="max-width:280px"></div>
+  <div class="toolbar" style="margin:12px 0;justify-content:flex-end"><input id="mboSearch" placeholder="Tìm ID hoặc họ tên" style="max-width:280px"></div>
   <div class="scroll" id="mboTableScroll"><table id="mboTable" style="min-width:1050px;width:100%"><thead><tr><th>STT</th><th>ID</th><th>Họ Tên</th><th>Nhóm</th><th>Ca</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>T8</th><th>T9</th><th>T10</th><th>T11</th><th>T12</th></tr></thead><tbody id="mboBody"><tr><td colspan="17">Đang tải...</td></tr></tbody></table></div>
   <p class="note" style="margin-top:10px">Xếp loại MBO: A+ (Xuất sắc), A, B+, B, C. Chọn xếp loại tại từng tháng để lưu tự động.</p>
  </div>
@@ -2592,7 +2592,6 @@ function renderMbo(){
     ||String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'})
     ||String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true});
   });
- $('mboCount').textContent=`${mboRows.length} nhân viên chính thức Ca C · Thứ tự nhóm giống tab Nhân viên, tên A–Z`;
  $('mboTitle').textContent=`ĐÁNH GIÁ MBO MM CA C NĂM ${mboYear()}`;
  $('mboBody').innerHTML=mboRows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code||'')}</td><td>${safe(e.full_name||'')}</td><td>${teamTag(e.team||'')}</td><td><b>${safe(e.shift||'C')}</b></td>${Array.from({length:12},(_,idx)=>{const m=idx+1,key=mboKey(e.id,m),v=mboGrades.get(key)||'';return `<td><select aria-label="${safe(e.full_name)} tháng ${m}" data-mbo-employee="${safe(e.id)}" data-mbo-month="${m}"><option value="">--</option>${MBO_GRADES.map(g=>`<option value="${g.value}" ${v===g.value?'selected':''}>${g.value}</option>`).join('')}</select><small id="mboStatus_${safe(e.id)}_${m}" class="note"></small></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="17">Không có nhân viên chính thức Ca C đang làm.</td></tr>';
 }
