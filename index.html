@@ -457,6 +457,7 @@ img, svg, canvas { max-width: 100%; }
 @media(max-width:600px){#mbo .panel{padding:10px;margin:8px 0}#mbo .toolbar{align-items:stretch!important}#mbo #mboTitle{text-align:left!important;font-size:17px}#mbo #mboSearch{max-width:none!important;width:100%;min-height:42px}#mbo .toolbar .actions{width:100%;display:flex}#mbo .toolbar .actions label{flex:1}#mbo .toolbar .actions select{width:100%}#mbo table th,#mbo table td{padding:7px 6px;font-size:12px}#mbo table select{min-width:66px;min-height:38px}}
 
 </style>
+<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
 </head>
 <body>
 <header><div><h1>HỆ THỐNG QUẢN LÝ NHÂN LỰC</h1><p>Quản lý nhân viên theo nhóm Kitting / Shipment / Shift LD / Item</p></div><div id="userArea"></div></header>
@@ -842,7 +843,9 @@ function pct(n,total){return total?`${(n/total*100).toFixed(1).replace('.',',')}
 function dashboardRows(){
  const d=$('summaryDate').value;
  const byEmployee=new Map(attendanceRecords.filter(x=>x.date===d).map(x=>[String(x.employee_id),x]));
- const reportEmployees=(allEmployees.length?allEmployees:employees).filter(e=>e.is_active!==false || !e.deactivated_at || d < String(e.deactivated_at).slice(0,10));
+ // Dashboard luôn phản ánh danh sách nhân viên đang làm hiện tại giống tab Nhân viên.
+ // Nhân viên đã tắt/nghỉ việc không được cộng vào tổng, kể cả khi chọn ngày báo cáo cũ.
+ const reportEmployees=(employees||[]).filter(e=>e.is_active!==false);
  return reportEmployees.map(e=>({...e,attendance:byEmployee.get(String(e.id))||null,status:byEmployee.get(String(e.id))?.status||'Chưa điểm danh'}))
   .filter(e=>e.status!=='Đổi Về HC');
 }
