@@ -457,8 +457,10 @@ img, svg, canvas { max-width: 100%; }
 #mbo .mbo-saving{color:#92400e;font-size:11px}#mbo .mbo-saved{color:#166534;font-size:11px}
 @media(max-width:600px){#mbo .panel{padding:10px;margin:8px 0}#mbo .toolbar{align-items:stretch!important}#mbo #mboTitle{text-align:left!important;font-size:17px}#mbo #mboSearch{max-width:none!important;width:100%;min-height:42px}#mbo .toolbar .actions{width:100%;display:flex}#mbo .toolbar .actions label{flex:1}#mbo .toolbar .actions select{width:100%}#mbo table th,#mbo table td{padding:7px 6px;font-size:12px}#mbo table select{min-width:66px;min-height:38px}}
 
+ .dashboard-click-card{cursor:pointer;transition:box-shadow .15s,transform .15s}.dashboard-click-card:hover{box-shadow:0 4px 14px rgba(15,23,42,.12);transform:translateY(-1px)} .dashboard-click-card:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 </style>
-<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
+<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
+<!-- MM-DASHBOARD-ALL-METRIC-CARDS-CLICKABLE-v2 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
 </head>
 <body>
 <header><div><h1>HỆ THỐNG QUẢN LÝ NHÂN LỰC</h1><p>Quản lý nhân viên theo nhóm Kitting / Shipment / Shift LD / Item</p></div><div id="userArea"></div></header>
@@ -531,14 +533,14 @@ img, svg, canvas { max-width: 100%; }
  <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Báo cáo tổng quan nhân lực</h3><span class="note">Chọn ngày để xem tình hình đi làm và nghỉ của toàn bộ nhân viên.</span></div><div><label>Ngày báo cáo</label><input type="date" id="summaryDate" style="max-width:220px"></div><div class="actions"><button type="button" id="previewReportImage" class="report-image-button">Tải ảnh báo cáo</button><button type="button" id="exportTeamSummary" class="gray dashboard-export-button">Tải Excel tổng hợp theo nhóm</button></div></div>
 </div>
 <div class="cards dashboard-summary-cards">
- <div class="card metric"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
- <div class="card metric"><span>Chính Thức</span><strong id="dashOfficial">0</strong><small>Nhân viên chính thức</small></div>
- <div class="card metric"><span>Thời Vụ</span><strong id="dashSeasonal">0</strong><small>Nhân viên thời vụ</small></div>
- <div class="card metric"><span>Sinh Viên</span><strong id="dashStudent">0</strong><small>Nhân viên sinh viên</small></div>
- <div class="card metric"><span>Đi Làm</span><strong id="dashWork">0</strong><small id="dashWorkRate">0% tổng nhân viên</small></div>
- <div class="card metric"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
- <div class="card metric"><span>Đổi Về HC</span><strong id="dashMovedHC">0</strong><small id="dashMovedHCRate">0% tổng nhân viên</small></div>
- <div class="card metric"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="all" role="button" tabindex="0" title="Bấm để xem toàn bộ nhân viên"><span>Tổng nhân viên</span><strong id="dashTotal">0</strong><small>100% nhân sự hiện có</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="classification" data-dashboard-value="Chính Thức" role="button" tabindex="0" title="Bấm để xem nhân viên chính thức"><span>Chính Thức</span><strong id="dashOfficial">0</strong><small>Nhân viên chính thức</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="classification" data-dashboard-value="Thời Vụ" role="button" tabindex="0" title="Bấm để xem nhân viên thời vụ"><span>Thời Vụ</span><strong id="dashSeasonal">0</strong><small>Nhân viên thời vụ</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="classification" data-dashboard-value="Sinh Viên" role="button" tabindex="0" title="Bấm để xem nhân viên sinh viên"><span>Sinh Viên</span><strong id="dashStudent">0</strong><small>Nhân viên sinh viên</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="work" role="button" tabindex="0" title="Bấm để xem danh sách nhân viên đi làm"><span>Đi Làm</span><strong id="dashWork">0</strong><small id="dashWorkRate">0% tổng nhân viên</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="leave" role="button" tabindex="0" title="Bấm để xem danh sách nhân viên nghỉ"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="moved" role="button" tabindex="0" title="Bấm để xem danh sách nhân viên đổi về HC"><span>Đổi Về HC</span><strong id="dashMovedHC">0</strong><small id="dashMovedHCRate">0% tổng nhân viên</small></div>
+ <div class="card metric dashboard-click-card" data-dashboard-kind="status" data-dashboard-value="Chưa điểm danh" role="button" tabindex="0" title="Bấm để xem nhân viên chưa điểm danh"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
 </div>
 <div class="panel team-chart-panel">
  <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Biểu đồ nhân viên đi làm và nghỉ theo nhóm</h3><p class="note" style="margin:0">So sánh số nhân viên đi làm và nghỉ trong ngày được chọn. Chưa điểm danh và Đổi Về HC được thống kê riêng, không tính vào cột nghỉ.</p></div></div>
@@ -546,7 +548,7 @@ img, svg, canvas { max-width: 100%; }
  <div id="teamWorkChart" class="team-work-chart" role="img" aria-label="Biểu đồ cột so sánh nhân viên đi làm và nghỉ theo nhóm"></div>
 </div>
 <div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Đổi Về HC</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
-<div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
+<div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th><th>Lý do / Ghi chú</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 <div id="reportImagePreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reportImagePreviewTitle"><div class="detail-box report-image-preview-box"><div class="detail-head"><div><h3 id="reportImagePreviewTitle">Xem trước ảnh báo cáo</h3><p class="note" style="margin:5px 0 0">Kiểm tra ảnh báo cáo tổng hợp theo nhóm trước khi tải về máy.</p></div><button type="button" class="gray" id="closeReportImagePreview">Đóng</button></div><div id="reportImagePreviewContent" class="report-image-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="reportImageStatus" class="note" style="margin-top:9px"></div><div class="report-image-actions"><button type="button" class="gray" id="cancelReportImagePreview">Đóng</button><button type="button" id="downloadReportImage" class="report-image-button">Tải ảnh PNG</button></div></div></div>
 </section>
 <section id="employees" class="view">
@@ -612,7 +614,7 @@ img, svg, canvas { max-width: 100%; }
 </div>
 <div id="attendanceQuickMessage" class="note hidden" style="margin:4px 0 8px"></div>
 
-<div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" title="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+<div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" title="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th><th>Lý do / Ghi chú</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
 <div id="attendanceExcelPreview" class="hidden panel" style="margin-top:18px">
  <div id="attendanceExcelInfo" class="message"></div>
  <div class="scroll"><table style="min-width:850px"><thead><tr><th>Mã nhân viên</th><th>Nhân viên trong file</th><th>Trạng thái</th><th>Kiểm tra</th></tr></thead><tbody id="attendanceExcelPreviewBody"></tbody></table></div>
@@ -735,7 +737,7 @@ const SUPABASE_URL = "https://juifxigovxddvmbwquyf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_alUSkneRYMVrZUnCmetIVQ_GK2PzWjh";
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let employees = [], allEmployees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
+let employees = [], allEmployees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), attendanceReasonDraft = new Map(), editingOtId = null, otDraft = new Map();
 const selectedAttendanceEmployees = new Set();
 let attendanceShift='day';
 
@@ -783,7 +785,7 @@ async function loadAll(){
  employees=allEmployees.filter(x=>x.is_active!==false);
  if(!g.error){teamMasterAvailable=true;TEAMS=[...new Set([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)])];}else{teamMasterAvailable=false;TEAMS=[...new Set(['SEVT','Shipment','Rear','Kitting','Office',...employees.map(e=>e.team).filter(Boolean)])];}
  renderGroupControls();
- attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
+ attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,reason:x.reason||'',shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
  setAttendanceDraftForDate($('attendanceDate').value);
  renderEmployees();fillOtTeamFilter();renderDashboard();renderAttendance();renderOvertime();
@@ -851,13 +853,38 @@ function dashboardRows(){
  return reportEmployees.map(e=>({...e,attendance:byEmployee.get(String(e.id))||null,status:byEmployee.get(String(e.id))?.status||'Chưa điểm danh'}));
 }
 function showDashboardDetails(kind,value,team=''){
- const rows=dashboardRows().filter(e=>(!team||e.team===team)&&(kind==='team'?true:e.status===value));
- const title=kind==='team'?`Danh sách nhân viên nhóm ${team}`:`Danh sách nhân viên: ${value}${team?' - '+team:''}`;
+ const rows=dashboardRows().filter(e=>{
+  if(team&&e.team!==team)return false;
+  if(kind==='team'||kind==='all')return true;
+  if(kind==='classification')return (e.classification||'').trim()===value;
+  if(kind==='leave')return e.status!=='Đi Làm'&&e.status!=='Chưa điểm danh'&&e.status!=='Đổi Về HC'&&ATTENDANCE_STATUSES.includes(e.status);
+  return e.status===value;
+ });
+ let title='Danh sách nhân viên';
+ if(kind==='team')title=`Danh sách nhân viên nhóm ${team}`;
+ else if(kind==='all')title='Danh sách toàn bộ nhân viên';
+ else if(kind==='leave')title='Danh sách nhân viên nghỉ';
+ else if(kind==='classification')title=`Danh sách nhân viên: ${value}`;
+ else title=`Danh sách nhân viên: ${value}${team?' - '+team:''}`;
  $('detailTitle').textContent=title;$('detailSubtitle').textContent=`Ngày ${$('summaryDate').value}: ${rows.length} nhân viên`;
- $('detailEmployeeBody').innerHTML=rows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td>${safe(e.classification||'')}</td><td>${safe(e.status)}</td></tr>`).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
+ $('detailEmployeeBody').innerHTML=rows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td>${safe(e.classification||'')}</td><td>${safe(e.status)}</td><td>${safe(e.attendance?.reason||'')}</td></tr>`).join('')||'<tr><td colspan="7">Không có nhân viên phù hợp</td></tr>';
  $('dashboardDetail').classList.remove('hidden');
 }
 window.showDashboardDetails=showDashboardDetails;
+document.querySelectorAll('.dashboard-click-card').forEach(card=>{
+ const open=()=>{
+  const kind=card.dataset.dashboardKind;
+  const value=card.dataset.dashboardValue||'';
+  if(kind==='work')showDashboardDetails('status','Đi Làm');
+  else if(kind==='leave')showDashboardDetails('leave','');
+  else if(kind==='moved')showDashboardDetails('status','Đổi Về HC');
+  else if(kind==='status')showDashboardDetails('status',value);
+  else if(kind==='classification')showDashboardDetails('classification',value);
+  else if(kind==='all')showDashboardDetails('all','');
+ };
+ card.addEventListener('click',open);
+ card.addEventListener('keydown',ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();open()}});
+});
 async function exportTeamSummaryExcel(){
  if(typeof ExcelJS==='undefined'){alert('Không tải được thư viện tạo bảng Excel. Vui lòng tải lại trang và thử lại.');return}
  try{
@@ -1455,9 +1482,9 @@ function setAttendanceDraftForDate(date){
  const shifts=[...new Set(attendanceRecords.filter(x=>x.date===date).map(x=>x.shift).filter(Boolean))];
  attendanceShift=shifts.includes('night')?'night':'day';
  updateAttendanceShiftButtons();
- attendanceDraft=new Map(attendanceRecords
-  .filter(x=>x.date===date)
-  .map(x=>[String(x.employee_id),x.status]));
+ const dayRecords=attendanceRecords.filter(x=>x.date===date);
+ attendanceDraft=new Map(dayRecords.map(x=>[String(x.employee_id),x.status]));
+ attendanceReasonDraft=new Map(dayRecords.map(x=>[String(x.employee_id),x.reason||'']));
 }
 
 function formatShiftDate(dateStr){
@@ -1513,6 +1540,9 @@ function syncVisibleAttendanceDraft(){
   if(select.value) attendanceDraft.set(employeeId,select.value);
   else attendanceDraft.delete(employeeId);
  });
+ document.querySelectorAll('#attendanceBody .attendance-reason').forEach(input=>{
+  attendanceReasonDraft.set(String(input.dataset.employeeId),input.value||'');
+ }); 
 }
 function updateAttendanceHeaderSelectAll(){
  const boxes=[...document.querySelectorAll('#attendanceBody .attendance-select')];
@@ -1547,10 +1577,11 @@ function renderAttendance(){
   });
  $('attendanceBody').innerHTML=filtered.map((e,i)=>{
   const current=attendanceDraft.get(String(e.id))||'';
+  const reason=attendanceReasonDraft.get(String(e.id))||'';
   const saved=attendanceRecords.find(x=>x.date===date&&String(x.employee_id)===String(e.id));
   const markLabel=saved?(saved.status===current?'<span class="attendance-saved-label">✓ Đã điểm danh</span>':'<span class="attendance-unsaved-label">Chưa lưu thay đổi</span>'):(current?'<span class="attendance-unsaved-label">Chưa lưu</span>':'');
   const checked=selectedAttendanceEmployees.has(String(e.id))?'checked':'';
-  return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select>${markLabel}</td></tr>`;
+  return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select>${markLabel}</td><td><input class="attendance-reason" data-employee-id="${e.id}" value="${safe(reason)}" placeholder="Nhập lý do nghỉ / ghi chú" style="min-width:220px"></td></tr>`;
  }).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
  const values=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,status}));
  $('attWorkCount').textContent=values.filter(x=>x.status==='Đi Làm').length;
@@ -1590,6 +1621,10 @@ $('attendanceHeaderSelectAll').onchange=ev=>{
  });
  updateAttendanceHeaderSelectAll();
 };
+$('attendanceBody').addEventListener('input',ev=>{
+ const reasonInput=ev.target.closest('.attendance-reason');
+ if(reasonInput)attendanceReasonDraft.set(String(reasonInput.dataset.employeeId),reasonInput.value||'');
+});
 $('attendanceBody').addEventListener('change',ev=>{
  const box=ev.target.closest('.attendance-select');
  if(box){
@@ -1614,7 +1649,7 @@ $('attendanceBody').addEventListener('change',ev=>{
 $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
- const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,shift:attendanceShift}));
+ const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,reason:attendanceReasonDraft.get(String(employee_id))||'',shift:attendanceShift}));
  if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
  const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
  const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
@@ -1624,7 +1659,7 @@ $('saveAttendance').onclick=async()=>{
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
  await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
-$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);updateAttendanceShiftInfo();renderAttendance()};
+$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();attendanceReasonDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);updateAttendanceShiftInfo();renderAttendance()};
 $('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 $('attendanceSearch').oninput=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 
