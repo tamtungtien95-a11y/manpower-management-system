@@ -2443,9 +2443,17 @@ function renderOvertime(){
  const rows=workingEmployeesOn(d)
   .filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team,x.classification].join(' ').toLowerCase().includes(q)))
   .sort((a,b)=>{
-   const av=otDraft.get(otDraftKey(d,a.id))||{},bv=otDraft.get(otDraftKey(d,b.id))||{};
-   if(!!av.selected!==!!bv.selected)return av.selected?-1:1;
-   return compareOtEmployeeOrder(a,b);
+   // Ưu tiên nhân viên đã đăng ký OT; trong mỗi nhóm sắp xếp A-Z theo tên.
+   const aSaved=!!latestOtRecordForEmployee(d,a.id),bSaved=!!latestOtRecordForEmployee(d,b.id);
+   if(aSaved!==bSaved)return aSaved?-1:1;
+   const teamOrder=['Office','Kitting','Rear','Shipment','SEVT'];
+   const ai=teamOrder.indexOf(String(a.team||'').trim());
+   const bi=teamOrder.indexOf(String(b.team||'').trim());
+   const ar=ai<0?teamOrder.length:ai,br=bi<0?teamOrder.length:bi;
+   if(ar!==br)return ar-br;
+   const nameCompare=String(a.full_name||a.name||'').localeCompare(String(b.full_name||b.name||''),'vi',{sensitivity:'base'});
+   if(nameCompare!==0)return nameCompare;
+   return String(a.employee_code||a.code||'').localeCompare(String(b.employee_code||b.code||''),'en',{numeric:true,sensitivity:'base'});
   });
  $('otBody').innerHTML=rows.map((x,i)=>{
   const key=otDraftKey(d,x.id),v=otDraft.get(key)||{};
