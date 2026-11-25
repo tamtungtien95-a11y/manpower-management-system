@@ -2412,38 +2412,57 @@ async function exportOtStandardsExcel(){
   a.name.localeCompare(b.name,'vi',{sensitivity:'base'})||
   a.code.localeCompare(b.code,'en',{numeric:true}));
  const detailTitleRow=total.number+2;
- ws.mergeCells(detailTitleRow,1,detailTitleRow,8);
+ ws.mergeCells(detailTitleRow,1,detailTitleRow,16);
  const detailTitle=ws.getCell(detailTitleRow,1);
  detailTitle.value=`DANH SÁCH NHÂN VIÊN ĐĂNG KÝ OT (${detailRecords.length} người)`;
  detailTitle.font={name:'Times New Roman',size:14,bold:true,color:{argb:'FF17365D'}};
  detailTitle.alignment={horizontal:'left',vertical:'middle'};
- ws.getRow(detailTitleRow).height=25;
+ ws.getRow(detailTitleRow).height=27;
  const detailHeaderRow=detailTitleRow+1;
- const detailHeaderValues=['Ngày OT','Mã nhân viên','Họ và tên','Nhóm','Số giờ OT','Ghi chú','Trạng thái',''];
- detailHeaderValues.forEach((value,i)=>{
-  const cell=ws.getCell(detailHeaderRow,i+1);
-  cell.value=value;
+ const detailGroups=[
+  {label:'Ngày OT',start:1,end:1},
+  {label:'Mã nhân viên',start:2,end:3},
+  {label:'Họ và tên',start:4,end:7},
+  {label:'Nhóm',start:8,end:9},
+  {label:'Số giờ OT',start:10,end:11},
+  {label:'Ghi chú',start:12,end:13},
+  {label:'Trạng thái',start:14,end:16}
+ ];
+ detailGroups.forEach(g=>{
+  if(g.end>g.start)ws.mergeCells(detailHeaderRow,g.start,detailHeaderRow,g.end);
+  const cell=ws.getCell(detailHeaderRow,g.start);
+  cell.value=g.label;
   cell.font={name:'Times New Roman',size:11,bold:true,color:{argb:'FFFFFFFF'}};
   cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF17365D'}};
   cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};
   cell.border=border;
  });
- ws.getRow(detailHeaderRow).height=28;
+ ws.getRow(detailHeaderRow).height=30;
  detailRecords.forEach((record,index)=>{
-  const row=ws.getRow(detailHeaderRow+1+index);
-  [record.date,record.code,record.name,record.team,record.hours,record.note,record.status,''].forEach((value,i)=>{
-   const cell=row.getCell(i+1);cell.value=value;
+  const rowNo=detailHeaderRow+1+index;
+  const values=[
+   {value:record.date,start:1,end:1},
+   {value:record.code,start:2,end:3},
+   {value:record.name,start:4,end:7},
+   {value:record.team,start:8,end:9},
+   {value:record.hours,start:10,end:11},
+   {value:record.note,start:12,end:13},
+   {value:record.status,start:14,end:16}
+  ];
+  values.forEach(item=>{
+   if(item.end>item.start)ws.mergeCells(rowNo,item.start,rowNo,item.end);
+   const cell=ws.getCell(rowNo,item.start);cell.value=item.value;
    cell.font={name:'Times New Roman',size:11};
-   cell.alignment={vertical:'middle',horizontal:'left'};
-   cell.border={bottom:{style:'thin',color:{argb:'FFD7E0EA'}}};
+   cell.alignment={vertical:'middle',horizontal:'left',wrapText:true};
+   cell.border={top:border.top,bottom:border.bottom,left:border.left,right:border.right};
   });
+  ws.getRow(rowNo).height=22;
  });
  if(!detailRecords.length){
-  ws.mergeCells(detailHeaderRow+1,1,detailHeaderRow+1,8);
+  ws.mergeCells(detailHeaderRow+1,1,detailHeaderRow+1,16);
   ws.getCell(detailHeaderRow+1,1).value='Không có nhân viên đăng ký OT trong khoảng ngày này';
   ws.getCell(detailHeaderRow+1,1).font={italic:true,color:{argb:'FF64748B'}};
  }
- ws.autoFilter={from:{row:detailHeaderRow,column:1},to:{row:detailHeaderRow+Math.max(detailRecords.length,1),column:8}};
 
  wb.xlsx.writeBuffer().then(buf=>{
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
