@@ -448,6 +448,14 @@ img, svg, canvas { max-width: 100%; }
   .detail-box { max-height:88vh; }
 }
 
+
+#mbo .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#mbo table th,#mbo table td{text-align:center;white-space:nowrap;padding:8px 7px}
+#mbo table th:nth-child(2),#mbo table td:nth-child(2),#mbo table th:nth-child(3),#mbo table td:nth-child(3){text-align:left}
+#mbo table select{min-width:72px;padding:7px 5px;font-size:13px}
+#mbo .mbo-saving{color:#92400e;font-size:11px}#mbo .mbo-saved{color:#166534;font-size:11px}
+@media(max-width:600px){#mbo .panel{padding:10px;margin:8px 0}#mbo .toolbar{align-items:stretch!important}#mbo #mboTitle{text-align:left!important;font-size:17px}#mbo #mboSearch{max-width:none!important;width:100%;min-height:42px}#mbo .toolbar .actions{width:100%;display:flex}#mbo .toolbar .actions label{flex:1}#mbo .toolbar .actions select{width:100%}#mbo table th,#mbo table td{padding:7px 6px;font-size:12px}#mbo table select{min-width:66px;min-height:38px}}
+
 </style>
 </head>
 <body>
@@ -469,6 +477,7 @@ img, svg, canvas { max-width: 100%; }
 <button data-view="employees">Nhân viên</button>
 <button data-view="attendance">Điểm danh</button>
 <button data-view="overtime">OT</button>
+<button data-view="mbo">MBO</button>
 </div>
 <button type="button" id="downloadOtImageReport" class="ot-image-nav-button" style="display:none;margin-left:auto">Tải ảnh báo cáo</button>
 <div id="employeeNavActions" class="employee-nav-actions">
@@ -700,6 +709,17 @@ img, svg, canvas { max-width: 100%; }
   <div class="actions" style="justify-content:flex-end;margin-top:14px"><button type="button" class="gray" id="closeOtExcelPreview2">Đóng</button><button type="button" class="gray" id="downloadOtImageFromPreview">Tải ảnh PNG</button><button type="button" id="downloadOtExcelFromPreview">Tải Excel</button></div>
  </div>
 </div>
+</section>
+<section id="mbo" class="view">
+ <div class="panel">
+  <div class="toolbar" style="align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+   <div><h3 id="mboTitle" style="margin:0 0 5px;text-align:center">ĐÁNH GIÁ MBO MM CA C NĂM 2026</h3><p class="note" style="margin:0">Danh sách nhân viên đang làm · Chính Thức · Ca C. Dữ liệu lấy trực tiếp từ tab Nhân viên.</p></div>
+   <div class="actions"><label style="margin:0">Năm đánh giá <select id="mboYear" style="min-width:105px"></select></label><button type="button" class="gray" id="mboRefresh">Làm mới</button></div>
+  </div>
+  <div class="toolbar" style="margin:12px 0"><b id="mboCount">0 nhân viên</b><input id="mboSearch" placeholder="Tìm ID hoặc họ tên" style="max-width:280px"></div>
+  <div class="scroll" id="mboTableScroll"><table id="mboTable" style="min-width:1050px;width:100%"><thead><tr><th>STT</th><th>ID</th><th>Họ Tên</th><th>Ca</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>T8</th><th>T9</th><th>T10</th><th>T11</th><th>T12</th></tr></thead><tbody id="mboBody"><tr><td colspan="16">Đang tải...</td></tr></tbody></table></div>
+  <p class="note" style="margin-top:10px">Xếp loại MBO: A+ (Xuất sắc), A, B+, B, C. Chọn xếp loại tại từng tháng để lưu tự động.</p>
+ </div>
 </section>
 </main>
 <script>
@@ -2548,6 +2568,43 @@ $('exportOtMultiDay').onclick=()=>{
  XLSX.writeFile(wb,`Danh_sach_nhan_vien_OT_${$('otMultiFrom').value}_${$('otMultiTo').value}.xlsx`);
 };
 
+
+// MBO: xếp loại theo từng nhân viên / tháng / năm, lưu riêng trên Supabase.
+const MBO_GRADES=[{value:'A+',label:'A+ · Xuất sắc'},{value:'A',label:'A'},{value:'B+',label:'B+'},{value:'B',label:'B'},{value:'C',label:'C'}];
+let mboRows=[],mboGrades=new Map();
+function mboYear(){return Number($('mboYear').value)||new Date().getFullYear()}
+function mboKey(employeeId,month){return `${employeeId}|${mboYear()}|${month}`}
+async function loadMboGrades(){
+ const {data,error}=await client.from('mbo_evaluations').select('employee_id,evaluation_year,evaluation_month,grade').eq('evaluation_year',mboYear());
+ if(error){$('mboBody').innerHTML=`<tr><td colspan="16">Không tải được dữ liệu MBO: ${safe(error.message)}. Kiểm tra đã chạy SQL tạo bảng MBO.</td></tr>`;return false}
+ mboGrades=new Map((data||[]).map(r=>[`${r.employee_id}|${r.evaluation_year}|${r.evaluation_month}`,r.grade]));return true;
+}
+function renderMbo(){
+ const q=($('mboSearch').value||'').trim().toLocaleLowerCase('vi');
+ mboRows=(allEmployees||[]).filter(e=>e.is_active!==false&&String(e.classification||'').trim().toLocaleLowerCase('vi')==='chính thức'&&String(e.shift||'A').toUpperCase()==='C')
+  .filter(e=>[e.employee_code,e.full_name].join(' ').toLocaleLowerCase('vi').includes(q))
+  .sort((a,b)=>String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'})||String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true}));
+ $('mboCount').textContent=`${mboRows.length} nhân viên chính thức Ca C`;
+ $('mboTitle').textContent=`ĐÁNH GIÁ MBO MM CA C NĂM ${mboYear()}`;
+ $('mboBody').innerHTML=mboRows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code||'')}</td><td>${safe(e.full_name||'')}</td><td><b>${safe(e.shift||'C')}</b></td>${Array.from({length:12},(_,idx)=>{const m=idx+1,key=mboKey(e.id,m),v=mboGrades.get(key)||'';return `<td><select aria-label="${safe(e.full_name)} tháng ${m}" data-mbo-employee="${safe(e.id)}" data-mbo-month="${m}"><option value="">--</option>${MBO_GRADES.map(g=>`<option value="${g.value}" ${v===g.value?'selected':''}>${g.value}</option>`).join('')}</select><small id="mboStatus_${safe(e.id)}_${m}" class="note"></small></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="16">Không có nhân viên chính thức Ca C đang làm.</td></tr>';
+}
+async function saveMboGrade(select){
+ const employee_id=select.dataset.mboEmployee,evaluation_month=Number(select.dataset.mboMonth),evaluation_year=mboYear(),grade=select.value;
+ const status=$(`mboStatus_${employee_id}_${evaluation_month}`);if(!grade){
+  const {error}=await client.from('mbo_evaluations').delete().eq('employee_id',employee_id).eq('evaluation_year',evaluation_year).eq('evaluation_month',evaluation_month);
+  if(error){alert('Không xóa được xếp loại MBO: '+error.message);return}mboGrades.delete(`${employee_id}|${evaluation_year}|${evaluation_month}`);if(status)status.textContent='';return;
+ }
+ if(status){status.textContent='Đang lưu...';status.className='mbo-saving'}
+ const {error}=await client.from('mbo_evaluations').upsert({employee_id,evaluation_year,evaluation_month,grade,updated_at:new Date().toISOString()},{onConflict:'employee_id,evaluation_year,evaluation_month'});
+ if(error){if(status){status.textContent='Lỗi lưu';status.className='mbo-saving'}alert('Không lưu được MBO: '+error.message);return}
+ mboGrades.set(`${employee_id}|${evaluation_year}|${evaluation_month}`,grade);if(status){status.textContent='Đã lưu';status.className='mbo-saved'}
+}
+$('mboYear').innerHTML=Array.from({length:5},(_,i)=>{const y=new Date().getFullYear()-2+i;return `<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`}).join('');
+$('mboYear').onchange=async()=>{await loadMboGrades();renderMbo()};
+$('mboSearch').oninput=renderMbo;
+$('mboRefresh').onclick=async()=>{await loadAll();await loadMboGrades();renderMbo()};
+$('mboBody').addEventListener('change',e=>{if(e.target.matches('select[data-mbo-employee]'))saveMboGrade(e.target)});
+
 function activateView(viewName, remember=true){
  const button=document.querySelector(`.tabs button[data-view="${viewName}"]`);
  const target=$(viewName);
@@ -2561,12 +2618,13 @@ function activateView(viewName, remember=true){
  if(viewName==='overtime'){
   refreshOvertimeData().then(ok=>{if(ok){renderOvertime();renderOtHistory()}});
  }
+ if(viewName==='mbo'){loadMboGrades().then(renderMbo);}
  if(remember)localStorage.setItem('mmManpowerActiveTab',viewName);
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>activateView(b.dataset.view));
 function restoreActiveView(){
  const saved=localStorage.getItem('mmManpowerActiveTab');
- const allowed=['dashboard','employees','attendance','overtime'];
+ const allowed=['dashboard','employees','attendance','overtime','mbo'];
  activateView(allowed.includes(saved)?saved:'dashboard',false);
 }
 const nowLocal=new Date();
