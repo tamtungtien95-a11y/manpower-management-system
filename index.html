@@ -716,7 +716,11 @@ img, svg, canvas { max-width: 100%; }
    <div><h3 id="mboTitle" style="margin:0 0 5px;text-align:center">ĐÁNH GIÁ MBO MM CA C NĂM 2026</h3></div>
    <div class="actions"><label style="margin:0">Năm đánh giá <select id="mboYear" style="min-width:105px"></select></label><button type="button" class="gray" id="mboRefresh">Làm mới</button></div>
   </div>
-  <div class="toolbar" style="margin:12px 0;justify-content:flex-end"><input id="mboSearch" placeholder="Tìm ID hoặc họ tên" style="max-width:280px"></div>
+  <div class="toolbar" style="margin:12px 0;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+   <label style="margin:0">Nhóm <select id="mboTeamFilter" style="min-width:145px"><option value="">Tất cả nhóm</option></select></label>
+   <input id="mboSearch" placeholder="Tìm ID hoặc họ tên" style="max-width:280px">
+   <button type="button" id="mboExport" class="primary">Tải Excel</button>
+  </div>
   <div class="scroll" id="mboTableScroll"><table id="mboTable" style="min-width:1050px;width:100%"><thead><tr><th>STT</th><th>ID</th><th>Họ Tên</th><th>Nhóm</th><th>Ca</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>T8</th><th>T9</th><th>T10</th><th>T11</th><th>T12</th></tr></thead><tbody id="mboBody"><tr><td colspan="17">Đang tải...</td></tr></tbody></table></div>
   <p class="note" style="margin-top:10px">Xếp loại MBO: A+ (Xuất sắc), A, B+, B, C. Chọn xếp loại tại từng tháng để lưu tự động.</p>
  </div>
@@ -2581,7 +2585,16 @@ async function loadMboGrades(){
 }
 function renderMbo(){
  const q=($('mboSearch').value||'').trim().toLocaleLowerCase('vi');
- mboRows=(allEmployees||[]).filter(e=>e.is_active!==false&&String(e.classification||'').trim().toLocaleLowerCase('vi')==='chính thức'&&String(e.shift||'A').toUpperCase()==='C')
+ const teamFilter=$('mboTeamFilter').value||'';
+ const eligible=(allEmployees||[]).filter(e=>e.is_active!==false&&String(e.classification||'').trim().toLocaleLowerCase('vi')==='chính thức'&&String(e.shift||'A').toUpperCase()==='C');
+ const teams=[...new Set(eligible.map(e=>String(e.team||'').trim()).filter(Boolean))];
+ const teamOrder=['Office','Kitting','Kititing','Rear','SEVT','Shipment'];
+ teams.sort((a,b)=>{const rank=v=>{const i=teamOrder.findIndex(t=>t.toLocaleLowerCase('vi')===v.toLocaleLowerCase('vi'));return i<0?teamOrder.length:i};return rank(a)-rank(b)||a.localeCompare(b,'vi')});
+ const tf=$('mboTeamFilter'),previous=teamFilter;
+ tf.innerHTML='<option value="">Tất cả nhóm</option>'+teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
+ tf.value=teams.includes(previous)?previous:'';
+ mboRows=eligible
+  .filter(e=>!tf.value||String(e.team||'').trim()===tf.value)
   .filter(e=>[e.employee_code,e.full_name].join(' ').toLocaleLowerCase('vi').includes(q))
   .sort((a,b)=>{
    // Đồng bộ thứ tự nhóm với tab Nhân viên: Office -> Kitting -> Rear -> SEVT; nhóm khác ở cuối.
@@ -2593,7 +2606,7 @@ function renderMbo(){
     ||String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true});
   });
  $('mboTitle').textContent=`ĐÁNH GIÁ MBO MM CA C NĂM ${mboYear()}`;
- $('mboBody').innerHTML=mboRows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code||'')}</td><td>${safe(e.full_name||'')}</td><td>${teamTag(e.team||'')}</td><td><b>${safe(e.shift||'C')}</b></td>${Array.from({length:12},(_,idx)=>{const m=idx+1,key=mboKey(e.id,m),v=mboGrades.get(key)||'';return `<td><select aria-label="${safe(e.full_name)} tháng ${m}" data-mbo-employee="${safe(e.id)}" data-mbo-month="${m}"><option value="">--</option>${MBO_GRADES.map(g=>`<option value="${g.value}" ${v===g.value?'selected':''}>${g.value}</option>`).join('')}</select><small id="mboStatus_${safe(e.id)}_${m}" class="note"></small></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="17">Không có nhân viên chính thức Ca C đang làm.</td></tr>';
+ $('mboBody').innerHTML=mboRows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code||'')}</td><td>${safe(e.full_name||'')}</td><td>${teamTag(e.team||'')}</td><td><b>${safe(e.shift||'C')}</b></td>${Array.from({length:12},(_,idx)=>{const m=idx+1,key=mboKey(e.id,m),v=mboGrades.get(key)||'';return `<td><select aria-label="${safe(e.full_name)} tháng ${m}" data-mbo-employee="${safe(e.id)}" data-mbo-month="${m}"><option value=""></option>${MBO_GRADES.map(g=>`<option value="${g.value}" ${v===g.value?'selected':''}>${g.value}</option>`).join('')}</select><small id="mboStatus_${safe(e.id)}_${m}" class="note"></small></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="17">Không có nhân viên chính thức Ca C đang làm.</td></tr>';
 }
 async function saveMboGrade(select){
  const employee_id=select.dataset.mboEmployee,evaluation_month=Number(select.dataset.mboMonth),evaluation_year=mboYear(),grade=select.value;
@@ -2609,8 +2622,24 @@ async function saveMboGrade(select){
 $('mboYear').innerHTML=Array.from({length:5},(_,i)=>{const y=new Date().getFullYear()-2+i;return `<option value="${y}" ${y===new Date().getFullYear()?'selected':''}>${y}</option>`}).join('');
 $('mboYear').onchange=async()=>{await loadMboGrades();renderMbo()};
 $('mboSearch').oninput=renderMbo;
+$('mboTeamFilter').onchange=renderMbo;
 $('mboRefresh').onclick=async()=>{await loadAll();await loadMboGrades();renderMbo()};
 $('mboBody').addEventListener('change',e=>{if(e.target.matches('select[data-mbo-employee]'))saveMboGrade(e.target)});
+function exportMboExcel(){
+ const year=mboYear(), rows=mboRows.map((e,i)=>({
+  'STT':i+1,'ID':e.employee_code||'','Họ Tên':e.full_name||'','Nhóm':e.team||'','Ca':e.shift||'C',
+  ...Object.fromEntries(Array.from({length:12},(_,idx)=>[`T${idx+1}`,mboGrades.get(`${e.id}|${year}|${idx+1}`)||'']))
+ }));
+ const headers=['STT','ID','Họ Tên','Nhóm','Ca',...Array.from({length:12},(_,i)=>`T${i+1}`)];
+ const ws=XLSX.utils.aoa_to_sheet([[`ĐÁNH GIÁ MBO MM CA C NĂM ${year}`],headers,...rows.map(r=>headers.map(h=>r[h]??''))]);
+ ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:16}}];
+ ws['!cols']=[{wch:7},{wch:14},{wch:26},{wch:16},{wch:8},...Array(12).fill({wch:9})];
+ ws['!autofilter']={ref:`A2:Q${Math.max(2,rows.length+2)}`};
+ ws['!freeze']={xSplit:5,ySplit:2,topLeftCell:'F3',activePane:'bottomRight',state:'frozen'};
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'MBO');
+ XLSX.writeFile(wb,`Danh_gia_MBO_MM_Ca_C_${year}.xlsx`);
+}
+$('mboExport').onclick=exportMboExcel;
 
 function activateView(viewName, remember=true){
  const button=document.querySelector(`.tabs button[data-view="${viewName}"]`);
