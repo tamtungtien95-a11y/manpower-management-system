@@ -463,6 +463,7 @@ img, svg, canvas { max-width: 100%; }
 <div><label>Mã Nhân Viên</label><input id="empCode" required></div>
 <div><label>Họ Và tên</label><input id="empName" required></div>
 <div><label>Nhóm</label><select id="empTeam"></select></div>
+<div><label>Ca làm việc</label><select id="empShift"><option value="C">Ca C</option><option value="A">Ca A</option><option value="B">Ca B</option></select></div>
 <div><label>Phân Loại</label><select id="empClassification"><option>Chính Thức</option><option>Thời Vụ</option><option>Sinh Viên</option></select></div>
 </div><input type="hidden" id="editId">
 <div class="actions" style="margin-top:12px"><button id="saveEmpBtn">Thêm nhân viên</button><button type="button" class="gray hidden" id="cancelEdit">Hủy</button></div></form>
@@ -482,8 +483,8 @@ img, svg, canvas { max-width: 100%; }
 <div id="excelInfo" class="message"></div>
 <div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
 <div class="actions" style="margin-top:12px"><button type="button" id="applyExcel">Cập nhật lên Supabase</button><button type="button" class="gray" id="cancelExcel">Hủy</button></div></div>
-<div class="toolbar"><b>Danh sách nhân viên</b><input id="empSearch" placeholder="Tìm mã hoặc họ tên"></div>
-<div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Vào Cty</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Phân Loại</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
+<div class="toolbar"><b>Danh sách nhân viên đang làm</b><button type="button" class="gray" id="toggleFormerEmployees">Xem nhân viên đã nghỉ</button><input id="empSearch" placeholder="Tìm mã hoặc họ tên"></div>
+<div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Vào Cty</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Ca</th><th>Phân Loại</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
 </div></section>
 <section id="attendance" class="view">
 <div class="panel">
@@ -666,24 +667,15 @@ async function loadAll(){
 let inlineEditingEmployeeId=null;
 function renderEmployees(){
  const q=$('empSearch').value.toLowerCase();
- // Hiển thị cả nhân viên đang làm và đã tắt để có thể bật lại.
- const sourceEmployees=(allEmployees&&allEmployees.length?allEmployees:employees);
+ const showFormer=!!window.showFormerEmployees;
+ const sourceEmployees=(allEmployees&&allEmployees.length?allEmployees:employees).filter(x=>showFormer?x.is_active===false:x.is_active!==false);
  const rows=sourceEmployees
   .filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q))
   .sort((a,b)=>{
-   // Thứ tự hiển thị cố định: nhân viên đang hoạt động trước, sau đó theo nhóm và phân loại.
-   const groupOrder=['Office','Kitting','Rear','Shipment','SEVT'];
-   const classOrder=['Chính Thức','Thời Vụ','Sinh Viên'];
-   const ai=groupOrder.indexOf(String(a.team||'').trim());
-   const bi=groupOrder.indexOf(String(b.team||'').trim());
-   const ag=ai<0?groupOrder.length:ai, bg=bi<0?groupOrder.length:bi;
-   const activeCompare=Number(a.is_active===false)-Number(b.is_active===false);
-   if(activeCompare!==0)return activeCompare;
-   if(ag!==bg)return ag-bg;
-   const ac=classOrder.indexOf(String(a.classification||'').trim());
-   const bc=classOrder.indexOf(String(b.classification||'').trim());
-   const acr=ac<0?classOrder.length:ac, bcr=bc<0?classOrder.length:bc;
-   if(acr!==bcr)return acr-bcr;
+   const shiftOrder=['C','A','B'];
+   const as=shiftOrder.indexOf(String(a.shift||'A').toUpperCase()), bs=shiftOrder.indexOf(String(b.shift||'A').toUpperCase());
+   const ash=as<0?shiftOrder.length:as, bsh=bs<0?shiftOrder.length:bs;
+   if(ash!==bsh)return ash-bsh;
    const byName=String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'});
    if(byName!==0)return byName;
    return String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
@@ -696,13 +688,13 @@ function renderEmployees(){
     <td><input id="inlineCode_${x.id}" value="${safe(x.employee_code)}"></td>
     <td><input id="inlineName_${x.id}" value="${safe(x.full_name)}"></td>
     <td><select id="inlineTeam_${x.id}">${teamOpts}</select></td>
-    <td><select id="inlineClass_${x.id}">${['Chính Thức','Thời Vụ','Sinh Viên'].map(c=>`<option ${x.classification===c?'selected':''}>${c}</option>`).join('')}</select></td>
+    <td><select id="inlineShift_${x.id}">${['C','A','B'].map(c=>`<option value="${c}" ${(x.shift||'A')===c?'selected':''}>Ca ${c}</option>`).join('')}</select></td><td><select id="inlineClass_${x.id}">${['Chính Thức','Thời Vụ','Sinh Viên'].map(c=>`<option ${x.classification===c?'selected':''}>${c}</option>`).join('')}</select></td>
     <td><div class="actions"><button type="button" onclick="saveInlineEmployee('${x.id}')">Cập nhật</button><button type="button" class="gray" onclick="cancelInlineEmployee()">Hủy</button></div></td>
    </tr>`;
   }
   const inactive=x.is_active===false;
-  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td>${safe(x.classification||'')} ${inactive?'<span class="badge-inactive">Đã tắt</span>':''}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
- }).join('')||'<tr><td colspan="7">Chưa có nhân viên</td></tr>';
+  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td><b>Ca ${safe(x.shift||'A')}</b></td><td>${safe(x.classification||'')} ${inactive?'<span class="badge-inactive">Đã tắt</span>':''}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
+ }).join('')||'<tr><td colspan="8">Chưa có nhân viên</td></tr>';
 }
 let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
 let teamMasterAvailable=true;
@@ -1263,6 +1255,7 @@ window.saveInlineEmployee=async id=>{
   employee_code:$(`inlineCode_${id}`).value.trim(),
   full_name:$(`inlineName_${id}`).value.trim(),
   team:$(`inlineTeam_${id}`).value,
+  shift:$(`inlineShift_${id}`).value,
   classification:$(`inlineClass_${id}`).value
  };
  if(!data.employee_code||!data.full_name){alert('Mã nhân viên và họ tên không được để trống.');return}
@@ -1273,7 +1266,7 @@ window.saveInlineEmployee=async id=>{
 $('employeeForm').onsubmit=async ev=>{
  ev.preventDefault();
  const id=$('editId').value.trim();
- const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),team:$('empTeam').value,classification:$('empClassification').value};
+ const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),team:$('empTeam').value,shift:$('empShift').value,classification:$('empClassification').value};
  if(!data.employee_code||!data.full_name){alert('Mã nhân viên và họ tên không được để trống.');return}
  const saveButton=$('saveEmpBtn');saveButton.disabled=true;
  const result=id
@@ -1665,7 +1658,9 @@ $('downloadTemplate').onclick=()=>exportWorkbook([
 ],'Mau_danh_sach_nhan_vien.xlsx');
 $('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':x.hire_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'Nhóm':x.team,'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
 
-$('empSearch').oninput=renderEmployees;$('summaryDate').onchange=renderDashboard;
+$('empSearch').oninput=renderEmployees;
+window.showFormerEmployees=false;
+$('toggleFormerEmployees').onclick=()=>{window.showFormerEmployees=!window.showFormerEmployees;$('toggleFormerEmployees').textContent=window.showFormerEmployees?'Quay lại danh sách đang làm':'Xem nhân viên đã nghỉ';$('empSearch').value='';renderEmployees()};$('summaryDate').onchange=renderDashboard;
 
 // ===== BAO CAO TIEU CHUAN OT CA C =====
 const OT_REPORT_HOURS=['1','1.4','1.5','2','2.5','3'];
