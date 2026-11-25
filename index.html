@@ -470,7 +470,8 @@ table thead th.mm-sortable::after{content:attr(data-mm-sort-indicator);position:
 <!-- MM-DASHBOARD-DETAIL-LISTS-HIDE-REASON-COLUMN-v1 -->
 <!-- MM-TABLES-SORTABLE-AZ-ZA-v1 -->
 <!-- MM-AUTO-GROUP-ORDER-AND-AZ-DISPLAY-EXPORT-v1 -->
-<!-- MM-ATTENDANCE-REMOVE-REASON-COLUMN-INPUT-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
+<!-- MM-ATTENDANCE-REMOVE-REASON-COLUMN-INPUT-v1 -->
+<!-- MM-OT-AUTOSELECT-MOVE-TOP-AZ-NO-CHECKBOX-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
 </head>
 <body>
 <header><div><h1>HỆ THỐNG QUẢN LÝ NHÂN LỰC</h1><p>Quản lý nhân viên theo nhóm Kitting / Shipment / Shift LD / Item</p></div><div id="userArea"></div></header>
@@ -687,7 +688,7 @@ table thead th.mm-sortable::after{content:attr(data-mm-sort-indicator);position:
     <button type="button" id="otSaveAll">Lưu tất cả OT đã chọn</button>
    </div>
   </div>
-  <div class="scroll"><table><thead><tr><th><input type="checkbox" id="otSelectVisible" aria-label="Chọn tất cả nhân viên đang hiển thị"></th><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="otBody"></tbody></table></div>
+  <div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Số giờ OT</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="otBody"></tbody></table></div>
  </div>
  
 <div class="panel" id="otMultiDayPanel">
@@ -1610,7 +1611,7 @@ $('attendanceQuickStatus').onchange=()=>{
   const rowSelect=document.querySelector(`#attendanceBody .attendance-status[data-employee-id="${CSS.escape(String(id))}"]`);
   if(rowSelect)rowSelect.value=status;
  });
- $('attendanceQuickMessage').textContent=`Đã tự động áp dụng "${status}" cho ${selected.length} nhân viên đã tích. Nhấn "Lưu điểm danh" để lưu dữ liệu.`;
+ $('attendanceQuickMessage').textContent=`Đã tự động áp dụng "${status}" cho ${selected.length} nhân viên đã chọn OT. Nhấn "Lưu điểm danh" để lưu dữ liệu.`;
  $('attendanceQuickMessage').classList.remove('hidden');
  renderAttendance();
  $('attendanceQuickStatus').value='';
@@ -2388,14 +2389,14 @@ $('otQuickHours').onchange=()=>{
  initOtDraftForDate(date);
  const selected=[...otDraft.values()].filter(v=>v.date===date&&v.selected);
  if(!selected.length){
-  alert('Vui lòng tích chọn nhân viên cần áp dụng số giờ OT.');
+  alert('Vui lòng chọn giờ OT cho nhân viên trước, hoặc chọn giờ trực tiếp tại từng dòng.');
   $('otQuickHours').value='';
   return;
  }
  selected.forEach(v=>{v.hours=hours;otDraft.set(otDraftKey(date,v.employee_id),v);});
  renderOvertime();
  $('otQuickHours').value='';
- $('appMsg').textContent=`Đã tự động áp dụng ${hours} cho ${selected.length} nhân viên đã tích. Nhấn "Lưu tất cả OT đã chọn" để lưu.`;
+ $('appMsg').textContent=`Đã tự động áp dụng ${hours} cho ${selected.length} nhân viên đã chọn OT. Nhấn "Lưu tất cả OT đã chọn" để lưu.`;
 };
 
 $('otDate').value=new Date().toLocaleDateString('en-CA');
@@ -2441,21 +2442,24 @@ function renderOvertime(){
  initOtDraftForDate(d);
  const rows=workingEmployeesOn(d)
   .filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team,x.classification].join(' ').toLowerCase().includes(q)))
-  .sort(compareOtEmployeeOrder);
+  .sort((a,b)=>{
+   const av=otDraft.get(otDraftKey(d,a.id))||{},bv=otDraft.get(otDraftKey(d,b.id))||{};
+   if(!!av.selected!==!!bv.selected)return av.selected?-1:1;
+   return compareOtEmployeeOrder(a,b);
+  });
  $('otBody').innerHTML=rows.map((x,i)=>{
   const key=otDraftKey(d,x.id),v=otDraft.get(key)||{};
   const saved=latestOtRecordForEmployee(d,x.id);
-  const hoursOptions=['','1','1.4','1.5','2','2.5','3','4','5'].map(h=>`<option value="${h}" ${h&&(sameOtHour(v.hours,h)||sameOtHour(saved?.hours,h))?'selected':''}>${h||'-- Chọn giờ --'}</option>`).join('');
+  const currentHours=Object.prototype.hasOwnProperty.call(v,'hours')?v.hours:(saved?.hours||'');
+  const hoursOptions=['','1','1.4','1.5','2','2.5','3','4','5'].map(h=>`<option value="${h}" ${h?(sameOtHour(currentHours,h)?'selected':''):(!currentHours?'selected':'')}>${h||'-- Chọn giờ --'}</option>`).join('');
   return `<tr>
-   <td><input type="checkbox" ${v.selected?'checked':''} onchange="setOtSelected('${x.id}',this.checked)" aria-label="Chọn ${safe(x.full_name)}"></td>
    <td>${i+1}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td>
    <td><select onchange="setOtField('${x.id}','hours',this.value)">${hoursOptions}</select></td>
    <td><select onchange="setOtField('${x.id}','note',this.value)"><option value="" ${!v.note?'selected':''}>-- Chọn ghi chú --</option><option value="KHSX" ${v.note==='KHSX'?'selected':''}>KHSX</option><option value="Vượt OT" ${v.note==='Vượt OT'?'selected':''}>Vượt OT</option></select></td>
    <td>${saved?'<span class="tag" style="background:#dcfce7;color:#166534;border:1px solid #86efac">✓ Đã đăng ký</span>':(v.selected?'<span class="tag">Đang chọn</span>':'—')}</td>
    <td>${saved?`<button type="button" class="red" onclick="removeSavedOt('${saved.id}')">Xóa OT</button>`:'—'}</td>
   </tr>`;
- }).join('')||'<tr><td colspan="9">Không có nhân viên Đi Làm hoặc Nghỉ Nửa Ngày Đầu trong ngày/nhóm đã chọn</td></tr>';
- $('otSelectVisible').checked=rows.length>0&&rows.every(x=>otDraft.get(otDraftKey(d,x.id))?.selected);
+ }).join('')||'<tr><td colspan="8">Không có nhân viên Đi Làm hoặc Nghỉ Nửa Ngày Đầu trong ngày/nhóm đã chọn</td></tr>';
  updateOtSelectedCount();
  renderOtHistory();
 }
@@ -2548,12 +2552,11 @@ if($('otTeam'))$('otTeam').onchange=renderOvertime;
 if($('otSearch'))$('otSearch').oninput=renderOvertime;
 if($('otSelectAll'))$('otSelectAll').onclick=()=>{const d=$('otDate')?.value||'';initOtDraftForDate(d);workingEmployeesOn(d).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=true});renderOvertime()};
 if($('otClearAll'))$('otClearAll').onclick=()=>{const d=$('otDate')?.value||'';for(const v of otDraft.values())if(v.date===d)v.selected=false;renderOvertime()};
-$('otSelectVisible').onchange=()=>{const d=$('otDate').value,team=$('otTeam').value,q=$('otSearch').value.toLowerCase();workingEmployeesOn(d).filter(x=>(!team||x.team===team)&&([x.employee_code,x.full_name,x.team].join(' ').toLowerCase().includes(q))).forEach(e=>{const v=otDraft.get(otDraftKey(d,e.id));if(v)v.selected=$('otSelectVisible').checked});renderOvertime()};
 if($('otFilterDate'))$('otFilterDate').onchange=async()=>{if(await refreshOvertimeData()){renderOtHistory();renderOtStandards()}};
 if($('otFilterTeam'))$('otFilterTeam').onchange=renderOtHistory;
 if($('otHistorySearch'))$('otHistorySearch').oninput=renderOtHistory;
 $('otSaveAll').onclick=async()=>{
- const d=$('otDate').value,selected=[...otDraft.values()].filter(v=>v.date===d&&v.selected);
+ const d=$('otDate').value,selected=[...otDraft.values()].filter(v=>v.date===d&&v.selected&&String(v.hours||'').trim()!=='');
  if(!selected.length){alert('Bạn chưa chọn nhân viên nào để đăng ký OT.');return}
  const invalid=selected.find(v=>!OT_HOURS.includes(String(normalizeOtHour(v.hours))));
  if(invalid){const e=employees.find(x=>String(x.id)===String(invalid.employee_id));alert(`Vui lòng chọn số giờ OT cho ${e?.full_name||'nhân viên'} trước khi lưu.`);return}
