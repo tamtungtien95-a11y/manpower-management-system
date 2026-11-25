@@ -1,3 +1,4 @@
+<!-- MM-EMPLOYEE-COUNT-SYNC-AND-MOVED-HC-BREAKDOWN-v13 -->
 <!-- MM-REMOVE-DAILY-REPORT-ADD-OT-ATTENDANCE-BULK-SAVE-v12 -->
 <!-- MM-DASHBOARD-ONLY-EXPORT-FIX-AND-DOWNLOAD-RELIABILITY-v11 -->
 <!-- MM-DASHBOARD-ONLY-EXPORT-BUTTON-v10 -->
@@ -536,14 +537,15 @@ img, svg, canvas { max-width: 100%; }
  <div class="card metric"><span>Sinh Viên</span><strong id="dashStudent">0</strong><small>Nhân viên sinh viên</small></div>
  <div class="card metric"><span>Đi Làm</span><strong id="dashWork">0</strong><small id="dashWorkRate">0% tổng nhân viên</small></div>
  <div class="card metric"><span>Nghỉ (tất cả loại)</span><strong id="dashLeave">0</strong><small id="dashLeaveRate">0% tổng nhân viên</small></div>
+ <div class="card metric"><span>Đổi Về HC</span><strong id="dashMovedHC">0</strong><small id="dashMovedHCRate">0% tổng nhân viên</small></div>
  <div class="card metric"><span>Chưa điểm danh</span><strong id="dashPending">0</strong><small id="dashPendingRate">0% tổng nhân viên</small></div>
 </div>
 <div class="panel team-chart-panel">
- <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Biểu đồ nhân viên đi làm và nghỉ theo nhóm</h3><p class="note" style="margin:0">So sánh số nhân viên đi làm và nghỉ trong ngày được chọn. Chưa điểm danh không tính vào cột nghỉ.</p></div></div>
+ <div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Biểu đồ nhân viên đi làm và nghỉ theo nhóm</h3><p class="note" style="margin:0">So sánh số nhân viên đi làm và nghỉ trong ngày được chọn. Chưa điểm danh và Đổi Về HC được thống kê riêng, không tính vào cột nghỉ.</p></div></div>
  <div class="chart-legend" aria-label="Chú giải biểu đồ"><span><i class="legend-dot" style="background:#2563eb"></i>Đi Làm</span><span><i class="legend-dot" style="background:#f59e0b"></i>Nghỉ (tất cả loại)</span></div>
  <div id="teamWorkChart" class="team-work-chart" role="img" aria-label="Biểu đồ cột so sánh nhân viên đi làm và nghỉ theo nhóm"></div>
 </div>
-<div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
+<div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Đổi Về HC</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
 <div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 <div id="reportImagePreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reportImagePreviewTitle"><div class="detail-box report-image-preview-box"><div class="detail-head"><div><h3 id="reportImagePreviewTitle">Xem trước ảnh báo cáo</h3><p class="note" style="margin:5px 0 0">Kiểm tra ảnh báo cáo tổng hợp theo nhóm trước khi tải về máy.</p></div><button type="button" class="gray" id="closeReportImagePreview">Đóng</button></div><div id="reportImagePreviewContent" class="report-image-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="reportImageStatus" class="note" style="margin-top:9px"></div><div class="report-image-actions"><button type="button" class="gray" id="cancelReportImagePreview">Đóng</button><button type="button" id="downloadReportImage" class="report-image-button">Tải ảnh PNG</button></div></div></div>
 </section>
@@ -846,8 +848,7 @@ function dashboardRows(){
  // Dashboard luôn phản ánh danh sách nhân viên đang làm hiện tại giống tab Nhân viên.
  // Nhân viên đã tắt/nghỉ việc không được cộng vào tổng, kể cả khi chọn ngày báo cáo cũ.
  const reportEmployees=(employees||[]).filter(e=>e.is_active!==false);
- return reportEmployees.map(e=>({...e,attendance:byEmployee.get(String(e.id))||null,status:byEmployee.get(String(e.id))?.status||'Chưa điểm danh'}))
-  .filter(e=>e.status!=='Đổi Về HC');
+ return reportEmployees.map(e=>({...e,attendance:byEmployee.get(String(e.id))||null,status:byEmployee.get(String(e.id))?.status||'Chưa điểm danh'}));
 }
 function showDashboardDetails(kind,value,team=''){
  const rows=dashboardRows().filter(e=>(!team||e.team===team)&&(kind==='team'?true:e.status===value));
@@ -942,7 +943,7 @@ async function exportTeamSummaryExcel(){
  }
 
  // Bảng nhân viên nghỉ: sắp xếp theo nhóm, sau đó Chính Thức -> Thời Vụ -> Sinh Viên.
- const leaveRows=rows.filter(e=>e.status && e.status!=='Đi Làm' && e.status!=='Chưa điểm danh')
+ const leaveRows=rows.filter(e=>e.status && e.status!=='Đi Làm' && e.status!=='Chưa điểm danh' && e.status!=='Đổi Về HC')
   .sort((a,b)=>{
    const teamDiff=teamOrder.indexOf(a.team)-teamOrder.indexOf(b.team);
    if(teamDiff!==0)return teamDiff;
@@ -1107,14 +1108,15 @@ function buildWorkforceReportImageData(){
  const dateText=date?date.split('-').reverse().join('/'):'(chưa chọn ngày)';
  const count=(list,status)=>list.filter(e=>e.status===status).length;
  const work=count(rows,'Đi Làm'), pending=count(rows,'Chưa điểm danh');
- const leaveRows=rows.filter(e=>e.status && e.status!=='Đi Làm' && e.status!=='Chưa điểm danh')
+ const movedHCRows=rows.filter(e=>e.status==='Đổi Về HC');
+ const leaveRows=rows.filter(e=>e.status && e.status!=='Đi Làm' && e.status!=='Chưa điểm danh' && e.status!=='Đổi Về HC')
   .sort((a,b)=>teamOrder.indexOf(a.team)-teamOrder.indexOf(b.team) || String(a.full_name||'').localeCompare(String(b.full_name||''),'vi'));
  const lines=['BÁO CÁO NHÂN LỰC MM CA C',`Ngày báo cáo: ${dateText}`,'',
   `TỔNG NHÂN LỰC: ${rows.length}`,
   `Chính Thức: ${rows.filter(e=>(e.classification||'').trim()==='Chính Thức').length}`,
   `Thời Vụ: ${rows.filter(e=>(e.classification||'').trim()==='Thời Vụ').length}`,
   `Sinh Viên: ${rows.filter(e=>(e.classification||'').trim()==='Sinh Viên').length}`,
-  `Đi Làm: ${work}`,`Nghỉ: ${leaveRows.length}`,`Chưa điểm danh: ${pending}`,'',
+  `Đi Làm: ${work}`,`Nghỉ: ${leaveRows.length}`,`Đổi Về HC: ${movedHCRows.length}`,`Chưa điểm danh: ${pending}`,'',
   'TỔNG HỢP THEO NHÓM','Nhóm | Tổng NV | Đi Làm | Thiếu | Tỷ lệ đi làm'];
  const groupRows=teamOrder.map(team=>{const g=rows.filter(e=>e.team===team), total=g.length, w=count(g,'Đi Làm');return {team,total,work:w,shortage:w-total,rate:total?(w/total*100).toFixed(1)+'%':''};});
  groupRows.forEach(x=>lines.push(`${x.team} | ${x.total} | ${x.work} | ${x.shortage} | ${x.rate}`));
@@ -1244,21 +1246,21 @@ function renderDashboard(){
  const d=$('summaryDate').value, rows=dashboardRows(), total=rows.length;
  renderTeamWorkChart(rows);
  const countStatus=status=>rows.filter(e=>e.status===status).length;
- const work=countStatus('Đi Làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi Làm'&&s!=='Đổi Về HC').reduce((n,s)=>n+countStatus(s),0), pending=countStatus('Chưa điểm danh');
+ const work=countStatus('Đi Làm'), leave=ATTENDANCE_STATUSES.filter(s=>s!=='Đi Làm'&&s!=='Đổi Về HC').reduce((n,s)=>n+countStatus(s),0), movedHC=countStatus('Đổi Về HC'), pending=countStatus('Chưa điểm danh');
  const countClass=classification=>rows.filter(e=>(e.classification||'').trim()===classification).length;
   $('dashTotal').textContent=total;
   $('dashOfficial').textContent=countClass('Chính Thức');
   $('dashSeasonal').textContent=countClass('Thời Vụ');
   $('dashStudent').textContent=countClass('Sinh Viên');
-  $('dashWork').textContent=work;$('dashLeave').textContent=leave;$('dashPending').textContent=pending;
- $('dashWorkRate').textContent=`${pct(work,total)} tổng nhân viên`;$('dashLeaveRate').textContent=`${pct(leave,total)} tổng nhân viên`;$('dashPendingRate').textContent=`${pct(pending,total)} tổng nhân viên`;
+  $('dashWork').textContent=work;$('dashLeave').textContent=leave;$('dashMovedHC').textContent=movedHC;$('dashPending').textContent=pending;
+ $('dashWorkRate').textContent=`${pct(work,total)} tổng nhân viên`;$('dashLeaveRate').textContent=`${pct(leave,total)} tổng nhân viên`;$('dashMovedHCRate').textContent=`${pct(movedHC,total)} tổng nhân viên`;$('dashPendingRate').textContent=`${pct(pending,total)} tổng nhân viên`;
  $('teamSummaryBody').innerHTML=TEAMS.map(team=>{
   const group=rows.filter(e=>e.team===team), n=group.length;
   const cell=(st)=>{const c=group.filter(e=>e.status===st).length;return `<td><button class="click-count" onclick="showDashboardDetails('status','${safe(st)}','${safe(team)}')">${c}</button></td>`};
-  return `<tr><td>${teamTag(team)}</td><td><button class="click-count" onclick="showDashboardDetails('team','','${safe(team)}')">${n}</button></td>${cell('Đi Làm')}${cell('Nghỉ Tự Do')}${cell('Nghỉ Phép')}${cell('Nghỉ Không Lương')}${cell('Nghỉ 1/2 Ngày')}${cell('Nghỉ Nửa Ngày Đầu')}${cell('Nghỉ Nửa Ngày Sau')}${cell('Nghỉ KHSX')}${cell('Chưa điểm danh')}<td class="rate">${pct(group.filter(e=>e.status==='Đi Làm').length,n)}</td></tr>`;
+  return `<tr><td>${teamTag(team)}</td><td><button class="click-count" onclick="showDashboardDetails('team','','${safe(team)}')">${n}</button></td>${cell('Đi Làm')}${cell('Nghỉ Tự Do')}${cell('Nghỉ Phép')}${cell('Nghỉ Không Lương')}${cell('Nghỉ 1/2 Ngày')}${cell('Nghỉ Nửa Ngày Đầu')}${cell('Nghỉ Nửa Ngày Sau')}${cell('Nghỉ KHSX')}${cell('Đổi Về HC')}${cell('Chưa điểm danh')}<td class="rate">${pct(group.filter(e=>e.status==='Đi Làm').length,n)}</td></tr>`;
  }).join('');
  const totalWork=work;
- $('teamSummaryFoot').innerHTML=`<tr><th>Tổng cộng</th><th>${total}</th><th>${totalWork}</th><th>${countStatus('Nghỉ Tự Do')}</th><th>${countStatus('Nghỉ Phép')}</th><th>${countStatus('Nghỉ Không Lương')}</th><th>${countStatus('Nghỉ 1/2 Ngày')}</th><th>${countStatus('Nghỉ Nửa Ngày Đầu')}</th><th>${countStatus('Nghỉ Nửa Ngày Sau')}</th><th>${countStatus('Nghỉ KHSX')}</th><th>${pending}</th><th class="rate">${pct(totalWork,total)}</th></tr>`;
+ $('teamSummaryFoot').innerHTML=`<tr><th>Tổng cộng</th><th>${total}</th><th>${totalWork}</th><th>${countStatus('Nghỉ Tự Do')}</th><th>${countStatus('Nghỉ Phép')}</th><th>${countStatus('Nghỉ Không Lương')}</th><th>${countStatus('Nghỉ 1/2 Ngày')}</th><th>${countStatus('Nghỉ Nửa Ngày Đầu')}</th><th>${countStatus('Nghỉ Nửa Ngày Sau')}</th><th>${countStatus('Nghỉ KHSX')}</th><th>${movedHC}</th><th>${pending}</th><th class="rate">${pct(totalWork,total)}</th></tr>`;
 }
 $('closeDashboardDetail').onclick=()=>$('dashboardDetail').classList.add('hidden');
 $('dashboardDetail').addEventListener('click',ev=>{if(ev.target.id==='dashboardDetail')$('dashboardDetail').classList.add('hidden')});
