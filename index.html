@@ -458,10 +458,19 @@ img, svg, canvas { max-width: 100%; }
 @media(max-width:600px){#mbo .panel{padding:10px;margin:8px 0}#mbo .toolbar{align-items:stretch!important}#mbo #mboTitle{text-align:left!important;font-size:17px}#mbo #mboSearch{max-width:none!important;width:100%;min-height:42px}#mbo .toolbar .actions{width:100%;display:flex}#mbo .toolbar .actions label{flex:1}#mbo .toolbar .actions select{width:100%}#mbo table th,#mbo table td{padding:7px 6px;font-size:12px}#mbo table select{min-width:66px;min-height:38px}}
 
  .dashboard-click-card{cursor:pointer;transition:box-shadow .15s,transform .15s}.dashboard-click-card:hover{box-shadow:0 4px 14px rgba(15,23,42,.12);transform:translateY(-1px)} .dashboard-click-card:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+
+/* Sắp xếp A-Z cho các bảng dữ liệu */
+table thead th.mm-sortable{cursor:pointer;user-select:none;position:relative;padding-right:18px}
+table thead th.mm-sortable:hover{filter:brightness(.94);text-decoration:underline}
+table thead th.mm-sortable::after{content:attr(data-mm-sort-indicator);position:absolute;right:5px;opacity:.8;font-size:11px}
+
 </style>
 <!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
 <!-- MM-DASHBOARD-ALL-METRIC-CARDS-CLICKABLE-v2 -->
-<!-- MM-DASHBOARD-DETAIL-LISTS-HIDE-REASON-COLUMN-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
+<!-- MM-DASHBOARD-DETAIL-LISTS-HIDE-REASON-COLUMN-v1 -->
+<!-- MM-TABLES-SORTABLE-AZ-ZA-v1 -->
+<!-- MM-AUTO-GROUP-ORDER-AND-AZ-DISPLAY-EXPORT-v1 -->
+<!-- MM-ATTENDANCE-REMOVE-REASON-COLUMN-INPUT-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
 </head>
 <body>
 <header><div><h1>HỆ THỐNG QUẢN LÝ NHÂN LỰC</h1><p>Quản lý nhân viên theo nhóm Kitting / Shipment / Shift LD / Item</p></div><div id="userArea"></div></header>
@@ -615,7 +624,7 @@ img, svg, canvas { max-width: 100%; }
 </div>
 <div id="attendanceQuickMessage" class="note hidden" style="margin:4px 0 8px"></div>
 
-<div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" title="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th><th>Lý do / Ghi chú</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
+<div class="scroll"><table style="min-width:1000px"><thead><tr><th><input type="checkbox" id="attendanceHeaderSelectAll" aria-label="Chọn tất cả nhân viên đang hiển thị" title="Chọn tất cả nhân viên đang hiển thị" style="width:auto"></th><th>STT</th><th>Mã nhân viên</th><th>Nhân viên</th><th>Nhóm</th><th>Trạng thái</th></tr></thead><tbody id="attendanceBody"></tbody></table></div>
 <div id="attendanceExcelPreview" class="hidden panel" style="margin-top:18px">
  <div id="attendanceExcelInfo" class="message"></div>
  <div class="scroll"><table style="min-width:850px"><thead><tr><th>Mã nhân viên</th><th>Nhân viên trong file</th><th>Trạng thái</th><th>Kiểm tra</th></tr></thead><tbody id="attendanceExcelPreviewBody"></tbody></table></div>
@@ -738,7 +747,7 @@ const SUPABASE_URL = "https://juifxigovxddvmbwquyf.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_alUSkneRYMVrZUnCmetIVQ_GK2PzWjh";
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = id => document.getElementById(id);
-let employees = [], allEmployees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), attendanceReasonDraft = new Map(), editingOtId = null, otDraft = new Map();
+let employees = [], allEmployees = [], reports = [], attendanceRecords = [], attendanceExcelRows = [], overtimeRecords = [], otStandards = [], attendanceDraft = new Map(), editingOtId = null, otDraft = new Map();
 const selectedAttendanceEmployees = new Set();
 let attendanceShift='day';
 
@@ -752,6 +761,26 @@ function friendlyAuthError(error){
  if(msg.includes('password should be')) return 'Mật khẩu chưa đáp ứng yêu cầu của Supabase.';
  return error?.message||'Đã xảy ra lỗi. Vui lòng kiểm tra kết nối Supabase.';
 }
+
+// Thứ tự nhóm dùng thống nhất cho màn hình và Excel.
+const MM_TEAM_ORDER=['Office','Kitting','Rear','Shipment','SEVT'];
+function mmTeamRank(team){
+ const value=String(team||'').trim().toLocaleLowerCase('vi');
+ const index=MM_TEAM_ORDER.findIndex(x=>x.toLocaleLowerCase('vi')===value);
+ return index<0?MM_TEAM_ORDER.length:index;
+}
+function mmCompareEmployees(a,b){
+ const groupDiff=mmTeamRank(a.team)-mmTeamRank(b.team);
+ if(groupDiff)return groupDiff;
+ const nameDiff=String(a.full_name||a.name||'').localeCompare(String(b.full_name||b.name||''),'vi',{sensitivity:'base'});
+ if(nameDiff)return nameDiff;
+ return String(a.employee_code||a.code||'').localeCompare(String(b.employee_code||b.code||''),'vi',{numeric:true,sensitivity:'base'});
+}
+function mmSortTeams(teams){
+ return [...new Set((teams||[]).map(x=>String(x||'').trim()).filter(Boolean))]
+  .sort((a,b)=>mmTeamRank(a)-mmTeamRank(b)||a.localeCompare(b,'vi',{sensitivity:'base'}));
+}
+
 function teamTag(t){
  const name=String(t||'').trim();
  const palette={
@@ -784,7 +813,7 @@ async function loadAll(){
  if(s.error) console.warn('Chưa tải được tiêu chuẩn OT:',s.error.message);
  allEmployees=e.data||[];
  employees=allEmployees.filter(x=>x.is_active!==false);
- if(!g.error){teamMasterAvailable=true;TEAMS=[...new Set([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)])];}else{teamMasterAvailable=false;TEAMS=[...new Set(['SEVT','Shipment','Rear','Kitting','Office',...employees.map(e=>e.team).filter(Boolean)])];}
+ if(!g.error){teamMasterAvailable=true;TEAMS=mmSortTeams([...(g.data||[]).map(x=>x.name),...employees.map(e=>e.team).filter(Boolean)]);}else{teamMasterAvailable=false;TEAMS=mmSortTeams(['Office','Kitting','Rear','Shipment','SEVT',...employees.map(e=>e.team).filter(Boolean)]);}
  renderGroupControls();
  attendanceRecords=(a.data||[]).map(x=>({id:x.id,date:x.attendance_date,employee_id:x.employee_id,status:x.status,reason:x.reason||'',shift:x.shift||'day',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
  overtimeRecords=(o.data||[]).map(x=>({id:x.id,date:x.overtime_date,employee_id:x.employee_id,hours:x.hours,note:x.note||'',code:x.employees.employee_code,name:x.employees.full_name,team:x.employees.team,created_at:x.created_at||'',updated_at:x.updated_at||''}));
@@ -798,17 +827,7 @@ function renderEmployees(){
  const sourceEmployees=(allEmployees&&allEmployees.length?allEmployees:employees).filter(x=>showFormer?x.is_active===false:x.is_active!==false);
  const rows=sourceEmployees
   .filter(x=>([x.employee_code,x.full_name,x.team,x.phone,x.classification,x.birth_date].join(' ')).toLowerCase().includes(q))
-  .sort((a,b)=>{
-   // Sắp xếp theo nhóm: Office -> Kitting -> Rear -> SEVT; nhóm khác (ví dụ Shipment) xếp sau.
-   const teamOrder=['Office','Kitting','Kititing','Rear','SEVT'];
-   const normTeam=v=>String(v||'').trim().toLocaleLowerCase('vi');
-   const teamRank=v=>{const key=normTeam(v);const idx=teamOrder.findIndex(t=>normTeam(t)===key);return idx<0?teamOrder.length:idx;};
-   const teamDiff=teamRank(a.team)-teamRank(b.team);
-   if(teamDiff!==0)return teamDiff;
-   const byName=String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'});
-   if(byName!==0)return byName;
-   return String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
-  });
+  .sort(mmCompareEmployees);
  $('employeeBody').innerHTML=rows.map((x,i)=>{
   if(String(inlineEditingEmployeeId)===String(x.id)){
    const teamOpts=TEAMS.map(t=>`<option value="${safe(t)}" ${x.team===t?'selected':''}>${safe(t)}</option>`).join('');
@@ -841,7 +860,7 @@ async function loadTeamMaster(){
  if(error){teamMasterAvailable=false;console.warn('Không tải được employee_groups, dùng nhóm mặc định và nhóm đang có trong hồ sơ:',error.message);}
  else {teamMasterAvailable=true;}
  const names=(data||[]).map(x=>x.name);
- TEAMS=[...new Set([...(names.length?names:['SEVT','Shipment','Rear','Kitting','Office']),...((employees||[]).map(e=>e.team).filter(Boolean))])];
+ TEAMS=mmSortTeams([...(names.length?names:['Office','Kitting','Rear','Shipment','SEVT']),...((employees||[]).map(e=>e.team).filter(Boolean))]);
  renderGroupControls();
 }
 function pct(n,total){return total?`${(n/total*100).toFixed(1).replace('.',',')}%`:'0,0%'}
@@ -860,7 +879,7 @@ function showDashboardDetails(kind,value,team=''){
   if(kind==='classification')return (e.classification||'').trim()===value;
   if(kind==='leave')return e.status!=='Đi Làm'&&e.status!=='Chưa điểm danh'&&e.status!=='Đổi Về HC'&&ATTENDANCE_STATUSES.includes(e.status);
   return e.status===value;
- });
+ }).sort(mmCompareEmployees);
  let title='Danh sách nhân viên';
  if(kind==='team')title=`Danh sách nhân viên nhóm ${team}`;
  else if(kind==='all')title='Danh sách toàn bộ nhân viên';
@@ -903,7 +922,7 @@ async function exportTeamSummaryExcel(){
  const rows=dashboardRows();
  const date=$('summaryDate').value;
  const dateText=date?date.split('-').reverse().join('/') : '';
- const teamOrder=[...TEAMS];
+ const teamOrder=mmSortTeams([...MM_TEAM_ORDER,...TEAMS]);
  const classOrder={'Chính Thức':0,'Thời Vụ':1,'Sinh Viên':2};
  const workbook=new ExcelJS.Workbook();
  workbook.creator='Hệ thống quản lý nhân lực MM';
@@ -1485,7 +1504,7 @@ function setAttendanceDraftForDate(date){
  updateAttendanceShiftButtons();
  const dayRecords=attendanceRecords.filter(x=>x.date===date);
  attendanceDraft=new Map(dayRecords.map(x=>[String(x.employee_id),x.status]));
- attendanceReasonDraft=new Map(dayRecords.map(x=>[String(x.employee_id),x.reason||'']));
+ 
 }
 
 function formatShiftDate(dateStr){
@@ -1541,9 +1560,6 @@ function syncVisibleAttendanceDraft(){
   if(select.value) attendanceDraft.set(employeeId,select.value);
   else attendanceDraft.delete(employeeId);
  });
- document.querySelectorAll('#attendanceBody .attendance-reason').forEach(input=>{
-  attendanceReasonDraft.set(String(input.dataset.employeeId),input.value||'');
- }); 
 }
 function updateAttendanceHeaderSelectAll(){
  const boxes=[...document.querySelectorAll('#attendanceBody .attendance-select')];
@@ -1563,26 +1579,13 @@ function renderAttendance(){
  const classOrder=['Chính Thức','Thời Vụ','Sinh Viên'];
  const filtered=employees
   .filter(e=>(e.is_active!==false)&&(!team||e.team===team)&&([e.employee_code,e.full_name,e.team,e.classification].join(' ').toLowerCase().includes(q)))
-  .sort((a,b)=>{
-   const ai=groupOrder.indexOf(String(a.team||'').trim());
-   const bi=groupOrder.indexOf(String(b.team||'').trim());
-   const ag=ai<0?groupOrder.length:ai,bg=bi<0?groupOrder.length:bi;
-   if(ag!==bg)return ag-bg;
-   const ac=classOrder.indexOf(String(a.classification||'').trim());
-   const bc=classOrder.indexOf(String(b.classification||'').trim());
-   const acr=ac<0?classOrder.length:ac,bcr=bc<0?classOrder.length:bc;
-   if(acr!==bcr)return acr-bcr;
-   const byName=String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'});
-   if(byName!==0)return byName;
-   return String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
-  });
+  .sort(mmCompareEmployees);
  $('attendanceBody').innerHTML=filtered.map((e,i)=>{
   const current=attendanceDraft.get(String(e.id))||'';
-  const reason=attendanceReasonDraft.get(String(e.id))||'';
   const saved=attendanceRecords.find(x=>x.date===date&&String(x.employee_id)===String(e.id));
   const markLabel=saved?(saved.status===current?'<span class="attendance-saved-label">✓ Đã điểm danh</span>':'<span class="attendance-unsaved-label">Chưa lưu thay đổi</span>'):(current?'<span class="attendance-unsaved-label">Chưa lưu</span>':'');
   const checked=selectedAttendanceEmployees.has(String(e.id))?'checked':'';
-  return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select>${markLabel}</td><td><input class="attendance-reason" data-employee-id="${e.id}" value="${safe(reason)}" placeholder="Nhập lý do nghỉ / ghi chú" style="min-width:220px"></td></tr>`;
+  return `<tr><td><input type="checkbox" class="attendance-select" data-employee-id="${e.id}" ${checked} style="width:auto"></td><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td><select class="status-select attendance-status" data-employee-id="${e.id}"><option value="">-- Chọn trạng thái --</option>${ATTENDANCE_STATUSES.map(s=>`<option value="${s}" ${current===s?'selected':''}>${s}</option>`).join('')}</select>${markLabel}</td></tr>`;
  }).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
  const values=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,status}));
  $('attWorkCount').textContent=values.filter(x=>x.status==='Đi Làm').length;
@@ -1622,10 +1625,6 @@ $('attendanceHeaderSelectAll').onchange=ev=>{
  });
  updateAttendanceHeaderSelectAll();
 };
-$('attendanceBody').addEventListener('input',ev=>{
- const reasonInput=ev.target.closest('.attendance-reason');
- if(reasonInput)attendanceReasonDraft.set(String(reasonInput.dataset.employeeId),reasonInput.value||'');
-});
 $('attendanceBody').addEventListener('change',ev=>{
  const box=ev.target.closest('.attendance-select');
  if(box){
@@ -1650,7 +1649,7 @@ $('attendanceBody').addEventListener('change',ev=>{
 $('saveAttendance').onclick=async()=>{
  syncVisibleAttendanceDraft();
  const date=$('attendanceDate').value;if(!date){alert('Vui lòng chọn ngày điểm danh.');return}
- const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,reason:attendanceReasonDraft.get(String(employee_id))||'',shift:attendanceShift}));
+ const payload=[...attendanceDraft.entries()].map(([employee_id,status])=>({employee_id,attendance_date:date,status,shift:attendanceShift}));
  if(!payload.length){alert('Chưa chọn trạng thái cho nhân viên nào.');return}
  const saveButton=$('saveAttendance');saveButton.disabled=true;saveButton.textContent='Đang lưu...';
  const shiftUpdate=await client.from('employee_attendance').update({shift:attendanceShift}).eq('attendance_date',date);
@@ -1660,7 +1659,7 @@ $('saveAttendance').onclick=async()=>{
  if(error){alert('Không lưu được điểm danh: '+error.message);return}
  await loadAll();alert(`Đã lưu trạng thái cho ${payload.length} nhân viên.`);
 };
-$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();attendanceReasonDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);updateAttendanceShiftInfo();renderAttendance()};
+$('attendanceDate').onchange=()=>{$('attendanceBody').innerHTML='';attendanceDraft=new Map();$('attendanceQuickMessage').classList.add('hidden');setAttendanceDraftForDate($('attendanceDate').value);updateAttendanceShiftInfo();renderAttendance()};
 $('attendanceTeamFilter').onchange=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 $('attendanceSearch').oninput=()=>{syncVisibleAttendanceDraft();renderAttendance()};
 
@@ -1718,7 +1717,7 @@ function exportAttendanceWorkbook(data,fileName){
  XLSX.writeFile(wb,fileName);
 }
 $('attendanceTemplate').onclick=()=>{
- const rows=employees.slice(0,4).map(e=>({'Mã Nhân Viên':e.employee_code,'Nhân Viên':e.full_name,'Trạng Thái Nghỉ':'Đi Làm'}));
+ const rows=[...employees].sort(mmCompareEmployees).slice(0,4).map(e=>({'Mã Nhân Viên':e.employee_code,'Nhân Viên':e.full_name,'Trạng Thái Nghỉ':'Đi Làm'}));
  exportAttendanceWorkbook(rows.length?rows:[{'Mã Nhân Viên':'NV001','Nhân Viên':'Nguyễn Văn A','Trạng Thái Nghỉ':'Đi Làm'}],'Mau_diem_danh_nhan_vien.xlsx');
 };
 $('attendanceExport').onclick=()=>{
@@ -1855,7 +1854,7 @@ $('downloadTemplate').onclick=()=>exportWorkbook([
  {'Ngày Sinh':'2000-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','SĐT':'0987654321','Nhóm':'Rear','Ca':'B','Phân Loại':'Sinh Viên'},
  {'Ngày Sinh':'1997-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','SĐT':'0909876543','Nhóm':'Office','Ca':'A','Phân Loại':'Chính Thức'}
 ],'Mau_danh_sach_nhan_vien.xlsx');
-$('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Sinh':x.birth_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'SĐT':x.phone||'','Nhóm':x.team,'Ca':String(x.shift||'A').toUpperCase(),'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
+$('exportExcel').onclick=()=>exportWorkbook([...employees].sort(mmCompareEmployees).map(x=>({'Ngày Sinh':x.birth_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'SĐT':x.phone||'','Nhóm':x.team,'Ca':String(x.shift||'A').toUpperCase(),'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
 
 $('empSearch').oninput=renderEmployees;
 window.showFormerEmployees=false;
@@ -2475,7 +2474,7 @@ function setOtField(id,field,value){
   if(field==='hours') renderOvertime(); else updateOtSelectedCount();
  }
 }
-const OT_GROUP_ORDER=['Office','Kitting','Rear','Shipment','SEVT'];
+const OT_GROUP_ORDER=MM_TEAM_ORDER;
 const OT_CLASS_ORDER=['Chính Thức','Thời Vụ','Sinh Viên'];
 function compareOtEmployeeOrder(a,b){
  const ai=OT_GROUP_ORDER.indexOf(String(a.team||'').trim()),bi=OT_GROUP_ORDER.indexOf(String(b.team||'').trim());
@@ -2641,7 +2640,7 @@ function renderMbo(){
  const teamFilter=$('mboTeamFilter').value||'';
  const eligible=(allEmployees||[]).filter(e=>e.is_active!==false&&String(e.classification||'').trim().toLocaleLowerCase('vi')==='chính thức'&&String(e.shift||'A').toUpperCase()==='C');
  const teams=[...new Set(eligible.map(e=>String(e.team||'').trim()).filter(Boolean))];
- const teamOrder=['Office','Kitting','Kititing','Rear','SEVT','Shipment'];
+ const teamOrder=MM_TEAM_ORDER;
  teams.sort((a,b)=>{const rank=v=>{const i=teamOrder.findIndex(t=>t.toLocaleLowerCase('vi')===v.toLocaleLowerCase('vi'));return i<0?teamOrder.length:i};return rank(a)-rank(b)||a.localeCompare(b,'vi')});
  const tf=$('mboTeamFilter'),previous=teamFilter;
  tf.innerHTML='<option value="">Tất cả nhóm</option>'+teams.map(t=>`<option value="${safe(t)}">${safe(t)}</option>`).join('');
@@ -2649,15 +2648,7 @@ function renderMbo(){
  mboRows=eligible
   .filter(e=>!tf.value||String(e.team||'').trim()===tf.value)
   .filter(e=>[e.employee_code,e.full_name].join(' ').toLocaleLowerCase('vi').includes(q))
-  .sort((a,b)=>{
-   // Đồng bộ thứ tự nhóm với tab Nhân viên: Office -> Kitting -> Rear -> SEVT; nhóm khác ở cuối.
-   const teamOrder=['Office','Kitting','Kititing','Rear','SEVT'];
-   const norm=v=>String(v||'').trim().toLocaleLowerCase('vi');
-   const rank=v=>{const i=teamOrder.findIndex(t=>norm(t)===norm(v));return i<0?teamOrder.length:i;};
-   return rank(a.team)-rank(b.team)
-    ||String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'})
-    ||String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true});
-  });
+  .sort(mmCompareEmployees);
  $('mboTitle').textContent=`ĐÁNH GIÁ MBO MM CA C NĂM ${mboYear()}`;
  $('mboBody').innerHTML=mboRows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code||'')}</td><td>${safe(e.full_name||'')}</td><td>${teamTag(e.team||'')}</td><td><b>${safe(e.shift||'C')}</b></td>${Array.from({length:12},(_,idx)=>{const m=idx+1,key=mboKey(e.id,m),v=mboGrades.get(key)||'';return `<td><select aria-label="${safe(e.full_name)} tháng ${m}" data-mbo-employee="${safe(e.id)}" data-mbo-month="${m}"><option value=""></option>${MBO_GRADES.map(g=>`<option value="${g.value}" ${v===g.value?'selected':''}>${g.value}</option>`).join('')}</select><small id="mboStatus_${safe(e.id)}_${m}" class="note"></small></td>`}).join('')}</tr>`).join('')||'<tr><td colspan="17">Không có nhân viên chính thức Ca C đang làm.</td></tr>';
 }
@@ -2751,6 +2742,68 @@ if($('otExportToDate'))$('otExportToDate').value=attendanceBusinessDate;
    const up=()=>{handle.classList.remove('dragging');document.body.classList.remove('ot-column-resizing');window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',up);try{localStorage.setItem(storageKey,JSON.stringify(widths));}catch(_){}};
    window.addEventListener('pointermove',move);window.addEventListener('pointerup',up,{once:true});
   });
+ });
+})();
+
+
+// Sắp xếp A-Z / Z-A cho các bảng đang hiển thị.
+// Bấm tiêu đề cột để sắp xếp; bấm lại cùng cột để đảo chiều.
+(function enableTableAzSorting(){
+ const ignoredHeaders=new Set(['','stt','thao tác','thao tac','chọn','chon']);
+ const normalizeText=value=>String(value||'').replace(/\s+/g,' ').trim();
+ const getCellText=cell=>{
+  if(!cell)return '';
+  const control=cell.querySelector('input:not([type="checkbox"]),select,textarea');
+  if(control)return normalizeText(control.value||control.options?.[control.selectedIndex]?.text||'');
+  return normalizeText(cell.innerText||cell.textContent||'');
+ };
+ const compareValues=(a,b)=>{
+  const aa=normalizeText(a),bb=normalizeText(b);
+  if(!aa)return bb?1:0;
+  if(!bb)return -1;
+  const na=Number(aa.replace(/,/g,'')),nb=Number(bb.replace(/,/g,''));
+  if(aa!==''&&bb!==''&&Number.isFinite(na)&&Number.isFinite(nb))return na-nb;
+  return aa.localeCompare(bb,'vi',{numeric:true,sensitivity:'base'});
+ };
+ document.querySelectorAll('table').forEach(table=>{
+  const headRows=[...table.querySelectorAll('thead tr')];
+  if(headRows.length!==1)return; // Bảng tiêu đề nhiều tầng giữ nguyên bố cục.
+  [...headRows[0].cells].forEach((th,index)=>{
+   if(th.colSpan>1||th.rowSpan>1||th.querySelector('input,button,select'))return;
+   const label=normalizeText(th.innerText||th.textContent).toLocaleLowerCase('vi');
+   if(ignoredHeaders.has(label))return;
+   th.classList.add('mm-sortable');
+   th.title='Bấm để sắp xếp A-Z; bấm lần nữa để sắp xếp Z-A';
+   th.dataset.mmSortColumn=String(index);
+  });
+ });
+ document.addEventListener('click',event=>{
+  const th=event.target.closest('th.mm-sortable');
+  if(!th)return;
+  const table=th.closest('table'),tbody=table?.tBodies?.[0];
+  if(!tbody)return;
+  const col=Number(th.dataset.mmSortColumn);
+  const current=th.dataset.mmSortDirection||'';
+  const direction=current==='asc'?'desc':'asc';
+  const rows=[...tbody.rows].filter(row=>row.cells.length>col&&!row.querySelector('td[colspan]'));
+  if(rows.length<2)return;
+  rows.sort((ra,rb)=>{
+   const result=compareValues(getCellText(ra.cells[col]),getCellText(rb.cells[col]));
+   return direction==='asc'?result:-result;
+  });
+  rows.forEach(row=>tbody.appendChild(row));
+  [...table.querySelectorAll('th.mm-sortable')].forEach(h=>{
+   h.dataset.mmSortDirection='';
+   h.dataset.mmSortIndicator='';
+  });
+  th.dataset.mmSortDirection=direction;
+  th.dataset.mmSortIndicator=direction==='asc'?'▲ A-Z':'▼ Z-A';
+  // Đánh lại STT sau khi đổi thứ tự, nếu bảng có cột STT.
+  const firstHeader=table.querySelector('thead tr')?.cells?.[0];
+  const firstLabel=normalizeText(firstHeader?.innerText||firstHeader?.textContent).toLocaleLowerCase('vi');
+  if(firstLabel==='stt'){
+   [...tbody.rows].filter(row=>!row.querySelector('td[colspan]')).forEach((row,i)=>{if(row.cells[0])row.cells[0].textContent=String(i+1);});
+  }
  });
 })();
 
