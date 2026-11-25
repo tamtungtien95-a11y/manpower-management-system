@@ -2314,7 +2314,7 @@ function renderOvertime(){
    <td>${i+1}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td>
    <td><select onchange="setOtField('${x.id}','hours',this.value)">${hoursOptions}</select></td>
    <td><select onchange="setOtField('${x.id}','note',this.value)"><option value="" ${!v.note?'selected':''}>-- Chọn ghi chú --</option><option value="KHSX" ${v.note==='KHSX'?'selected':''}>KHSX</option><option value="Vượt OT" ${v.note==='Vượt OT'?'selected':''}>Vượt OT</option></select></td>
-   <td>${saved?'<span class="tag">Đã lưu</span>':(v.selected?'<span class="tag">Đang chọn</span>':'—')}</td>
+   <td>${saved?'<span class="tag" style="background:#dcfce7;color:#166534;border:1px solid #86efac">✓ Đã đăng ký</span>':(v.selected?'<span class="tag">Đang chọn</span>':'—')}</td>
    <td>${saved?`<button type="button" class="red" onclick="removeSavedOt('${saved.id}')">Xóa OT</button>`:'—'}</td>
   </tr>`;
  }).join('')||'<tr><td colspan="9">Không có nhân viên Đi Làm hoặc Nghỉ Nửa Ngày Đầu trong ngày/nhóm đã chọn</td></tr>';
@@ -2383,7 +2383,13 @@ function renderOtHistory(){
  const rows=overtimeRecords
   .filter(v=>v.date===d&&(!team||v.team===team)&&([v.code,v.name,v.team,v.classification].join(' ').toLowerCase().includes(q)))
   .map(v=>({...v,full_name:v.name,employee_code:v.code,classification:(allEmployees||employees).find(e=>String(e.id)===String(v.employee_id))?.classification||''}))
-  .sort(compareOtEmployeeOrder);
+  .sort((a,b)=>{
+   const ai=OT_GROUP_ORDER.indexOf(String(a.team||'').trim()),bi=OT_GROUP_ORDER.indexOf(String(b.team||'').trim());
+   const ag=ai<0?OT_GROUP_ORDER.length:ai,bg=bi<0?OT_GROUP_ORDER.length:bi;
+   if(ag!==bg)return ag-bg;
+   const byName=String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'});
+   return byName||String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
+  });
  $('otHistoryBody').innerHTML=rows.map((v,i)=>`<tr><td>${i+1}</td><td>${safe(v.date)}</td><td>${safe(v.code)}</td><td>${safe(v.name)}</td><td>${teamTag(v.team)}</td><td>${safe(v.hours)}</td><td>${safe(v.note||'—')}</td><td><button class="red" onclick="removeSavedOt('${v.id}')">Xóa</button></td></tr>`).join('')||'<tr><td colspan="8">Chưa có OT đã lưu</td></tr>';
 }
 if($('otDate'))$('otDate').onchange=async()=>{
