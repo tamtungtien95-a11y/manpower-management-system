@@ -481,7 +481,7 @@ img, svg, canvas { max-width: 100%; }
 <button type="button" id="exportExcel" class="hidden">Xuất danh sách</button>
 <div id="excelPreview" class="hidden panel" style="margin-top:12px">
 <div id="excelInfo" class="message"></div>
-<div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>Nhóm</th><th>Ca</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
 <div class="actions" style="margin-top:12px"><button type="button" id="applyExcel">Cập nhật lên Supabase</button><button type="button" class="gray" id="cancelExcel">Hủy</button></div></div>
 <div class="toolbar"><b>Danh sách nhân viên đang làm</b><button type="button" class="gray" id="toggleFormerEmployees">Xem nhân viên đã nghỉ</button><input id="empSearch" placeholder="Tìm mã hoặc họ tên"></div>
 <div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Vào Cty</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Ca</th><th>Phân Loại</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
@@ -672,10 +672,12 @@ function renderEmployees(){
  const rows=sourceEmployees
   .filter(x=>([x.employee_code,x.full_name,x.team,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q))
   .sort((a,b)=>{
-   const shiftOrder=['C','A','B'];
-   const as=shiftOrder.indexOf(String(a.shift||'A').toUpperCase()), bs=shiftOrder.indexOf(String(b.shift||'A').toUpperCase());
-   const ash=as<0?shiftOrder.length:as, bsh=bs<0?shiftOrder.length:bs;
-   if(ash!==bsh)return ash-bsh;
+   // Sắp xếp theo nhóm: Office -> Kitting -> Rear -> SEVT; nhóm khác (ví dụ Shipment) xếp sau.
+   const teamOrder=['Office','Kitting','Kititing','Rear','SEVT'];
+   const normTeam=v=>String(v||'').trim().toLocaleLowerCase('vi');
+   const teamRank=v=>{const key=normTeam(v);const idx=teamOrder.findIndex(t=>normTeam(t)===key);return idx<0?teamOrder.length:idx;};
+   const teamDiff=teamRank(a.team)-teamRank(b.team);
+   if(teamDiff!==0)return teamDiff;
    const byName=String(a.full_name||'').localeCompare(String(b.full_name||''),'vi',{sensitivity:'base'});
    if(byName!==0)return byName;
    return String(a.employee_code||'').localeCompare(String(b.employee_code||''),'en',{numeric:true,sensitivity:'base'});
@@ -1602,7 +1604,7 @@ function parseExcelDate(v){
 function previewExcel(rows){
  excelRows=rows;const bad=rows.filter(x=>x.error).length;
  $('excelPreview').classList.remove('hidden');$('excelInfo').textContent=`Đọc được ${rows.length} dòng; ${bad} dòng lỗi. ${bad?'Hãy sửa file trước khi cập nhật.':'Dữ liệu hợp lệ.'}`;
- $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>`<tr><td>${safe(x.hire_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.team)}</td><td>${safe(x.classification)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
+ $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>`<tr><td>${safe(x.hire_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.team)}</td><td>${safe(x.shift||'A')}</td><td>${safe(x.classification)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
  $('applyExcel').disabled=bad>0||!rows.length;
 }
 $('excelFile').addEventListener('change',async ev=>{
@@ -1621,15 +1623,18 @@ $('excelFile').addEventListener('change',async ev=>{
    // Chuẩn hóa tên nhóm theo đúng cách viết đang lưu trong danh mục nhóm.
    // Tránh trường hợp Excel ghi "kitting" nhưng hệ thống lưu "Kitting".
    const team=TEAMS.find(t=>t.toLocaleLowerCase('vi')===importedTeam.toLocaleLowerCase('vi'))||importedTeam;
+   const importedShift=String(cellValue(r,['Ca','Ca làm việc','Shift'])??'A').trim().toUpperCase().replace(/^CA\s*/,'');
+   const shift=importedShift||'A';
    const classification=String(cellValue(r,['Phân Loại','Phân loại','Classification'])??'').trim();
    let error='';
    if(!code)error='Thiếu mã nhân viên';else if(!name)error='Thiếu họ và tên';
    else if(!TEAMS.some(t=>t.toLocaleLowerCase('vi')===importedTeam.toLocaleLowerCase('vi')))error='Nhóm không hợp lệ (hãy dùng nhóm đang có trong hệ thống)';
+   else if(!['A','B','C'].includes(shift))error='Ca không hợp lệ (chỉ nhập A, B hoặc C)';
    else if(!['Chính Thức','Thời Vụ','Sinh Viên'].includes(classification))error='Phân loại không hợp lệ';
    else if(rawDate&&!hire)error='Ngày vào công ty không đúng định dạng';
    const key=code.toLowerCase();if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
-   return {hire_date:hire||null,employee_code:code,full_name:name,team,classification,error,rowNumber:i+2};
-  }).filter(x=>x.employee_code||x.full_name||x.team||x.hire_date||x.classification);
+   return {hire_date:hire||null,employee_code:code,full_name:name,team,shift,classification,error,rowNumber:i+2};
+  }).filter(x=>x.employee_code||x.full_name||x.team||x.hire_date||x.classification||x.shift);
   if(!rows.length)throw new Error('Không tìm thấy dữ liệu. Kiểm tra tiêu đề cột.');
   previewExcel(rows);
  }catch(err){alert('Không đọc được file Excel: '+err.message)}
@@ -1637,7 +1642,7 @@ $('excelFile').addEventListener('change',async ev=>{
 $('applyExcel').onclick=async()=>{
  if(!excelRows.length||excelRows.some(x=>x.error))return;
  const b=$('applyExcel');b.disabled=true;b.textContent='Đang cập nhật...';
- const payload=excelRows.map(({hire_date,employee_code,full_name,team,classification})=>({hire_date,employee_code,full_name,team,classification}));
+ const payload=excelRows.map(({hire_date,employee_code,full_name,team,shift,classification})=>({hire_date,employee_code,full_name,team,shift:shift||'A',classification}));
  const {error}=await client.from('employees').upsert(payload,{onConflict:'employee_code'});
  b.disabled=false;b.textContent='Cập nhật lên Supabase';
  if(error){alert('Cập nhật thất bại: '+error.message);return}
@@ -1646,17 +1651,17 @@ $('applyExcel').onclick=async()=>{
 };
 $('cancelExcel').onclick=()=>{$('excelFile').value='';$('excelPreview').classList.add('hidden');excelRows=[]};
 function exportWorkbook(data,fileName){
- const ws=XLSX.utils.json_to_sheet(data,{header:['Ngày Vào Cty','Mã Nhân Viên','Họ Và tên','Nhóm','Phân Loại']});
- ws['!cols']=[{wch:18},{wch:20},{wch:30},{wch:18},{wch:22}];
+ const ws=XLSX.utils.json_to_sheet(data,{header:['Ngày Vào Cty','Mã Nhân Viên','Họ Và tên','Nhóm','Ca','Phân Loại']});
+ ws['!cols']=[{wch:18},{wch:20},{wch:30},{wch:18},{wch:10},{wch:22}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NhanVien');XLSX.writeFile(wb,fileName);
 }
 $('downloadTemplate').onclick=()=>exportWorkbook([
- {'Ngày Vào Cty':'2024-01-15','Mã Nhân Viên':'NV001','Họ Và tên':'Nguyễn Văn A','Nhóm':'Kitting','Phân Loại':'Chính Thức'},
- {'Ngày Vào Cty':'2024-02-01','Mã Nhân Viên':'NV002','Họ Và tên':'Trần Văn B','Nhóm':'Shipment','Phân Loại':'Thời Vụ'},
- {'Ngày Vào Cty':'2024-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','Nhóm':'Rear','Phân Loại':'Sinh Viên'},
- {'Ngày Vào Cty':'2024-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','Nhóm':'Office','Phân Loại':'Chính Thức'}
+ {'Ngày Vào Cty':'2024-01-15','Mã Nhân Viên':'NV001','Họ Và tên':'Nguyễn Văn A','Nhóm':'Kitting','Ca':'C','Phân Loại':'Chính Thức'},
+ {'Ngày Vào Cty':'2024-02-01','Mã Nhân Viên':'NV002','Họ Và tên':'Trần Văn B','Nhóm':'Shipment','Ca':'A','Phân Loại':'Thời Vụ'},
+ {'Ngày Vào Cty':'2024-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','Nhóm':'Rear','Ca':'B','Phân Loại':'Sinh Viên'},
+ {'Ngày Vào Cty':'2024-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','Nhóm':'Office','Ca':'A','Phân Loại':'Chính Thức'}
 ],'Mau_danh_sach_nhan_vien.xlsx');
-$('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':x.hire_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'Nhóm':x.team,'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
+$('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':x.hire_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'Nhóm':x.team,'Ca':String(x.shift||'A').toUpperCase(),'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
 
 $('empSearch').oninput=renderEmployees;
 window.showFormerEmployees=false;
