@@ -693,7 +693,7 @@ function renderEmployees(){
    </tr>`;
   }
   const inactive=x.is_active===false;
-  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td><b>Ca ${safe(x.shift||'A')}</b></td><td>${safe(x.classification||'')} ${inactive?'<span class="badge-inactive">Đã tắt</span>':''}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
+  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td><b>${safe(x.shift||'A')}</b></td><td>${safe(x.classification||'')} ${inactive?'<span class="badge-inactive">Đã tắt</span>':''}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
  }).join('')||'<tr><td colspan="8">Chưa có nhân viên</td></tr>';
 }
 let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
