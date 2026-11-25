@@ -460,7 +460,8 @@ img, svg, canvas { max-width: 100%; }
  .dashboard-click-card{cursor:pointer;transition:box-shadow .15s,transform .15s}.dashboard-click-card:hover{box-shadow:0 4px 14px rgba(15,23,42,.12);transform:translateY(-1px)} .dashboard-click-card:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
 </style>
 <!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
-<!-- MM-DASHBOARD-ALL-METRIC-CARDS-CLICKABLE-v2 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
+<!-- MM-DASHBOARD-ALL-METRIC-CARDS-CLICKABLE-v2 -->
+<!-- MM-DASHBOARD-DETAIL-LISTS-HIDE-REASON-COLUMN-v1 -->\n<!-- MM-DASHBOARD-ACTIVE-EMPLOYEE-COUNT-SYNC-v1 -->
 </head>
 <body>
 <header><div><h1>HỆ THỐNG QUẢN LÝ NHÂN LỰC</h1><p>Quản lý nhân viên theo nhóm Kitting / Shipment / Shift LD / Item</p></div><div id="userArea"></div></header>
@@ -548,7 +549,7 @@ img, svg, canvas { max-width: 100%; }
  <div id="teamWorkChart" class="team-work-chart" role="img" aria-label="Biểu đồ cột so sánh nhân viên đi làm và nghỉ theo nhóm"></div>
 </div>
 <div class="panel"><div class="toolbar" style="margin-top:0"><div><h3 style="margin:0 0 5px">Tổng hợp theo nhóm</h3><p class="note" style="margin:0">Bấm vào số lượng tại từng nhóm hoặc từng trạng thái để xem danh sách nhân viên tương ứng. Tỷ lệ trong bảng nhóm tính trên tổng nhân viên của chính nhóm đó.</p></div></div><div class="scroll"><table class="dashboard-table"><thead><tr><th>Nhóm</th><th>Tổng NV</th><th>Đi Làm</th><th>Nghỉ Tự Do</th><th>Nghỉ Phép</th><th>Nghỉ Không Lương</th><th>Nghỉ 1/2 Ngày</th><th>Nghỉ Nửa Ngày Đầu</th><th>Nghỉ Nửa Ngày Sau</th><th>Nghỉ KHSX</th><th>Đổi Về HC</th><th>Chưa điểm danh</th><th>Tỷ lệ đi làm</th></tr></thead><tbody id="teamSummaryBody"></tbody><tfoot id="teamSummaryFoot"></tfoot></table></div></div>
-<div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th><th>Lý do / Ghi chú</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
+<div id="dashboardDetail" class="detail-overlay hidden" role="dialog" aria-modal="true"><div class="detail-box"><div class="detail-head"><h3 id="detailTitle">Danh sách nhân viên</h3><button type="button" class="gray" id="closeDashboardDetail">Đóng</button></div><p id="detailSubtitle" class="note"></p><div class="scroll"><table><thead><tr><th>STT</th><th>Mã nhân viên</th><th>Họ và tên</th><th>Nhóm</th><th>Phân loại</th><th>Trạng thái</th></tr></thead><tbody id="detailEmployeeBody"></tbody></table></div></div></div>
 <div id="reportImagePreviewModal" class="detail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reportImagePreviewTitle"><div class="detail-box report-image-preview-box"><div class="detail-head"><div><h3 id="reportImagePreviewTitle">Xem trước ảnh báo cáo</h3><p class="note" style="margin:5px 0 0">Kiểm tra ảnh báo cáo tổng hợp theo nhóm trước khi tải về máy.</p></div><button type="button" class="gray" id="closeReportImagePreview">Đóng</button></div><div id="reportImagePreviewContent" class="report-image-preview-content" style="margin-top:12px"><div class="note">Đang tạo ảnh báo cáo...</div></div><div id="reportImageStatus" class="note" style="margin-top:9px"></div><div class="report-image-actions"><button type="button" class="gray" id="cancelReportImagePreview">Đóng</button><button type="button" id="downloadReportImage" class="report-image-button">Tải ảnh PNG</button></div></div></div>
 </section>
 <section id="employees" class="view">
@@ -867,7 +868,7 @@ function showDashboardDetails(kind,value,team=''){
  else if(kind==='classification')title=`Danh sách nhân viên: ${value}`;
  else title=`Danh sách nhân viên: ${value}${team?' - '+team:''}`;
  $('detailTitle').textContent=title;$('detailSubtitle').textContent=`Ngày ${$('summaryDate').value}: ${rows.length} nhân viên`;
- $('detailEmployeeBody').innerHTML=rows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td>${safe(e.classification||'')}</td><td>${safe(e.status)}</td><td>${safe(e.attendance?.reason||'')}</td></tr>`).join('')||'<tr><td colspan="7">Không có nhân viên phù hợp</td></tr>';
+ $('detailEmployeeBody').innerHTML=rows.map((e,i)=>`<tr><td>${i+1}</td><td>${safe(e.employee_code)}</td><td>${safe(e.full_name)}</td><td>${teamTag(e.team)}</td><td>${safe(e.classification||'')}</td><td>${safe(e.status)}</td></tr>`).join('')||'<tr><td colspan="6">Không có nhân viên phù hợp</td></tr>';
  $('dashboardDetail').classList.remove('hidden');
 }
 window.showDashboardDetails=showDashboardDetails;
