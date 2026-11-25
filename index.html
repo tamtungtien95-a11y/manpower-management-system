@@ -367,6 +367,24 @@ img, svg, canvas { max-width: 100%; }
  #otMultiTable{min-width:720px}
 }
 
+
+/* Giao diện tab Nhân viên tối ưu cho điện thoại */
+#employeeForm input,#employeeForm select{min-height:44px;font-size:16px;width:100%;box-sizing:border-box}
+#employees .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#employees table{min-width:850px}
+#employees .actions button{min-height:40px;padding:9px 12px}
+@media(max-width:600px){
+ #employees .panel{padding:12px;margin:8px 0;border-radius:12px}
+ #employees .grid{grid-template-columns:1fr!important;gap:10px}
+ #employees #employeeForm .actions{display:flex;gap:8px}
+ #employees #employeeForm .actions button{flex:1;min-height:46px}
+ #employees .toolbar{align-items:stretch;gap:8px}
+ #employees #empSearch{width:100%;min-height:44px;font-size:16px}
+ #employees .employee-nav-actions{display:flex;gap:6px}
+ #employees .employee-nav-actions button{flex:1;min-height:42px;padding:8px;font-size:13px}
+ #employees table th,#employees table td{padding:8px;font-size:13px;white-space:nowrap}
+ #employees .scroll{border-radius:8px}
+}
 </style>
 </head>
 <body>
@@ -459,7 +477,7 @@ img, svg, canvas { max-width: 100%; }
 <section id="employees" class="view">
 <div class="panel"><h3>Thông tin nhân viên</h3>
 <form id="employeeForm"><div class="grid">
-<div><label>Ngày Vào Cty</label><input id="empHireDate" type="date"></div>
+<div><label>Ngày Sinh</label><input id="empBirthDate" type="date"></div>
 <div><label>Mã Nhân Viên</label><input id="empCode" required></div>
 <div><label>Họ Và tên</label><input id="empName" required></div>
 <div><label>Số điện thoại</label><input id="empPhone" type="tel" inputmode="tel" placeholder="Nhập số điện thoại"></div>
@@ -482,10 +500,10 @@ img, svg, canvas { max-width: 100%; }
 <button type="button" id="exportExcel" class="hidden">Xuất danh sách</button>
 <div id="excelPreview" class="hidden panel" style="margin-top:12px">
 <div id="excelInfo" class="message"></div>
-<div class="scroll"><table><thead><tr><th>Ngày vào Cty</th><th>Mã NV</th><th>Họ và tên</th><th>SĐT</th><th>Nhóm</th><th>Ca</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>Ngày Sinh</th><th>Mã NV</th><th>Họ và tên</th><th>SĐT</th><th>Nhóm</th><th>Ca</th><th>Phân loại</th><th>Kiểm tra</th></tr></thead><tbody id="excelPreviewBody"></tbody></table></div>
 <div class="actions" style="margin-top:12px"><button type="button" id="applyExcel">Cập nhật lên Supabase</button><button type="button" class="gray" id="cancelExcel">Hủy</button></div></div>
 <div class="toolbar"><b>Danh sách nhân viên đang làm</b><button type="button" class="gray" id="toggleFormerEmployees">Xem nhân viên đã nghỉ</button><input id="empSearch" placeholder="Tìm mã hoặc họ tên"></div>
-<div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Vào Cty</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Ca</th><th>SĐT</th><th>Phân Loại</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
+<div class="scroll"><table><thead><tr><th>STT</th><th>Ngày Sinh</th><th>Mã Nhân Viên</th><th>Họ Và tên</th><th>Nhóm</th><th>Ca</th><th>SĐT</th><th>Phân Loại</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="employeeBody"></tbody></table></div>
 </div></section>
 <section id="attendance" class="view">
 <div class="panel">
@@ -671,7 +689,7 @@ function renderEmployees(){
  const showFormer=!!window.showFormerEmployees;
  const sourceEmployees=(allEmployees&&allEmployees.length?allEmployees:employees).filter(x=>showFormer?x.is_active===false:x.is_active!==false);
  const rows=sourceEmployees
-  .filter(x=>([x.employee_code,x.full_name,x.team,x.phone,x.classification,x.hire_date].join(' ')).toLowerCase().includes(q))
+  .filter(x=>([x.employee_code,x.full_name,x.team,x.phone,x.classification,x.birth_date].join(' ')).toLowerCase().includes(q))
   .sort((a,b)=>{
    // Sắp xếp theo nhóm: Office -> Kitting -> Rear -> SEVT; nhóm khác (ví dụ Shipment) xếp sau.
    const teamOrder=['Office','Kitting','Kititing','Rear','SEVT'];
@@ -687,7 +705,7 @@ function renderEmployees(){
   if(String(inlineEditingEmployeeId)===String(x.id)){
    const teamOpts=TEAMS.map(t=>`<option value="${safe(t)}" ${x.team===t?'selected':''}>${safe(t)}</option>`).join('');
    return `<tr>
-    <td>${i+1}</td><td><input type="date" id="inlineHire_${x.id}" value="${safe(x.hire_date||'')}"></td>
+    <td>${i+1}</td><td><input type="date" id="inlineBirth_${x.id}" value="${safe(x.birth_date||'')}"></td>
     <td><input id="inlineCode_${x.id}" value="${safe(x.employee_code)}"></td>
     <td><input id="inlineName_${x.id}" value="${safe(x.full_name)}"></td>
     <td><select id="inlineTeam_${x.id}">${teamOpts}</select></td>
@@ -696,7 +714,7 @@ function renderEmployees(){
    </tr>`;
   }
   const inactive=x.is_active===false;
-  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.hire_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td><b>${safe(x.shift||'A')}</b></td><td>${safe(x.phone||'')}</td><td>${safe(x.classification||'')}</td><td>${inactive?`<span class="badge-inactive">Đã nghỉ việc</span><small style="display:block">${safe(formatDate(x.deactivated_at))}</small>`:'Đang làm'}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
+  return `<tr class="${inactive?'employee-inactive-row':''}"><td>${i+1}</td><td>${safe(formatDate(x.birth_date))}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${teamTag(x.team)}</td><td><b>${safe(x.shift||'A')}</b></td><td>${safe(x.phone||'')}</td><td>${safe(x.classification||'')}</td><td>${inactive?`<span class="badge-inactive">Đã nghỉ việc</span><small style="display:block">${safe(formatDate(x.deactivated_at))}</small>`:'Đang làm'}</td><td><div class="actions"><button class="gray" onclick="editEmployee('${x.id}')">Sửa</button>${inactive?`<button type="button" onclick="activateEmployee('${x.id}')">Bật lại</button>`:`<button type="button" class="red" onclick="deactivateEmployee('${x.id}')">Tắt</button>`}</div></td></tr>`;
  }).join('')||'<tr><td colspan="10">Chưa có nhân viên</td></tr>';
 }
 let TEAMS=['SEVT','Shipment','Rear','Kitting','Office'];
@@ -1250,11 +1268,22 @@ window.deleteGroupByName=async name=>{
  if(error){alert('Không xóa được nhóm: '+error.message);return}
  await loadAll();$('groupManagerPanel').classList.remove('hidden');renderGroupList();
 };
+function findEmployeeByCode(code, excludeId=null){
+ const key=String(code||'').trim().toLocaleUpperCase('vi');
+ if(!key)return null;
+ return (allEmployees||employees||[]).find(e=>String(e.employee_code||'').trim().toLocaleUpperCase('vi')===key && (excludeId===null||String(e.id)!==String(excludeId)))||null;
+}
+function duplicateEmployeeCodeMessage(existing, code){
+ if(!existing)return '';
+ return existing.is_active===false
+  ? `CẢNH BÁO: Mã nhân viên ${code} đã thuộc hồ sơ ${existing.full_name||''} và nhân viên này đã nghỉ việc. Hãy vào mục “Xem nhân viên đã nghỉ” và Bật lại hồ sơ cũ, không tạo hồ sơ mới.`
+  : `CẢNH BÁO: Mã nhân viên ${code} đã tồn tại trong hệ thống (${existing.full_name||'nhân viên hiện có'}). Vui lòng kiểm tra lại để tránh trùng ID.`;
+}
 window.editEmployee=id=>{inlineEditingEmployeeId=id;renderEmployees()};
 window.cancelInlineEmployee=()=>{inlineEditingEmployeeId=null;renderEmployees()};
 window.saveInlineEmployee=async id=>{
  const data={
-  hire_date:$(`inlineHire_${id}`).value||null,
+  birth_date:$(`inlineBirth_${id}`).value||null,
   employee_code:$(`inlineCode_${id}`).value.trim(),
   full_name:$(`inlineName_${id}`).value.trim(),
   team:$(`inlineTeam_${id}`).value,
@@ -1263,6 +1292,7 @@ window.saveInlineEmployee=async id=>{
   classification:$(`inlineClass_${id}`).value
  };
  if(!data.employee_code||!data.full_name){alert('Mã nhân viên và họ tên không được để trống.');return}
+ const duplicate=findEmployeeByCode(data.employee_code,id);if(duplicate){alert(duplicateEmployeeCodeMessage(duplicate,data.employee_code));return}
  const {error}=await client.from('employees').update(data).eq('id',id);
  if(error){alert('Cập nhật nhân viên thất bại: '+error.message);return}
  inlineEditingEmployeeId=null;await loadAll();alert('Đã cập nhật nhân viên.');
@@ -1270,8 +1300,9 @@ window.saveInlineEmployee=async id=>{
 $('employeeForm').onsubmit=async ev=>{
  ev.preventDefault();
  const id=$('editId').value.trim();
- const data={hire_date:$('empHireDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),phone:$('empPhone').value.trim()||null,team:$('empTeam').value,shift:$('empShift').value,classification:$('empClassification').value};
+ const data={birth_date:$('empBirthDate').value||null,employee_code:$('empCode').value.trim(),full_name:$('empName').value.trim(),phone:$('empPhone').value.trim()||null,team:$('empTeam').value,shift:$('empShift').value,classification:$('empClassification').value};
  if(!data.employee_code||!data.full_name){alert('Mã nhân viên và họ tên không được để trống.');return}
+ const duplicate=findEmployeeByCode(data.employee_code,id||null);if(duplicate){alert(duplicateEmployeeCodeMessage(duplicate,data.employee_code));return}
  const saveButton=$('saveEmpBtn');saveButton.disabled=true;
  const result=id
   ?await client.from('employees').update(data).eq('id',id)
@@ -1287,7 +1318,7 @@ window.editEmployee=id=>{
  if(!x)return;
  inlineEditingEmployeeId=String(id);
  renderEmployees();
- const firstField=$(`inlineHire_${id}`);
+ const firstField=$(`inlineBirth_${id}`);
  if(firstField) firstField.focus();
 };
 $('cancelEdit').onclick=()=>{$('employeeForm').reset();$('editId').value='';$('saveEmpBtn').textContent='Thêm nhân viên';$('cancelEdit').classList.add('hidden')};
@@ -1606,7 +1637,7 @@ function parseExcelDate(v){
 function previewExcel(rows){
  excelRows=rows;const bad=rows.filter(x=>x.error).length;
  $('excelPreview').classList.remove('hidden');$('excelInfo').textContent=`Đọc được ${rows.length} dòng; ${bad} dòng lỗi. ${bad?'Hãy sửa file trước khi cập nhật.':'Dữ liệu hợp lệ.'}`;
- $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>`<tr><td>${safe(x.hire_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.phone||'')}</td><td>${safe(x.team)}</td><td>${safe(x.shift||'A')}</td><td>${safe(x.classification)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
+ $('excelPreviewBody').innerHTML=rows.slice(0,150).map(x=>`<tr><td>${safe(x.birth_date||'')}</td><td>${safe(x.employee_code)}</td><td>${safe(x.full_name)}</td><td>${safe(x.phone||'')}</td><td>${safe(x.team)}</td><td>${safe(x.shift||'A')}</td><td>${safe(x.classification)}</td><td>${safe(x.error||'Hợp lệ')}</td></tr>`).join('');
  $('applyExcel').disabled=bad>0||!rows.length;
 }
 $('excelFile').addEventListener('change',async ev=>{
@@ -1617,7 +1648,7 @@ $('excelFile').addEventListener('change',async ev=>{
   if(!raw.length)throw new Error('File không có dữ liệu.');
   const seen=new Set();
   const rows=raw.map((r,i)=>{
-   const rawDate=cellValue(r,['Ngày Vào Cty','Ngày vào công ty','Hire Date']);
+   const rawDate=cellValue(r,['Ngày Sinh','Birth Date']);
    const hire=parseExcelDate(rawDate);
    const code=String(cellValue(r,['Mã Nhân Viên','Mã nhân viên','Mã NV'])??'').trim();
    const name=String(cellValue(r,['Họ Và tên','Họ và tên','Họ tên'])??'').trim();
@@ -1636,10 +1667,11 @@ $('excelFile').addEventListener('change',async ev=>{
    else if(!TEAMS.some(t=>t.toLocaleLowerCase('vi')===importedTeam.toLocaleLowerCase('vi')))error='Nhóm không hợp lệ (hãy dùng nhóm đang có trong hệ thống)';
    else if(!['A','B','C'].includes(shift))error='Ca không hợp lệ (chỉ nhập A, B hoặc C)';
    else if(!['Chính Thức','Thời Vụ','Sinh Viên'].includes(classification))error='Phân loại không hợp lệ';
-   else if(rawDate&&!hire)error='Ngày vào công ty không đúng định dạng';
-   const key=code.toLowerCase();if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
-   return {hire_date:hire||null,employee_code:code,full_name:name,phone:hasPhoneColumn?(phone||null):undefined,team,shift,classification,error,rowNumber:i+2};
-  }).filter(x=>x.employee_code||x.full_name||x.phone||x.team||x.hire_date||x.classification||x.shift);
+   else if(rawDate&&!hire)error='Ngày Sinh không đúng định dạng';
+   const key=code.toLocaleUpperCase('vi');if(code&&seen.has(key))error='Trùng mã nhân viên trong file';if(code)seen.add(key);
+   const existing=code?findEmployeeByCode(code):null;if(!error&&existing)error=duplicateEmployeeCodeMessage(existing,code);
+   return {birth_date:hire||null,employee_code:code,full_name:name,phone:hasPhoneColumn?(phone||null):undefined,team,shift,classification,error,rowNumber:i+2};
+  }).filter(x=>x.employee_code||x.full_name||x.phone||x.team||x.birth_date||x.classification||x.shift);
   if(!rows.length)throw new Error('Không tìm thấy dữ liệu. Kiểm tra tiêu đề cột.');
   previewExcel(rows);
  }catch(err){alert('Không đọc được file Excel: '+err.message)}
@@ -1647,7 +1679,7 @@ $('excelFile').addEventListener('change',async ev=>{
 $('applyExcel').onclick=async()=>{
  if(!excelRows.length||excelRows.some(x=>x.error))return;
  const b=$('applyExcel');b.disabled=true;b.textContent='Đang cập nhật...';
- const payload=excelRows.map(({hire_date,employee_code,full_name,phone,team,shift,classification})=>({hire_date,employee_code,full_name,phone,team,shift:shift||'A',classification}));
+ const payload=excelRows.map(({birth_date,employee_code,full_name,phone,team,shift,classification})=>({birth_date,employee_code,full_name,phone,team,shift:shift||'A',classification}));
  const {error}=await client.from('employees').upsert(payload,{onConflict:'employee_code'});
  b.disabled=false;b.textContent='Cập nhật lên Supabase';
  if(error){alert('Cập nhật thất bại: '+error.message);return}
@@ -1656,17 +1688,17 @@ $('applyExcel').onclick=async()=>{
 };
 $('cancelExcel').onclick=()=>{$('excelFile').value='';$('excelPreview').classList.add('hidden');excelRows=[]};
 function exportWorkbook(data,fileName){
- const ws=XLSX.utils.json_to_sheet(data,{header:['Ngày Vào Cty','Mã Nhân Viên','Họ Và tên','SĐT','Nhóm','Ca','Phân Loại']});
+ const ws=XLSX.utils.json_to_sheet(data,{header:['Ngày Sinh','Mã Nhân Viên','Họ Và tên','SĐT','Nhóm','Ca','Phân Loại']});
  ws['!cols']=[{wch:18},{wch:20},{wch:30},{wch:18},{wch:18},{wch:10},{wch:22}];
  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'NhanVien');XLSX.writeFile(wb,fileName);
 }
 $('downloadTemplate').onclick=()=>exportWorkbook([
- {'Ngày Vào Cty':'2024-01-15','Mã Nhân Viên':'NV001','Họ Và tên':'Nguyễn Văn A','SĐT':'0901234567','Nhóm':'Kitting','Ca':'C','Phân Loại':'Chính Thức'},
- {'Ngày Vào Cty':'2024-02-01','Mã Nhân Viên':'NV002','Họ Và tên':'Trần Văn B','SĐT':'0912345678','Nhóm':'Shipment','Ca':'A','Phân Loại':'Thời Vụ'},
- {'Ngày Vào Cty':'2024-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','SĐT':'0987654321','Nhóm':'Rear','Ca':'B','Phân Loại':'Sinh Viên'},
- {'Ngày Vào Cty':'2024-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','SĐT':'0909876543','Nhóm':'Office','Ca':'A','Phân Loại':'Chính Thức'}
+ {'Ngày Sinh':'1995-01-15','Mã Nhân Viên':'NV001','Họ Và tên':'Nguyễn Văn A','SĐT':'0901234567','Nhóm':'Kitting','Ca':'C','Phân Loại':'Chính Thức'},
+ {'Ngày Sinh':'1998-02-01','Mã Nhân Viên':'NV002','Họ Và tên':'Trần Văn B','SĐT':'0912345678','Nhóm':'Shipment','Ca':'A','Phân Loại':'Thời Vụ'},
+ {'Ngày Sinh':'2000-03-10','Mã Nhân Viên':'NV003','Họ Và tên':'Lê Văn C','SĐT':'0987654321','Nhóm':'Rear','Ca':'B','Phân Loại':'Sinh Viên'},
+ {'Ngày Sinh':'1997-04-05','Mã Nhân Viên':'NV004','Họ Và tên':'Phạm Văn D','SĐT':'0909876543','Nhóm':'Office','Ca':'A','Phân Loại':'Chính Thức'}
 ],'Mau_danh_sach_nhan_vien.xlsx');
-$('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Vào Cty':x.hire_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'SĐT':x.phone||'','Nhóm':x.team,'Ca':String(x.shift||'A').toUpperCase(),'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
+$('exportExcel').onclick=()=>exportWorkbook(employees.map(x=>({'Ngày Sinh':x.birth_date||'','Mã Nhân Viên':x.employee_code,'Họ Và tên':x.full_name,'SĐT':x.phone||'','Nhóm':x.team,'Ca':String(x.shift||'A').toUpperCase(),'Phân Loại':x.classification||''})),'Danh_sach_nhan_vien.xlsx');
 
 $('empSearch').oninput=renderEmployees;
 window.showFormerEmployees=false;
